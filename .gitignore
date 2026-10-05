@@ -11,12 +11,13 @@ dist/
 build/
 *.tsbuildinfo
 
-# Local data (Docker keeps these in named volumes; ignore any local copies)
-postgres_data/
-pgdata/
-minio_data/
-redis_data/
-data/
+# Local data (Docker keeps these in named volumes; ignore any local copies).
+# Anchored to the repo root so source folders such as web-app/src/data are kept.
+/postgres_data/
+/pgdata/
+/minio_data/
+/redis_data/
+/data/
 
 # Recordings, screenshots and frame dumps
 *.webm

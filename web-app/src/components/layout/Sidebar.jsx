@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 
 const LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: '▦' },
-  { to: '/configure', label: 'New Session', icon: '✦' },
+  { to: '/start', label: 'New Session', icon: '✦' },
   { to: '/personas', label: 'Personas', icon: '☺' },
   { to: '/team', label: 'Team', icon: '⚑' }
 ]

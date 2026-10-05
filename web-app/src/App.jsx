@@ -13,6 +13,7 @@ const Session = lazy(() => import('./pages/Session.jsx'))
 const Playback = lazy(() => import('./pages/Playback.jsx'))
 const Report = lazy(() => import('./pages/Report.jsx'))
 const Run = lazy(() => import('./pages/Run.jsx'))
+const Start = lazy(() => import('./pages/Start.jsx'))
 const Personas = lazy(() => import('./pages/Personas.jsx'))
 const Team = lazy(() => import('./pages/Team.jsx'))
 const SharedReport = lazy(() => import('./pages/SharedReport.jsx'))
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/playback/:id" element={<RequireAuth><Playback /></RequireAuth>} />
         <Route path="/report/:id" element={<RequireAuth><Report /></RequireAuth>} />
         <Route path="/run/:runId" element={<RequireAuth><Run /></RequireAuth>} />
+        <Route path="/start" element={<RequireAuth><Start /></RequireAuth>} />
         <Route path="/personas" element={<RequireAuth><Personas /></RequireAuth>} />
         <Route path="/team" element={<RequireAuth><Team /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />

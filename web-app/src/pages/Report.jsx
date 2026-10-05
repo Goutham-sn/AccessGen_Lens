@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
 import { ReportCover } from '../components/report/ReportCover.jsx'
+import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { JourneyMap } from '../components/report/JourneyMap.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
 import { BeforeAfter } from '../components/report/BeforeAfter.jsx'
@@ -56,7 +57,7 @@ export default function Report() {
     return <PageWrapper title="Report"><LoadingSpinner label="Preparing the report" /></PageWrapper>
   }
 
-  const { session, frames, events, empathyMoments, humanSummary } = data
+  const { session, frames, events, empathyMoments, humanSummary, intro } = data
   const persona = session.persona_snapshot
   const minutes = Math.max(1, Math.round((session.duration_seconds || 0) / 60))
 
@@ -79,6 +80,7 @@ export default function Report() {
     >
       <div className="space-y-8 pb-16">
         <ReportCover session={session} empathyMoments={empathyMoments} />
+        <SimulationBanner text={intro} />
 
         {/* The experience in numbers */}
         <section aria-labelledby="numbers-heading" className="rounded-2xl border border-gray-200 bg-white p-6">

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ReportCover } from '../components/report/ReportCover.jsx'
+import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
@@ -78,6 +79,7 @@ export default function SharedReport() {
         {!loading && data && (
           <div className="space-y-8">
             <ReportCover session={data.session} empathyMoments={data.empathyMoments} />
+            <SimulationBanner text={data.intro} />
             <EmpathyMoments
               empathyMoments={data.empathyMoments}
               personaName={data.session.persona_snapshot?.name}

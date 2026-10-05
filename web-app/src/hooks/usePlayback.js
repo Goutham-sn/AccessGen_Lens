@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, mediaUrl } from '../services/api.js'
 
+const POLL_MS = 4000
+const POLL_LIMIT_MS = 5 * 60 * 1000
+
 // Loads playback data and controls the <video> element.
 export function usePlayback(sessionId) {
   const videoRef = useRef(null)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  // True while video_url is still empty and the 5 minute limit has not run
+  // out. The recording is uploaded after the session ends, sometimes after
+  // the backend has already given up on it, so the status alone can't say
+  // whether a video is still coming.
+  const [waitingForVideo, setWaitingForVideo] = useState(true)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -13,10 +21,35 @@ export function usePlayback(sessionId) {
 
   useEffect(() => {
     let cancelled = false
-    api.get(`/playback/${sessionId}`)
-      .then((d) => { if (!cancelled) setData(d) })
-      .catch((e) => { if (!cancelled) setError(e.message) })
-    return () => { cancelled = true }
+    let timer = null
+    let loaded = false
+    const startedAt = Date.now()
+    setWaitingForVideo(true)
+
+    const pollAgain = () => {
+      if (Date.now() - startedAt < POLL_LIMIT_MS) timer = setTimeout(load, POLL_MS)
+      else setWaitingForVideo(false)
+    }
+
+    function load() {
+      api.get(`/playback/${sessionId}`)
+        .then((d) => {
+          if (cancelled) return
+          loaded = true
+          setData(d)
+          if (d.session?.video_url) setWaitingForVideo(false)
+          else pollAgain()
+        })
+        .catch((e) => {
+          if (cancelled) return
+          // A failed poll keeps what is already on screen and tries again.
+          if (loaded) pollAgain()
+          else { setError(e.message); setWaitingForVideo(false) }
+        })
+    }
+
+    load()
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [sessionId])
 
   const videoUrl = data?.session?.video_url ? mediaUrl(data.session.video_url) : null
@@ -26,10 +59,14 @@ export function usePlayback(sessionId) {
     if (v) setCurrentTime(v.currentTime)
   }, [])
 
+  // MediaRecorder WebM files carry no duration, so the browser reports
+  // Infinity until it has read the whole file. Fall back to the session's.
   const onLoadedMetadata = useCallback(() => {
     const v = videoRef.current
-    if (v) setDuration(v.duration)
-  }, [])
+    if (!v) return
+    const fallback = data?.session?.duration_seconds || 0
+    setDuration(Number.isFinite(v.duration) && v.duration > 0 ? v.duration : fallback)
+  }, [data])
 
   const toggle = useCallback(() => {
     const v = videoRef.current
@@ -68,7 +105,7 @@ export function usePlayback(sessionId) {
   }, [data, duration])
 
   return {
-    videoRef, data, error, videoUrl,
+    videoRef, data, error, videoUrl, waitingForVideo,
     playing, currentTime, duration, speed,
     toggle, seekTo, setSpeed, setPlaying,
     onTimeUpdate, onLoadedMetadata,

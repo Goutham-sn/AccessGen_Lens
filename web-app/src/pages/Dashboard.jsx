@@ -12,9 +12,11 @@ import { mediaUrl } from '../services/api.js'
 function SessionCard({ session, onDelete }) {
   const persona = session.persona_snapshot
   const statusTone = session.status === 'complete' ? 'success'
-    : session.status === 'recording' ? 'danger' : 'warning'
+    : session.status === 'recording' ? 'danger'
+      : session.status === 'no_video' ? 'neutral' : 'warning'
   const statusLabel = session.status === 'complete' ? 'Ready'
-    : session.status === 'recording' ? 'Recording' : 'Processing'
+    : session.status === 'recording' ? 'Recording'
+      : session.status === 'no_video' ? 'No recording' : 'Processing'
 
   return (
     <article className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">

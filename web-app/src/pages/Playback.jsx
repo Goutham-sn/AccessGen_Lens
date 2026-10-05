@@ -42,7 +42,9 @@ export default function Playback() {
 
   const { session, empathyMoments } = pb.data
   const persona = session.persona_snapshot
-  const processing = !session.processing_complete && session.status !== 'recording'
+  // Not tied to status: the 90 s fallback can mark the session no_video
+  // shortly before a late upload lands.
+  const processing = !session.video_url && pb.waitingForVideo
 
   return (
     <PageWrapper title="Relive the session" withSidebar={false}>

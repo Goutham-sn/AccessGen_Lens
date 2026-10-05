@@ -124,11 +124,13 @@ test('a recording upload after the 90 s finalize, inside the grace period, still
   const { rows: [finalized] } = await pool.query('SELECT status, processing_complete, video_url FROM sessions WHERE id = $1', [s.id])
   assert.equal(finalized.processing_complete, true)
   assert.equal(finalized.video_url, null)
+  assert.equal(finalized.status, 'no_video')
 
   const up = await call(`/sessions/${s.id}/recording`, { method: 'POST', uploadToken: s.token, form: videoForm() })
   assert.equal(up.status, 201)
-  const { rows: [landed] } = await pool.query('SELECT video_url FROM sessions WHERE id = $1', [s.id])
+  const { rows: [landed] } = await pool.query('SELECT status, video_url FROM sessions WHERE id = $1', [s.id])
   assert.equal(landed.video_url, `sessions/${s.id}/session.webm`)
+  assert.equal(landed.status, 'complete')
 })
 
 test('the recording token is single use', async () => {

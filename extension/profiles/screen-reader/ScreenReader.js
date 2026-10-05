@@ -1,4 +1,5 @@
 import { BaseProfile } from '../BaseProfile.js'
+import { setPageFilter, clearPageFilter } from '../pageFilter.js'
 import { send } from '../../content-scripts/communicator.js'
 
 const IMPLICIT_ROLES = {
@@ -22,9 +23,7 @@ const INPUT_TYPES = {
 export class ScreenReader extends BaseProfile {
   init() {
     // Blur the page — the eyes are elsewhere.
-    this.previousFilter = document.documentElement.style.filter
-    document.documentElement.style.filter =
-      `${this.previousFilter ? this.previousFilter + ' ' : ''}blur(10px)`
+    setPageFilter(this, 'blur(10px)')
 
     this.mountBanner()
 
@@ -177,7 +176,7 @@ export class ScreenReader extends BaseProfile {
 
   destroy() {
     try { window.speechSynthesis.cancel() } catch { /* no speech */ }
-    document.documentElement.style.filter = this.previousFilter || ''
+    clearPageFilter(this)
     super.destroy()
   }
 }

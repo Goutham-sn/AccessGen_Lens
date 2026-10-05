@@ -1,4 +1,5 @@
 import { BaseProfile } from '../BaseProfile.js'
+import { setPageFilter, clearPageFilter } from '../pageFilter.js'
 
 const FILTERS = {
   1: 'blur(2px) brightness(0.9)',
@@ -8,13 +9,11 @@ const FILTERS = {
 
 export class LowVision extends BaseProfile {
   init() {
-    this.previousFilter = document.documentElement.style.filter
     this.apply()
   }
 
   apply() {
-    const base = this.previousFilter ? this.previousFilter + ' ' : ''
-    document.documentElement.style.filter = base + FILTERS[this.severity]
+    setPageFilter(this, FILTERS[this.severity])
   }
 
   update(severity) {
@@ -23,7 +22,7 @@ export class LowVision extends BaseProfile {
   }
 
   destroy() {
-    document.documentElement.style.filter = this.previousFilter || ''
+    clearPageFilter(this)
     super.destroy()
   }
 }

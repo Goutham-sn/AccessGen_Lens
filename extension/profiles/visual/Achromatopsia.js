@@ -1,14 +1,13 @@
 import { BaseProfile } from '../BaseProfile.js'
+import { setPageFilter, clearPageFilter } from '../pageFilter.js'
 
 export class Achromatopsia extends BaseProfile {
   init() {
-    this.previousFilter = document.documentElement.style.filter
-    document.documentElement.style.filter =
-      `${this.previousFilter ? this.previousFilter + ' ' : ''}grayscale(100%)`
+    setPageFilter(this, 'grayscale(100%)')
   }
 
   destroy() {
-    document.documentElement.style.filter = this.previousFilter || ''
+    clearPageFilter(this)
     super.destroy()
   }
 }

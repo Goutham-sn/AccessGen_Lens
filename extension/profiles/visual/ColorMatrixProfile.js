@@ -1,4 +1,5 @@
 import { BaseProfile } from '../BaseProfile.js'
+import { setPageFilter, clearPageFilter } from '../pageFilter.js'
 
 // Shared implementation for the dichromacy simulations: injects an SVG
 // feColorMatrix filter and applies it to the whole document.
@@ -7,7 +8,6 @@ export class ColorMatrixProfile extends BaseProfile {
     super(severity)
     this.filterId = filterId
     this.matrix = matrix
-    this.previousFilter = null
   }
 
   init() {
@@ -23,13 +23,11 @@ export class ColorMatrixProfile extends BaseProfile {
       </defs>`
     this.addElement(svg, document.documentElement)
 
-    this.previousFilter = document.documentElement.style.filter
-    document.documentElement.style.filter =
-      `${this.previousFilter ? this.previousFilter + ' ' : ''}url(#${this.filterId})`
+    setPageFilter(this, `url(#${this.filterId})`)
   }
 
   destroy() {
-    document.documentElement.style.filter = this.previousFilter || ''
+    clearPageFilter(this)
     super.destroy()
   }
 }

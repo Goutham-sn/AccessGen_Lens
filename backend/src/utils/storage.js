@@ -27,3 +27,20 @@ export async function getObjectStream(key) {
 export async function statObject(key) {
   return minioClient.statObject(BUCKET, key)
 }
+
+// Every object name under a prefix.
+export async function listKeys(prefix) {
+  const keys = []
+  const stream = minioClient.listObjectsV2(BUCKET, prefix, true)
+  for await (const obj of stream) if (obj.name) keys.push(obj.name)
+  return keys
+}
+
+// Removes a list of keys, in batches. Missing keys are not a problem.
+export async function removeKeys(keys) {
+  const unique = [...new Set(keys.filter(Boolean))]
+  for (let i = 0; i < unique.length; i += 500) {
+    await minioClient.removeObjects(BUCKET, unique.slice(i, i + 500))
+  }
+  return unique.length
+}

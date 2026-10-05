@@ -5,6 +5,7 @@ import { Persona } from '../models/Persona.js'
 import { runQueue } from '../jobs/queue.js'
 import { RUNNER_CAPABILITIES, RUNNER_PROFILES } from '../config/runnerCapabilities.js'
 import { SIMULATION_INTRO } from '../config/copy.js'
+import { deleteSessionAndMedia } from '../utils/deleteSession.js'
 
 // RUNNER_PROFILES (from config/runnerCapabilities.js) is what the runner can
 // simulate. Everything else a persona has is listed in the report as not
@@ -105,6 +106,24 @@ export async function createRun(req, res, next) {
 // today, so a card never claims a check that is not running.
 export function getCapabilities(req, res) {
   res.json({ intro: SIMULATION_INTRO, capabilities: RUNNER_CAPABILITIES })
+}
+
+// Deletes every session of a run (one per persona) and everything each one
+// stored. Refused while any of them is still running.
+export async function deleteRun(req, res, next) {
+  try {
+    const { rows } = await query(
+      'SELECT id, processing_complete FROM sessions WHERE run_id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    )
+    if (rows.length === 0) return res.status(404).json({ error: 'Run not found' })
+    if (rows.some((r) => !r.processing_complete)) {
+      return res.status(409).json({ error: 'This run is still going. Please wait for it to finish before deleting it.' })
+    }
+    let removedObjects = 0
+    for (const r of rows) removedObjects += (await deleteSessionAndMedia(r.id)).removed
+    res.json({ ok: true, sessions: rows.length, removedObjects })
+  } catch (err) { next(err) }
 }
 
 export async function getRun(req, res, next) {

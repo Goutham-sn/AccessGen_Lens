@@ -142,6 +142,21 @@ export const Session = {
     )
   },
 
+  // Every stored object a session's rows point at: the video, frames, the
+  // report PDF and every moment picture (shot, clean, close-up, persona
+  // view, and the extension's screenshot). Used on delete as a safety net
+  // for anything stored outside the session's own prefix.
+  async mediaKeys(id) {
+    const { rows } = await query(
+      `SELECT video_url AS key FROM sessions WHERE id = $1
+       UNION SELECT screenshot_url FROM session_frames WHERE session_id = $1
+       UNION SELECT unnest(ARRAY[screenshot_url, shot_url, shot_clean_url, closeup_url, shot_persona_url])
+             FROM empathy_moments WHERE session_id = $1`,
+      [id]
+    )
+    return rows.map((r) => r.key).filter(Boolean)
+  },
+
   async delete(id) {
     await query('DELETE FROM sessions WHERE id = $1', [id])
   }

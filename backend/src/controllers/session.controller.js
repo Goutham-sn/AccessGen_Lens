@@ -3,6 +3,7 @@ import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { enqueueSessionProcessing } from '../jobs/queue.js'
 import { putDataUrl } from '../utils/storage.js'
 import { newUploadToken, UPLOAD_TOKEN_TTL_HOURS } from '../utils/uploadToken.js'
+import { deleteSessionAndMedia } from '../utils/deleteSession.js'
 
 function assertOwner(session, req, res) {
   if (!session) {
@@ -102,7 +103,12 @@ export async function deleteSession(req, res, next) {
   try {
     const session = await Session.findById(req.params.id)
     if (!assertOwner(session, req, res)) return
-    await Session.delete(session.id)
-    res.json({ ok: true })
+    // A run still going would write new pictures after the delete.
+    if (session.source === 'runner' && !session.processing_complete) {
+      return res.status(409).json({ error: 'This run is still going. Please wait for it to finish before deleting it.' })
+    }
+    // The row and everything it stored: video, frames, moment pictures, PDF.
+    const { removed } = await deleteSessionAndMedia(session.id)
+    res.json({ ok: true, removedObjects: removed })
   } catch (err) { next(err) }
 }

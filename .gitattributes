@@ -1,3 +1,9 @@
-# Shell scripts and git hooks must use LF, or they fail to run in Linux containers and Git Bash.
-*.sh text eol=lf
-.githooks/* text eol=lf
+# Every text file is stored and checked out with LF, so files read the same
+# on Windows, in Git Bash and inside the Linux containers.
+* text=auto eol=lf
+
+# Never touched as text.
+*.png binary
+*.webm binary
+*.pdf binary
+*.ico binary

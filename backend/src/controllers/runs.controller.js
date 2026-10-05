@@ -3,12 +3,12 @@ import { query } from '../config/database.js'
 import { redis } from '../config/redis.js'
 import { Persona } from '../models/Persona.js'
 import { runQueue } from '../jobs/queue.js'
+import { RUNNER_CAPABILITIES, RUNNER_PROFILES } from '../config/runnerCapabilities.js'
+import { SIMULATION_INTRO } from '../config/copy.js'
 
-// Profiles the runner can simulate in Level 1. Everything else a persona
-// has is listed in the report as not simulated in this run.
-export const RUNNER_PROFILES = new Set([
-  'keyboard-only', 'screen-reader', 'low-vision', 'deuteranopia', 'achromatopsia'
-])
+// RUNNER_PROFILES (from config/runnerCapabilities.js) is what the runner can
+// simulate. Everything else a persona has is listed in the report as not
+// simulated in this run.
 
 const MAX_PERSONAS_PER_RUN = 4
 const DAILY_RUN_LIMIT = parseInt(process.env.RUNNER_DAILY_LIMIT || '20', 10)
@@ -99,6 +99,12 @@ export async function createRun(req, res, next) {
       sessions: sessions.map((s) => ({ id: s.sessionId, personaName: s.persona.name }))
     })
   } catch (err) { next(err) }
+}
+
+// What the /start page needs: the shared intro, and what the runner can do
+// today, so a card never claims a check that is not running.
+export function getCapabilities(req, res) {
+  res.json({ intro: SIMULATION_INTRO, capabilities: RUNNER_CAPABILITIES })
 }
 
 export async function getRun(req, res, next) {

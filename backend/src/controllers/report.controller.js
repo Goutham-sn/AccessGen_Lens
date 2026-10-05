@@ -1,4 +1,5 @@
 import { Session } from '../models/Session.js'
+import { SIMULATION_INTRO } from '../config/copy.js'
 import { Frame } from '../models/Frame.js'
 import { Event } from '../models/Event.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
@@ -62,7 +63,8 @@ export async function getReport(req, res, next) {
       frames,
       events,
       empathyMoments,
-      humanSummary: buildHumanSummary(session, empathyMoments)
+      humanSummary: buildHumanSummary(session, empathyMoments),
+      intro: SIMULATION_INTRO
     })
   } catch (err) { next(err) }
 }

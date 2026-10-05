@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer'
+import { SIMULATION_INTRO } from '../config/copy.js'
 import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { getObjectBuffer, putBuffer } from '../utils/storage.js'
@@ -58,6 +59,7 @@ export async function processReportGeneration(sessionId) {
     .moment h3 { margin: 4px 0 8px; font-size: 18px; }
     .moment-time { color: #667085; font-size: 12px; margin: 0; }
     .note { font-style: italic; color: #475467; }
+    .intro { font-size: 16px; background: #f2f4f7; border-radius: 12px; padding: 16px 20px; }
   </style></head><body>
     <div class="page cover">
       <h1>${esc(who)}'s experience of ${esc(session.page_title || session.url)}</h1>
@@ -66,6 +68,7 @@ export async function processReportGeneration(sessionId) {
       ${cover ? `<img src="${cover}" alt="" />` : ''}
     </div>
     <div class="page">
+      <p class="intro">${esc(SIMULATION_INTRO)}</p>
       <h2>The experience in numbers</h2>
       <div class="numbers">
         <div class="num"><span class="big">${minutes}m</span>time spent</div>

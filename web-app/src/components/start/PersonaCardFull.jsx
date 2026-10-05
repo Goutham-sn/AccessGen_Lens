@@ -1,4 +1,4 @@
-import { cardTitle, getCard } from '../../data/personaCards.js'
+import { cardTitle, getCard, fillPronouns } from '../../data/personaCards.js'
 import { ForYourTeam } from './ForYourTeam.jsx'
 
 const SHOW_DRAFT_TAG = import.meta.env.DEV
@@ -16,7 +16,10 @@ function seconds(card) {
 // ("Ravi, 65, low vision"). `isLive(check)` says whether a runner check is
 // running today; automated cards only claim live checks. `children` holds
 // the card's control (checkbox, button or nothing).
-export function PersonaCardFull({ card, isLive, detailsOpen, onToggleDetails, children, unavailableReason }) {
+// `pronouns` come from the persona record and fill the pronoun tokens in the
+// card's copy; without them the copy uses they/them/their.
+export function PersonaCardFull({ card, isLive, detailsOpen, onToggleDetails, children, unavailableReason, pronouns }) {
+  const t = (text) => fillPronouns(text, pronouns)
   const titleId = `${card.id}-title`
   const detailsId = `${card.id}-details`
   const comingId = `${card.id}-coming`
@@ -51,12 +54,12 @@ export function PersonaCardFull({ card, isLive, detailsOpen, onToggleDetails, ch
       {card.place && <p className="text-sm text-ink-600">{card.place}</p>}
       {later && <p id={comingId} className="mt-1 text-sm font-medium text-ink-700">Not available yet.</p>}
 
-      <p className="mt-3 text-sm text-ink-700">{card.story}</p>
+      <p className="mt-3 text-sm text-ink-700">{t(card.story)}</p>
 
       <h4 className="mt-3 text-sm font-semibold text-ink-900">
         {card.kind === 'situation' ? 'What changes' : `How ${card.name} uses the web`}
       </h4>
-      <p className="text-sm text-ink-700">{card.howTheyUseTheWeb}</p>
+      <p className="text-sm text-ink-700">{t(card.howTheyUseTheWeb)}</p>
 
       {!later && (
         <>
@@ -64,7 +67,7 @@ export function PersonaCardFull({ card, isLive, detailsOpen, onToggleDetails, ch
             <>
               <h4 className="mt-3 text-sm font-semibold text-ink-900">What you will see</h4>
               <ul className="list-disc pl-5 text-sm text-ink-700">
-                {card.whatYouWillSee.map((t) => <li key={t}>{t}</li>)}
+                {card.whatYouWillSee.map((w) => <li key={w}>{t(w)}</li>)}
               </ul>
             </>
           )}
@@ -75,7 +78,7 @@ export function PersonaCardFull({ card, isLive, detailsOpen, onToggleDetails, ch
                 {automated ? 'What this run looks at' : 'What to look out for'}
               </h4>
               <ul className="list-disc pl-5 text-sm text-ink-700">
-                {looked.map((i) => <li key={i.text}>{i.text}</li>)}
+                {looked.map((i) => <li key={i.text}>{t(i.text)}</li>)}
               </ul>
             </>
           )}
@@ -89,8 +92,8 @@ export function PersonaCardFull({ card, isLive, detailsOpen, onToggleDetails, ch
                 {notLines.map((l) => (
                   <li key={l.text}>
                     {l.seeCard && getCard(l.seeCard)
-                      ? <a href={`#card-${l.seeCard}`} className="text-brand-700 underline">{l.text}</a>
-                      : l.text}
+                      ? <a href={`#card-${l.seeCard}`} className="text-brand-700 underline">{t(l.text)}</a>
+                      : t(l.text)}
                   </li>
                 ))}
               </ul>

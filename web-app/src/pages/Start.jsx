@@ -70,6 +70,11 @@ export default function Start() {
     return (check) => Boolean(caps) && card.profiles.some((p) => caps.capabilities?.[p.id]?.checks?.[check] === true)
   }
 
+  // From the persona record; unset or not a persona means they/them/their.
+  function pronounsFor(card) {
+    return dbPersonas?.find((p) => p.is_built_in && p.name === card.personaName)?.pronouns || null
+  }
+
   function unavailableReason(card) {
     if (!caps) return 'Checking what can run…'
     const missing = card.profiles.filter((p) => !caps.capabilities?.[p.id])
@@ -184,6 +189,7 @@ export default function Start() {
                   <PersonaCardFull
                     key={card.id}
                     card={card}
+                    pronouns={pronounsFor(card)}
                     isLive={isLiveFor(card)}
                     detailsOpen={open.includes(card.id)}
                     onToggleDetails={() => toggleDetails(card.id)}
@@ -246,6 +252,7 @@ export default function Start() {
                   <PersonaCardFull
                     key={card.id}
                     card={card}
+                    pronouns={pronounsFor(card)}
                     isLive={() => true}
                     detailsOpen={open.includes(card.id)}
                     onToggleDetails={() => toggleDetails(card.id)}
@@ -279,7 +286,7 @@ export default function Start() {
             </p>
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               {bySection.later.map((card) => (
-                <PersonaCardFull key={card.id} card={card} isLive={() => false} />
+                <PersonaCardFull key={card.id} card={card} isLive={() => false} pronouns={pronounsFor(card)} />
               ))}
             </div>
           </section>

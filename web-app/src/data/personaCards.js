@@ -16,7 +16,9 @@
 // guidelines:   shown only inside "For your team".
 //
 // Copy rules: third person, no verdict words, no guideline names or numbers
-// outside `guidelines`.
+// outside `guidelines`. No bare pronouns: use the tokens {they} (only before
+// "can"), {them}, {their} and {Their}, filled from the persona's pronouns
+// (fillPronouns below), which default to they/them/their.
 
 const ONLY_OBSERVES = {
   text: 'Pressing Enter or Space, typing, signing in or submitting anything. This run only watches.'
@@ -35,7 +37,7 @@ export const PERSONA_CARDS = [
     place: 'London, UK',
     experience: 'keyboard and colour',
     story: 'Software architect, born with deuteranopia. A fast keyboard user who rarely reaches for the mouse, and who has learned to work around sites that use colour alone.',
-    howTheyUseTheWeb: 'David moves through every page with Tab and Shift+Tab. Reds and greens look like the same muddy brown to him.',
+    howTheyUseTheWeb: 'David moves through every page with Tab and Shift+Tab. Reds and greens look like the same muddy brown to {them}.',
     whatYouWillSee: [
       'The page in the colours David sees',
       'Each place focus lands, one press of Tab at a time',
@@ -44,9 +46,9 @@ export const PERSONA_CARDS = [
     looksAt: [
       { text: 'Where each press of Tab lands, and how many presses it takes', check: 'tab-walk' },
       { text: 'The page in the colours David sees', check: 'filter-video' },
-      { text: 'Whether David can see where he is on the page after each press', check: 'focus-visible' },
+      { text: 'Whether David can see where Tab has landed after each press', check: 'focus-visible' },
       { text: 'How many presses it takes David to reach the main content', check: 'long-way' },
-      { text: 'Places where his place on the page disappears', check: 'focus-lost' },
+      { text: "Places where David's place on the page disappears", check: 'focus-lost' },
       { text: 'Places where something covers the part of the page David is on', check: 'focus-hidden' },
       { text: 'Places where Tab keeps David going round in a loop', check: 'trap' }
     ],
@@ -74,7 +76,7 @@ export const PERSONA_CARDS = [
     place: 'New York, USA',
     experience: 'screen reader',
     story: 'Blind since birth. James uses the NVDA screen reader and the keyboard for everything, and moves quickly through pages that are built with care.',
-    howTheyUseTheWeb: 'James listens to each page. He jumps between headings, regions and links, and relies on every button and field having a name he can hear.',
+    howTheyUseTheWeb: 'James listens to each page, jumping between headings, regions and links, and relies on every button and field having a name {they} can hear.',
     whatYouWillSee: [
       'Each place focus lands as James presses Tab',
       'A counter in the corner for every key James presses'
@@ -107,13 +109,12 @@ export const PERSONA_CARDS = [
     personaName: 'Meera',
     age: 72,
     place: 'Chennai, India',
-    pronoun: 'her',
     severity: 1,
-    story: 'Retired schoolteacher who started using the internet to video call her grandchildren. Age has blurred her sight, and she reads with the screen close to her face.',
-    howTheyUseTheWeb: 'Meera makes text bigger and leans in. Thin, pale text and anything that jumps around as she zooms slows her down.',
+    story: 'Retired schoolteacher who started using the internet to video call {their} grandchildren. Age has blurred {their} sight, and Meera reads with the screen close to {their} face.',
+    howTheyUseTheWeb: 'Meera makes text bigger and leans in. Thin, pale text and anything that jumps around while zooming slows {them} down.',
     notSimulated: [
-      { text: 'Her macular degeneration, which hides the centre of what she looks at.', profile: 'macular-degeneration' },
-      { text: 'Her hand tremor. Explore tremor yourself with Ravi\'s card.', profile: 'tremor', seeCard: 'ravi-tremor' }
+      { text: '{Their} macular degeneration, which hides the centre of what Meera looks at.', profile: 'macular-degeneration' },
+      { text: "{Their} hand tremor. Explore tremor yourself with Ravi's card.", profile: 'tremor', seeCard: 'ravi-tremor' }
     ]
   }),
   lowVisionCard({
@@ -121,13 +122,12 @@ export const PERSONA_CARDS = [
     personaName: 'Thomas',
     age: 51,
     place: 'Dublin, Ireland',
-    pronoun: 'his',
     severity: 1,
-    story: 'Former construction site manager. A stroke two years ago affected his right hand and his side vision, and he is determined to stay independent online.',
-    howTheyUseTheWeb: 'Thomas zooms in and reads slowly, and loses his place when parts of the page move or cover what he is reading.',
+    story: 'Former construction site manager. A stroke two years ago affected {their} right hand and {their} side vision, and Thomas is determined to stay independent online.',
+    howTheyUseTheWeb: 'Thomas zooms in and reads slowly, and loses {their} place when parts of the page move or cover the text being read.',
     notSimulated: [
-      { text: 'His narrowed side vision after the stroke.', profile: 'tunnel-vision' },
-      { text: 'His hand tremor. Explore tremor yourself with Ravi\'s card.', profile: 'tremor', seeCard: 'ravi-tremor' }
+      { text: '{Their} narrowed side vision after the stroke.', profile: 'tunnel-vision' },
+      { text: "{Their} hand tremor. Explore tremor yourself with Ravi's card.", profile: 'tremor', seeCard: 'ravi-tremor' }
     ]
   }),
   lowVisionCard({
@@ -135,12 +135,11 @@ export const PERSONA_CARDS = [
     personaName: 'Ravi',
     age: 65,
     place: 'Hyderabad, India',
-    pronoun: 'his',
     severity: 2,
-    story: 'Retired bank manager with Parkinson\'s. He uses the computer for news, banking and staying in touch, and long sessions tire him quickly.',
-    howTheyUseTheWeb: 'Ravi zooms in to read and takes his time. Pages that need many small, precise moves wear him out.',
+    story: 'Retired bank manager with Parkinson\'s. Ravi uses the computer for news, banking and staying in touch, and long sessions tire {them} quickly.',
+    howTheyUseTheWeb: 'Ravi zooms in to read and takes {their} time. Pages that need many small, precise moves wear {them} out.',
     notSimulated: [
-      { text: 'His tremor. Explore it yourself with his tremor card.', profile: 'tremor', seeCard: 'ravi-tremor' }
+      { text: '{Their} tremor. Explore it yourself with the tremor card.', profile: 'tremor', seeCard: 'ravi-tremor' }
     ]
   }),
 
@@ -155,8 +154,8 @@ export const PERSONA_CARDS = [
     age: 65,
     place: 'Hyderabad, India',
     experience: 'tremor',
-    story: 'Retired bank manager with Parkinson\'s. His tremor has grown stronger over the last few years, and fine movements take real effort.',
-    howTheyUseTheWeb: 'Ravi uses a mouse, but his hand shakes. Small buttons, links that sit close together and anything that needs dragging are hard to hit.',
+    story: "Retired bank manager with Parkinson's. Ravi's tremor has grown stronger over the last few years, and fine movements take real effort.",
+    howTheyUseTheWeb: 'Ravi uses a mouse, but {their} hand shakes. Small buttons, links that sit close together and anything that needs dragging are hard to hit.',
     whatYouWillSee: [
       'Your own pointer shaking the way Ravi\'s hand does',
       'How hard it is to hit small targets that sit close together',
@@ -167,7 +166,7 @@ export const PERSONA_CARDS = [
       { text: 'Anything that needs dragging, swiping or a precise gesture' }
     ],
     notSimulated: [
-      { text: 'His low vision. Watch it happen with his low vision card.', profile: 'low-vision', seeCard: 'ravi-low-vision' }
+      { text: '{Their} low vision. Watch it happen with the low vision card.', profile: 'low-vision', seeCard: 'ravi-low-vision' }
     ],
     estimatedSeconds: 180,
     profiles: [{ id: 'tremor', severity: 3 }],
@@ -187,8 +186,8 @@ export const PERSONA_CARDS = [
     age: 19,
     place: 'Bengaluru, India',
     experience: 'ADHD and dyslexia',
-    story: 'First year engineering student, bright and passionate about technology. She was diagnosed with dyslexia and ADHD at twelve.',
-    howTheyUseTheWeb: 'Ananya reads in short bursts. Dense text, moving content and anything that competes for her attention pulls her away from what she came to do.',
+    story: 'First year engineering student, bright and passionate about technology. Ananya was diagnosed with dyslexia and ADHD at twelve.',
+    howTheyUseTheWeb: 'Ananya reads in short bursts. Dense text, moving content and anything that competes for {their} attention pulls {them} away from what Ananya came to do.',
     whatYouWillSee: [
       'Text that is harder to read, the way Ananya experiences it',
       'Movement and distractions that pull at your attention',
@@ -217,8 +216,8 @@ export const PERSONA_CARDS = [
     age: 29,
     place: 'Dubai, UAE',
     experience: 'deaf',
-    story: 'Deaf community advocate and content creator. She relies on captions, transcripts and text for all audio and video.',
-    howTheyUseTheWeb: 'Fatima watches with the sound gone. A video without captions tells her nothing, however good it looks.',
+    story: 'Deaf community advocate and content creator. Fatima relies on captions, transcripts and text for all audio and video.',
+    howTheyUseTheWeb: 'Fatima watches with the sound gone. A video without captions tells {them} nothing, however good it looks.',
     whatYouWillSee: [
       'The page with all sound removed',
       'Which videos and audio still make sense without it',
@@ -246,8 +245,8 @@ export const PERSONA_CARDS = [
     age: 41,
     place: 'Mumbai, India',
     experience: 'voice control',
-    story: 'Architect who lost the use of his hands in a spinal injury. He runs his computer entirely by voice.',
-    howTheyUseTheWeb: 'Arjun says what he sees, such as "click Sign in". When a button\'s visible words differ from its name, his commands stop working.'
+    story: 'Architect who lost the use of {their} hands in a spinal injury. Arjun runs {their} computer entirely by voice.',
+    howTheyUseTheWeb: 'Arjun says what is on screen, such as "click Sign in". When a button\'s visible words differ from its name, {their} commands stop working.'
   },
   {
     id: 'sofia-switch-access',
@@ -258,8 +257,8 @@ export const PERSONA_CARDS = [
     age: 27,
     place: 'Lisbon, Portugal',
     experience: 'switch access',
-    story: 'Translator with cerebral palsy. She uses two switches mounted by her head.',
-    howTheyUseTheWeb: 'One switch moves a highlight through items one by one and the other selects. Unlike a keyboard user, Sofia cannot jump ahead, so every extra stop costs her time, and anything that times out or moves on its own can undo her progress.'
+    story: 'Translator with cerebral palsy. Sofia uses two switches mounted by {their} head.',
+    howTheyUseTheWeb: 'One switch moves a highlight through items one by one and the other selects. Unlike a keyboard user, Sofia cannot jump ahead, so every extra stop costs {them} time, and anything that times out or moves on its own can undo {their} progress.'
   },
   {
     id: 'margaret-cataracts',
@@ -270,8 +269,8 @@ export const PERSONA_CARDS = [
     age: 78,
     place: 'Leeds, UK',
     experience: 'cataracts and glare',
-    story: 'Retired nurse waiting for cataract surgery. Everything looks hazy, and bright screens dazzle her.',
-    howTheyUseTheWeb: 'Margaret turns the brightness down and still squints. Pale grey text on white almost disappears for her.'
+    story: 'Retired nurse waiting for cataract surgery. Everything looks hazy, and bright screens dazzle {them}.',
+    howTheyUseTheWeb: 'Margaret turns the brightness down and still squints. Pale grey text on white almost disappears for {them}.'
   },
   {
     id: 'kenji-colour',
@@ -282,7 +281,7 @@ export const PERSONA_CARDS = [
     age: 45,
     place: 'Osaka, Japan',
     experience: 'protanopia or tritanopia',
-    story: 'Logistics planner with protanopia: reds look dark and dull to him. This card also stands for tritanopia, where blues and yellows are hard to tell apart.',
+    story: 'Logistics planner with protanopia: reds look dark and dull to {them}. This card also stands for tritanopia, where blues and yellows are hard to tell apart.',
     howTheyUseTheWeb: 'Kenji reads charts and maps all day, and misses anything that is only marked in red.'
   },
   {
@@ -319,12 +318,12 @@ export const PERSONA_CARDS = [
     draft: true,
     name: 'A slow connection or an old phone',
     story: 'Anyone on a weak signal or an older device.',
-    howTheyUseTheWeb: 'Pages that load in pieces shift under their thumb, and heavy pages may never finish.'
+    howTheyUseTheWeb: 'Pages that load in pieces shift just as a thumb reaches a button, and heavy pages may never finish.'
   }
 ]
 
 // The three low vision cards share what the runner shows and looks at.
-function lowVisionCard({ id, personaName, age, place, pronoun, severity, story, howTheyUseTheWeb, notSimulated }) {
+function lowVisionCard({ id, personaName, age, place, severity, story, howTheyUseTheWeb, notSimulated }) {
   return {
     id,
     mode: 'automated',
@@ -338,11 +337,11 @@ function lowVisionCard({ id, personaName, age, place, pronoun, severity, story, 
     story,
     howTheyUseTheWeb,
     whatYouWillSee: [
-      `The page blurred and dimmed to ${pronoun} level of sight`,
+      'The page blurred and dimmed to {their} level of sight',
       'A slow scroll from the top of the page to the bottom'
     ],
     looksAt: [
-      { text: `The page blurred and dimmed to ${pronoun} level of sight`, check: 'filter-video' },
+      { text: 'The page blurred and dimmed to {their} level of sight', check: 'filter-video' },
       { text: 'Whether the page still fits when text is made four times larger', check: 'reflow-320' },
       { text: 'Bars or banners that cover much of the screen when zoomed in', check: 'covering' }
     ],
@@ -371,4 +370,18 @@ export function cardTitle(card) {
 
 export function getCard(id) {
   return PERSONA_CARDS.find((c) => c.id === id)
+}
+
+const DEFAULT_PRONOUNS = { subject: 'they', object: 'them', possessive: 'their' }
+
+// Fills the pronoun tokens in card copy. Pronouns come from the persona
+// record (set by the product owner); anything missing is they/them/their.
+export function fillPronouns(text, pronouns) {
+  const p = { ...DEFAULT_PRONOUNS, ...(pronouns || {}) }
+  const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1)
+  return String(text)
+    .replaceAll('{they}', p.subject)
+    .replaceAll('{them}', p.object)
+    .replaceAll('{their}', p.possessive)
+    .replaceAll('{Their}', cap(p.possessive))
 }

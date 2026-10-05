@@ -181,6 +181,10 @@ ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS internal_ref TEXT;
 DELETE FROM personas a USING personas b
  WHERE a.is_built_in AND b.is_built_in AND a.name = b.name AND a.created_at > b.created_at;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_personas_builtin_name ON personas(name) WHERE is_built_in;
+-- Pronouns for card stories only (detector copy uses names). Set by the
+-- product owner for built-ins; everyone else defaults to they/them/their.
+ALTER TABLE personas ADD COLUMN IF NOT EXISTS pronouns JSONB NOT NULL
+  DEFAULT '{"subject":"they","object":"them","possessive":"their"}';
 
 -- Per-session upload token for the extension. Only the SHA-256 hash is kept.
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS upload_token_hash TEXT;

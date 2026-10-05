@@ -1,7 +1,7 @@
 // Card data checks for the /start page:  npm test  (in web-app)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { PERSONA_CARDS, getCard } from '../src/data/personaCards.js'
+import { PERSONA_CARDS, getCard, fillPronouns } from '../src/data/personaCards.js'
 import { getProfile } from '../src/data/profiles.js'
 import { BUILT_IN_PERSONAS } from '../../backend/src/config/builtInPersonas.js'
 import { RUNNER_PROFILES, allChecks } from '../../backend/src/config/runnerCapabilities.js'
@@ -89,4 +89,32 @@ test('every profile of every built-in persona appears on exactly one card or one
     }
   }
   assert.deepEqual(problems, [])
+})
+
+// Every piece of card copy, flattened.
+function copyOf(card) {
+  return [card.story, card.howTheyUseTheWeb, ...(card.whatYouWillSee || []),
+    ...(card.looksAt || []).map((i) => i.text), ...(card.notSimulated || []).map((l) => l.text)].filter(Boolean)
+}
+
+test('card copy has no bare pronouns, only the tokens filled from the persona', () => {
+  const bare = /\b(he|him|his|she|her|hers|they|them|their|theirs)\b/i
+  const tokens = /\{(\w+)\}/g
+  for (const c of PERSONA_CARDS) {
+    for (const text of copyOf(c)) {
+      const withoutTokens = text.replace(tokens, '')
+      assert.ok(!bare.test(withoutTokens), `${c.id}: bare pronoun in "${text}"`)
+      for (const [, name] of text.matchAll(tokens)) {
+        assert.ok(['they', 'them', 'their', 'Their'].includes(name), `${c.id}: unknown token {${name}}`)
+      }
+      assert.ok(!/\{they\} (?!can\b)/.test(text), `${c.id}: {they} only before "can", so the verb fits any pronoun`)
+    }
+  }
+})
+
+test('pronouns fill from the persona, and default to they/them/their', () => {
+  const text = '{Their} hand shakes; it wears {them} out, and {they} can tell. {their} time.'
+  assert.equal(fillPronouns(text, null), 'Their hand shakes; it wears them out, and they can tell. their time.')
+  assert.equal(fillPronouns(text, { subject: 'she', object: 'her', possessive: 'her' }),
+    'Her hand shakes; it wears her out, and she can tell. her time.')
 })

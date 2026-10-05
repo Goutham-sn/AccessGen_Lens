@@ -24,12 +24,12 @@ export async function seedBuiltInPersonas() {
   // at them is orphaned. User-created personas are never touched.
   for (const p of BUILT_IN_PERSONAS) {
     await query(
-      `INSERT INTO personas (name, age, story, profiles, is_built_in, is_public)
-       VALUES ($1, $2, $3, $4, TRUE, TRUE)
+      `INSERT INTO personas (name, age, story, profiles, is_built_in, is_public, pronouns)
+       VALUES ($1, $2, $3, $4, TRUE, TRUE, COALESCE($5::jsonb, '{"subject":"they","object":"them","possessive":"their"}'::jsonb))
        ON CONFLICT (name) WHERE is_built_in
        DO UPDATE SET age = EXCLUDED.age, story = EXCLUDED.story,
-                     profiles = EXCLUDED.profiles, is_public = TRUE`,
-      [p.name, p.age, p.story, JSON.stringify(p.profiles)]
+                     profiles = EXCLUDED.profiles, is_public = TRUE, pronouns = EXCLUDED.pronouns`,
+      [p.name, p.age, p.story, JSON.stringify(p.profiles), p.pronouns ? JSON.stringify(p.pronouns) : null]
     )
   }
   console.log(`[seed] ${BUILT_IN_PERSONAS.length} built-in personas up to date` +

@@ -10,6 +10,7 @@
     "migrate": "node src/config/migrate.js"
   },
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "bcryptjs": "^2.4.3",
     "bull": "^4.12.2",
     "cors": "^2.8.5",
@@ -24,14 +25,16 @@
     "puppeteer": "^22.10.0",
     "rate-limiter-flexible": "^5.0.3",
     "socket.io": "^4.7.5",
-    "@socket.io/redis-adapter": "^8.3.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "pdfjs-dist": "4.10.38"
   },
   "nodemonConfig": {
-    "watch": ["src"],
+    "watch": [
+      "src"
+    ],
     "ext": "js,sql"
   }
 }

@@ -4,8 +4,12 @@ import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { getObjectBuffer, putBuffer } from '../utils/storage.js'
 
-function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+// Everything shown in the PDF that came from a page or a person (titles,
+// names, moment text) goes through this, so it is text, never markup.
+export function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 async function imageDataUrl(key) {
@@ -19,15 +23,25 @@ export async function processReportGeneration(sessionId) {
   const session = await Session.findById(sessionId)
   if (!session) return
   const moments = await EmpathyMoment.findBySession(sessionId)
+  const cover = await imageDataUrl(session.page_thumbnail)
+  const images = {}
+  for (const m of moments) images[m.id] = await imageDataUrl(m.screenshot_url)
 
+  const { pdf } = await renderPdf(buildReportHtml({ session, moments, cover, images }))
+  await putBuffer(`sessions/${sessionId}/report.pdf`, Buffer.from(pdf), 'application/pdf')
+  console.log(`[report] PDF generated for session ${sessionId}`)
+}
+
+// The report's HTML. Pictures are data: URLs, so the page needs nothing
+// from the network. images: { [momentId]: dataUrl }.
+export function buildReportHtml({ session, moments, cover = null, images = {} }) {
   const persona = session.persona_snapshot
   const who = persona?.name || 'A visitor'
   const minutes = Math.max(1, Math.round((session.duration_seconds || 0) / 60))
   const profiles = (session.active_profiles || []).map((p) => p.name || p.id)
-  const cover = await imageDataUrl(session.page_thumbnail)
 
-  const momentCards = await Promise.all(moments.map(async (m) => {
-    const img = await imageDataUrl(m.screenshot_url)
+  const momentCards = moments.map((m) => {
+    const img = images[m.id] && String(images[m.id]).startsWith('data:image/') ? images[m.id] : null
     const t = Math.floor(m.timestamp_ms / 1000)
     return `
       <div class="moment">
@@ -38,7 +52,7 @@ export async function processReportGeneration(sessionId) {
           ${m.note ? `<p class="note">${esc(m.note)}</p>` : ''}
         </div>
       </div>`
-  }))
+  })
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
     body { font-family: Georgia, 'Times New Roman', serif; color: #1a1a2e; margin: 0; }
@@ -63,9 +77,9 @@ export async function processReportGeneration(sessionId) {
   </style></head><body>
     <div class="page cover">
       <h1>${esc(who)}'s experience of ${esc(session.page_title || session.url)}</h1>
-      <p class="meta">${esc(session.url)} · ${new Date(session.start_time).toLocaleDateString()} · ${minutes} minute${minutes === 1 ? '' : 's'}</p>
+      <p class="meta">${esc(session.url)} · ${esc(new Date(session.start_time).toLocaleDateString())} · ${minutes} minute${minutes === 1 ? '' : 's'}</p>
       <div>${profiles.map((p) => `<span class="chip">${esc(p)}</span>`).join('')}</div>
-      ${cover ? `<img src="${cover}" alt="" />` : ''}
+      ${cover && String(cover).startsWith('data:image/') ? `<img src="${cover}" alt="" />` : ''}
     </div>
     <div class="page">
       <p class="intro">${esc(SIMULATION_INTRO)}</p>
@@ -83,17 +97,30 @@ export async function processReportGeneration(sessionId) {
       Each moment above is a place where a real person would slow down, get lost, or give up entirely.</p>
     </div>
   </body></html>`
+  return html
+}
 
+// Prints HTML to PDF with JavaScript off and the network blocked: only the
+// embedded data: pictures load. Returns the PDF and any request that was
+// refused, so tests can see nothing got out.
+export async function renderPdf(html) {
   const browser = await puppeteer.launch({
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   })
+  const blocked = []
   try {
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
+    await page.setJavaScriptEnabled(false)
+    await page.setRequestInterception(true)
+    page.on('request', (req) => {
+      const url = req.url()
+      if (url.startsWith('data:') || url === 'about:blank') req.continue()
+      else { blocked.push(url); req.abort('blockedbyclient') }
+    })
+    await page.setContent(html, { waitUntil: 'load' })
     const pdf = await page.pdf({ format: 'A4', printBackground: true })
-    await putBuffer(`sessions/${sessionId}/report.pdf`, Buffer.from(pdf), 'application/pdf')
-    console.log(`[report] PDF generated for session ${sessionId}`)
+    return { pdf, blocked }
   } finally {
     await browser.close()
   }

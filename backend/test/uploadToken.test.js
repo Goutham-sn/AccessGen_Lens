@@ -5,6 +5,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import jwt from 'jsonwebtoken'
 import pg from 'pg'
+import { removeTestUser, closeAppPool } from './cleanup.js'
 import { finalizeIfStillPending } from '../src/jobs/finalizeSession.job.js'
 import { hashUploadToken } from '../src/utils/uploadToken.js'
 import { makeUploadRecording } from '../src/controllers/frames.controller.js'
@@ -50,8 +51,9 @@ before(async () => {
 })
 
 after(async () => {
-  await pool.query('DELETE FROM users WHERE email = $1', [email])
+  await removeTestUser(pool, email)
   await pool.end()
+  await closeAppPool()
 })
 
 test('reading and creating sessions still needs a valid access token', async () => {

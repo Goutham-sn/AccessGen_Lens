@@ -5,6 +5,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import crypto from 'crypto'
 import pg from 'pg'
+import { removeTestUser, closeAppPool } from './cleanup.js'
 import { putBuffer, listKeys, statObject } from '../src/utils/storage.js'
 
 const API = `http://localhost:${process.env.PORT || 3001}/api`
@@ -79,8 +80,9 @@ before(async () => {
 })
 
 after(async () => {
-  await pool.query('DELETE FROM users WHERE email = $1', [email])
+  await removeTestUser(pool, email)
   await pool.end()
+  await closeAppPool()
 })
 
 test('deleting a session removes its video, frames, every moment picture, the PDF and remux keys', async () => {
@@ -120,6 +122,6 @@ test('someone else cannot delete your run', async () => {
     body: JSON.stringify({ email: `delete-other-${Date.now()}@example.invalid`, password: 'delete-test-password' })
   }).then((r) => r.json())
   assert.equal((await call(`/runs/${runId}`, { method: 'DELETE', bearer: other.accessToken })).status, 404)
-  await pool.query('DELETE FROM users WHERE id = $1', [other.user.id])
+  await pool.query('DELETE FROM users WHERE id = $1', [other.user.id]) // made no sessions
   await pool.query('DELETE FROM sessions WHERE id = $1', [id])
 })

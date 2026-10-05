@@ -165,6 +165,9 @@ ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS evidence JSONB;
 ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS shot_url TEXT;
 ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS shot_clean_url TEXT;
 ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS closeup_url TEXT;
+-- The page as the persona sees it (their filter on), taken just before the
+-- filter is paused for the clean and highlighted shots.
+ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS shot_persona_url TEXT;
 ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS pattern_count INTEGER;
 ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS headline TEXT;
 ALTER TABLE empathy_moments ADD COLUMN IF NOT EXISTS fact TEXT;

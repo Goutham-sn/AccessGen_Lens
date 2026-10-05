@@ -88,6 +88,15 @@ test('a confirmed finding becomes a moment whose highlight appears at its video 
   assert.equal(m.step, 2)
   assert.equal(m.held, true)
   assert.ok(m.shots && extra.shotKeys.shot && extra.shotKeys.clean && extra.shotKeys.closeup, 'three pictures stored')
+  assert.ok(extra.shotKeys.persona, 'the persona view (deuteranopia on) is stored too')
+  assert.equal(m.pauseNote, "Showing the page without Test's red-green colour blindness so it is readable.")
+
+  // The delivered video starts after the timing mark, and says so.
+  const sync = store.saved.finalized.timings.sync
+  assert.equal(sync.found, true, 'timing mark found')
+  assert.equal(sync.applied, true, `correction applied (${sync.measuredMs} ms)`)
+  assert.ok(Math.abs(sync.measuredMs) <= 400)
+  assert.equal(sync.noMarkInVideo, true, 'no trace of the mark in the delivered video')
 
   // Session time and video time agree with recording_offset_ms.
   const offset = store.saved.finalized.recordingOffsetMs

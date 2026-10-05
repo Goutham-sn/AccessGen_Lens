@@ -4,10 +4,12 @@ import { overlayCall, locateAndDescribe, settle } from './pageScripts.js'
 // The evidence engine. Every detector hands its findings to this one module,
 // so every moment is captured the same way:
 //   1. scroll the element into view and read its rect
+//   1b. persona-view screenshot: the page as the persona sees it, filter on
 //   2. clean viewport screenshot (overlay hidden, persona filter paused)
 //   3. draw the highlight: magenta ring with white strokes, numbered label
 //   4. highlighted screenshot and a close-up (element plus padding)
-//   5. caption lower third in the video, for the first few moments only
+//   5. caption lower third in the video, for the first few moments only,
+//      with a note that the persona's filter is paused while it shows
 //   6. remove the overlay, put the key chip and the filter back
 // Measuring always happens before this is called; the overlay never exists
 // while anything is measured.
@@ -68,9 +70,14 @@ function clampClip(rect, pad, vp) {
 
 const call = (page, method, ...args) => page.evaluate(overlayCall, { method, args })
 
-// One engine per recorded pass. `readyAt` is video time zero (the trimmed
-// video starts there), so videoMs lines up with the uploaded video.
-export function createEvidenceEngine({ page, readyAt, now = Date.now, onMoment }) {
+// One engine per recorded pass. videoMs counts from `readyAt`; the persona
+// flow maps it onto the delivered video (see videoSync.js). `pauseNote` is
+// the caption line shown while the filter is paused, for example "Showing
+// the page without David's red-green colour blindness so it is readable."
+// `captionZeroAt` is the wall time the delivered video will start (just
+// after the timing mark), so the caption's clock matches the player's to
+// within a frame or two; the exact mapping for markers is done afterwards.
+export function createEvidenceEngine({ page, readyAt, captionZeroAt = readyAt, now = Date.now, onMoment, pauseNote = null }) {
   let holds = 0
   let number = 0
   const moments = []
@@ -81,9 +88,18 @@ export function createEvidenceEngine({ page, readyAt, now = Date.now, onMoment }
     if (!element) return null
     await page.evaluate(settle)
 
+    // 1b. The persona's view, before the filter is paused (only when a
+    // filter is on; otherwise it would be the same as the clean shot).
+    await call(page, 'hideAll')
+    const filtered = await page.evaluate(() => document.documentElement.style.filter !== '')
+    let persona = null
+    if (filtered) {
+      await page.evaluate(settle)
+      persona = await page.screenshot({ type: 'jpeg', quality: 80 })
+    }
+
     // 2. Clean shot.
     await call(page, 'pauseFilter')
-    await call(page, 'hideAll')
     await page.evaluate(settle)
     const clean = await page.screenshot({ type: 'jpeg', quality: 80 })
 
@@ -105,7 +121,7 @@ export function createEvidenceEngine({ page, readyAt, now = Date.now, onMoment }
     const held = holds < stick('evidence', 'maxHolds')
     if (held) {
       holds++
-      await call(page, 'caption', finding.headline, formatVideoTime(videoMs))
+      await call(page, 'caption', finding.headline, formatVideoTime(now() - captionZeroAt), filtered ? pauseNote : null)
       await page.waitForTimeout(stick('evidence', 'holdMs'))
     }
 
@@ -124,7 +140,8 @@ export function createEvidenceEngine({ page, readyAt, now = Date.now, onMoment }
       element: { selector: element.selector, role: element.role, name: element.name, rect: element.rect, html: element.html },
       overlay: drawn,
       closeupClip: clip,
-      shots: { clean, shot, closeup }
+      pauseNote: filtered ? pauseNote : null,
+      shots: { persona, clean, shot, closeup }
     }
     moments.push(moment)
     onMoment?.(moment)

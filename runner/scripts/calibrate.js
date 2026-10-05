@@ -1,23 +1,22 @@
-// Calibration: after the per-run correction from the timing mark (see
-// src/videoSync.js), is "video time" (Date.now() - readyAt, as the evidence
-// engine stamps it) where things really appear in the saved, trimmed video?
+// Calibration: after the timing mark sets this run's correction and cut
+// (see src/videoSync.js), do things appear in the delivered video at the
+// video time the runner maps them to? And is the mark gone from it?
 //   docker compose run --rm runner node scripts/calibrate.js
-// Flashes the whole page magenta at three known times, records it exactly as
-// the recorded pass does (same context options, same trim), then finds the
-// first magenta frame for each flash. Exits 1 if any lands outside the
-// tolerance in measuringStick.js.
+// Flashes the whole page magenta at three known times, records and delivers
+// the video exactly as the recorded pass does, then finds the first magenta
+// frame for each flash. Exits 1 if any lands outside the tolerance in
+// measuringStick.js, or if any trace of the mark is left.
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { chromium } from 'playwright'
 import { config } from '../src/config.js'
 import { settle, installOverlay } from '../src/pageScripts.js'
-import { showSyncMark, findSyncOnset } from '../src/videoSync.js'
-import { trimStart } from '../src/trim.js'
+import { showSyncMark, readPageCorner, deliverVideo } from '../src/videoSync.js'
 import { stick } from '../src/measuringStick.js'
 import { extractFrames, pixelsOf, isMagenta } from '../test/helpers.js'
 
-const FLASH_AT_MS = [800, 2200, 3600]
+const FLASH_AT_MS = [1200, 2600, 4000] // after the mark, which takes about 0.7 s
 const FLASH_FOR_MS = 400
 const tolerance = stick('calibration', 'toleranceMs')
 
@@ -38,7 +37,8 @@ await page.waitForTimeout(1500) // like a page load, so there is something to tr
 await page.evaluate(installOverlay)
 await page.evaluate(settle)
 const readyAt = Date.now()
-const syncAt = (await showSyncMark(page)) - readyAt
+const pageCorner = await readPageCorner(browser, page)
+const mark = await showSyncMark(page)
 
 const expected = []
 for (const at of FLASH_AT_MS) {
@@ -47,7 +47,7 @@ for (const at of FLASH_AT_MS) {
   // Same convention as the evidence engine: draw, wait two frames, stamp.
   await page.evaluate(() => { document.body.style.background = '#ff00ff' })
   await page.evaluate(settle)
-  expected.push(Date.now() - readyAt)
+  expected.push(Date.now()) // wall time, mapped onto the delivered video below
   await page.waitForTimeout(FLASH_FOR_MS)
   await page.evaluate(() => { document.body.style.background = '#ffffff' })
   await page.evaluate(settle)
@@ -56,15 +56,8 @@ await page.waitForTimeout(500)
 const videoPath = await page.video().path()
 await context.close()
 
-const trimMs = readyAt - videoStart
-const trimmed = await trimStart(videoPath, trimMs)
-if (!trimmed) {
-  console.log('FAIL  could not trim the video')
-  process.exit(1)
-}
-const onset = await findSyncOnset(browser, trimmed)
-const correction = onset === null ? 0 : onset - syncAt
-const frames = await extractFrames(trimmed, path.join(work, 'frames'))
+const delivered = await deliverVideo({ browser, rawPath: videoPath, videoStart, readyAt, mark, pageCorner })
+const frames = await extractFrames(delivered.file, path.join(work, 'frames'))
 const decoder = await browser.newPage()
 const magentaAt = []
 for (const f of frames) {
@@ -79,16 +72,19 @@ for (let i = 0; i < magentaAt.length; i++) {
   if (magentaAt[i].on && (i === 0 || !magentaAt[i - 1].on)) onsets.push(magentaAt[i].ms)
 }
 
-console.log(`trimmed ${trimMs} ms of loading; ${frames.length} frames; tolerance ${tolerance} ms`)
-console.log(`timing mark: stamped ${syncAt} ms, seen ${onset ?? 'never'} ms, correction ${correction} ms`)
-let failed = onset === null ? 1 : 0
-expected.forEach((stamped, i) => {
-  const exp = stamped + correction
+const sync = delivered.sync
+console.log(`cut ${sync.cutMs} ms; ${frames.length} frames; tolerance ${tolerance} ms`)
+console.log(`timing mark: found ${sync.found}, measured ${sync.measuredMs ?? '-'} ms, applied ${sync.applied}${sync.recut ? ', cut again' : ''}`)
+let failed = sync.found && sync.applied ? 0 : 1
+console.log(`${sync.noMarkInVideo ? 'PASS' : 'FAIL'}  no trace of the timing mark in the delivered video`)
+if (!sync.noMarkInVideo) failed++
+expected.forEach((wall, i) => {
+  const exp = Math.round(delivered.toVideoMs(wall))
   const seen = onsets[i]
   const diff = seen == null ? null : seen - exp
   const ok = diff !== null && Math.abs(diff) <= tolerance
   if (!ok) failed++
-  console.log(`${ok ? 'PASS' : 'FAIL'}  flash ${i + 1}: stamped ${stamped} ms, corrected ${exp} ms, first seen ${seen ?? 'never'} ms${diff === null ? '' : ` (${diff >= 0 ? '+' : ''}${diff} ms)`}`)
+  console.log(`${ok ? 'PASS' : 'FAIL'}  flash ${i + 1}: mapped to ${exp} ms, first seen ${seen ?? 'never'} ms${diff === null ? '' : ` (${diff >= 0 ? '+' : ''}${diff} ms)`}`)
 })
 if (onsets.length !== expected.length) {
   failed++

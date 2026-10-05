@@ -90,6 +90,8 @@ test('capture takes a clean shot, a highlighted shot and a close-up, then cleans
     const m = await engine.capture(finding('#b5'))
     assert.ok(m, 'captured')
     assert.equal(m.number, 1)
+    assert.ok(m.shots.persona, 'persona view taken while the filter is on')
+    assert.notDeepEqual(m.shots.persona, m.shots.clean, 'the persona view differs from the clean shot')
     assert.ok(m.videoMs >= 5000 && m.videoMs < 8000, `videoMs ${m.videoMs}`)
 
     // Ring pixel: magenta in the highlighted shot, not in the clean shot.
@@ -111,6 +113,19 @@ test('capture takes a clean shot, a highlighted shot and a close-up, then cleans
     const after = await page.screenshot()
     const afterPx = await pixelsOf(page, after, [[ringX, ringY]])
     assert.ok(!isMagenta(afterPx.pixels[0]), 'ring removed')
+  } finally {
+    await context.close()
+  }
+})
+
+test('with no filter on the page there is no separate persona view and no pause note', async () => {
+  const { context, page } = await openFixture(browser, 'evidence', 'evidence.html')
+  try {
+    await page.evaluate(installOverlay)
+    const engine = createEvidenceEngine({ page, readyAt: Date.now(), pauseNote: 'should not show' })
+    const m = await engine.capture(finding('#b3'))
+    assert.equal(m.shots.persona, null)
+    assert.equal(m.pauseNote, null)
   } finally {
     await context.close()
   }

@@ -28,6 +28,10 @@ export const MEASURING_STICK = {
     toleranceMs: {
       value: 100,
       reason: 'A moment marker is placed within a tenth of a second of where it happens in the video.'
+    },
+    maxCorrectionMs: {
+      value: 400,
+      reason: 'A timing correction bigger than this is more likely a misread than a real delay, so it is not used.'
     }
   }
 }

@@ -6,12 +6,12 @@ import { newSafeContext } from './browser.js'
 import { loadPage } from './load.js'
 import { tabWalk } from './walk.js'
 import { createTimings } from './timings.js'
-import { trimStart } from './trim.js'
 import { WALK_PROFILES } from './walkProfiles.js'
 import { detectorsFor } from './checks/index.js'
 import { createEvidenceEngine, makeFinding, groupFindings } from './evidence.js'
 import { measureCoverage } from './coverage.js'
-import { showSyncMark, findSyncOnset } from './videoSync.js'
+import { showSyncMark, readPageCorner, deliverVideo } from './videoSync.js'
+import { pauseNote } from './copy.js'
 import {
   detectChallenge, detectModal, installOverlay, overlayKeyChip, overlayHideChip,
   applyProfiles, scrollStep, settle
@@ -55,6 +55,7 @@ export async function runPersona(job, s, deps) {
   let videoKey = null
   let durationSeconds = null
   let recordingOffsetMs = null
+  let syncTimings = null
   let moments = []
 
   const session = await store.getSession(s.sessionId)
@@ -137,8 +138,9 @@ export async function runPersona(job, s, deps) {
       // Video time of "page ready" (loaded, filters on, overlay in place).
       // Everything before it is a blank or unfiltered page and is trimmed.
       let readyAt = null
-      // When the timing mark turned white, in video time (see videoSync.js).
-      let syncAt = null
+      // The timing mark (see videoSync.js) and the page's corner before it.
+      let mark = null
+      let pageCorner = null
       let watchdog
       try {
         context = await newSafeContext(browser, { blockedHosts, recordVideoDir: videoDir })
@@ -180,9 +182,17 @@ export async function runPersona(job, s, deps) {
           await page.evaluate(settle)
           // Video zero after trimming; every moment is stamped from here.
           readyAt = Date.now()
-          syncAt = (await showSyncMark(page)) - readyAt
+          pageCorner = await readPageCorner(browser, page)
+          mark = await showSyncMark(page)
 
-          const engine = createEvidenceEngine({ page, readyAt, onMoment: (m) => progress.moment(s.sessionId, m) })
+          const engine = createEvidenceEngine({
+            page,
+            readyAt,
+            // The delivered video starts just after the mark.
+            captionZeroAt: mark.off + 80,
+            pauseNote: pauseNote(s.persona.name, s.profiles),
+            onMoment: (m) => progress.moment(s.sessionId, m)
+          })
           const byId = Object.fromEntries(detectors.map((d) => [d.id, d]))
           const groups = groupFindings(candidates)
           const atStep = new Map()
@@ -269,63 +279,50 @@ export async function runPersona(job, s, deps) {
 
       // --------------------------------------------------------- upload
       progress.phase(s.sessionId, 'saving')
-      let trimMs = 0
-      let correction = 0
+      // Wall time of a moment, mapped onto the delivered video once known.
+      let toVideoMs = null
+      const sessionStart = new Date(session.start_time).getTime()
       const videoPath = await page?.video()?.path().catch(() => null)
       if (videoPath) {
         const stat = await fs.stat(videoPath).catch(() => null)
         if (stat && stat.size > 0) {
-          // Cut the loading seconds so the video opens on the ready page.
-          trimMs = readyAt ? Math.max(0, readyAt - videoStart) : 0
-          let uploadPath = videoPath
-          if (trimMs > 300) {
-            const trimmed = await trimStart(videoPath, trimMs).catch((err) => {
-              debug.trimError = String(err?.message || err).slice(0, 300)
-              return null
-            })
-            if (trimmed) uploadPath = trimmed
-            else trimMs = 0
+          if (mark) {
+            // Find the mark, correct the timing, and cut the video to start
+            // just after it: no loading screen and no mark in what is shown.
+            const delivered = await deliverVideo({ browser, rawPath: videoPath, videoStart, readyAt, mark, pageCorner })
+            syncTimings = delivered.sync
+            if (!delivered.sync.found) console.log(`[runner] ${label} timing mark not found; no correction applied`)
+            else if (!delivered.sync.applied) console.log(`[runner] ${label} timing correction ${delivered.sync.measuredMs} ms is over the limit; not applied`)
+            timings.mark('trim')
+            videoKey = await store.putVideo(s.sessionId, delivered.file)
+            durationSeconds = Math.max(1, Math.round(delivered.toVideoMs(videoEnd) / 1000))
+            recordingOffsetMs = Math.max(0, delivered.zeroWallMs - sessionStart)
+            toVideoMs = delivered.toVideoMs
           } else {
-            trimMs = 0
+            // Stopped before the page was ready (no mark): keep the video whole.
+            videoKey = await store.putVideo(s.sessionId, videoPath)
+            durationSeconds = Math.max(1, Math.round((videoEnd - videoStart) / 1000))
+            recordingOffsetMs = Math.max(0, videoStart - sessionStart)
           }
-          debug.trimmedMs = trimMs
-          timings.mark('trim')
-
-          // Where the timing mark really is in this video, against where it
-          // was stamped. The difference corrects every moment.
-          if (syncAt !== null) {
-            const expected = syncAt + Math.max(0, readyAt - videoStart - trimMs)
-            const onset = await findSyncOnset(browser, uploadPath).catch(() => null)
-            if (onset === null) debug.syncMissing = true
-            else correction = onset - expected
-            debug.syncCorrectionMs = correction
-          }
-          timings.mark('sync')
-
-          videoKey = await store.putVideo(s.sessionId, uploadPath)
-          durationSeconds = Math.max(1, Math.round((videoEnd - videoStart - trimMs) / 1000))
-          // Session time at which the (trimmed) video starts, so
-          // timestamp_ms - recording_offset_ms is the position in the video.
-          recordingOffsetMs = Math.max(0, videoStart + trimMs - new Date(session.start_time).getTime())
         }
       }
       await fs.rm(videoDir, { recursive: true, force: true }).catch(() => {})
 
-      // Moments: pictures, then rows. Moment videoMs counts from readyAt;
-      // if the trim did not happen the video starts earlier, so shift it.
-      const shift = (readyAt && videoStart ? Math.max(0, readyAt - videoStart - trimMs) : 0) + correction
-      const sessionStart = new Date(session.start_time).getTime()
+      // Moments: pictures, then rows. The engine stamps moments from readyAt;
+      // here they move onto the delivered video's own clock.
       for (const m of moments) {
         const base = `sessions/${s.sessionId}/moments/${String(m.number).padStart(2, '0')}`
         const shotKeys = {
+          persona: m.shots.persona ? await store.putImage(`${base}-persona.jpg`, m.shots.persona) : null,
           clean: await store.putImage(`${base}-clean.jpg`, m.shots.clean),
           shot: await store.putImage(`${base}-shot.jpg`, m.shots.shot),
           closeup: m.shots.closeup ? await store.putImage(`${base}-closeup.jpg`, m.shots.closeup) : null
         }
-        const videoMs = Math.max(0, m.videoMs + shift)
+        const wall = readyAt + m.videoMs
+        const videoMs = toVideoMs ? Math.max(0, Math.round(toVideoMs(wall))) : m.videoMs
         await store.saveMoment(s.sessionId, { ...m, videoMs }, {
           // Session time, so timestamp_ms - recording_offset_ms is the video position.
-          timestampMs: recordingOffsetMs !== null ? recordingOffsetMs + videoMs : Math.max(0, readyAt - sessionStart) + m.videoMs,
+          timestampMs: recordingOffsetMs !== null ? recordingOffsetMs + videoMs : Math.max(0, wall - sessionStart),
           shotKeys,
           profiles: s.profiles
         })
@@ -339,6 +336,9 @@ export async function runPersona(job, s, deps) {
   }
 
   const timingResult = timings.done()
+  // How the video's timing was settled, kept with the timings so a missing
+  // mark or an ignored correction is visible later.
+  if (syncTimings) timingResult.sync = syncTimings
   await store.finalize(s.sessionId, {
     videoKey, durationSeconds, recordingOffsetMs, coverage, timings: timingResult, debug
   })

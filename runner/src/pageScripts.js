@@ -129,11 +129,12 @@ export function installOverlay() {
         max-width: 80vw; padding: 14px 22px; border-radius: 12px; background: #111827; color: #ffffff;
         border: 2px solid #ffffff; font: 600 28px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; }
       .sync { position: fixed; left: 0; top: 0; width: 48px; height: 48px; display: none; }
+      .caption .note { display: block; margin-top: 6px; font-size: 20px; font-weight: 500; color: #ffffff; }
       .caption .time { display: block; font-size: 18px; font-weight: 500; color: #e5e7eb; margin-bottom: 4px;
         font-variant-numeric: tabular-nums; }
     </style>
     <div class="sync"></div><div class="ring"></div><div class="label"></div>
-    <div class="caption"><span class="time"></span><span class="text"></span></div>
+    <div class="caption"><span class="time"></span><span class="text"></span><span class="note"></span></div>
     <div class="chip"><span class="key"></span><span class="count"></span></div>`
   document.documentElement.appendChild(host)
   const chip = root.querySelector('.chip')
@@ -187,9 +188,13 @@ export function installOverlay() {
       Object.assign(label.style, { left: `${lx}px`, top: `${ly}px` })
       return { ring: { x, y, width: w, height: h }, label: { x: lx, y: ly, width: lw, height: lh } }
     },
-    caption(text, time) {
+    // note: shown under the sentence while the persona's filter is paused.
+    caption(text, time, note) {
       caption.querySelector('.time').textContent = time
       caption.querySelector('.text').textContent = text
+      const n = caption.querySelector('.note')
+      n.textContent = note || ''
+      n.style.display = note ? 'block' : 'none'
       caption.style.display = 'block'
     },
     // Video timing mark: a corner square that turns from black to white.

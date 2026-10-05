@@ -39,16 +39,18 @@ export const store = {
       `INSERT INTO empathy_moments
          (session_id, timestamp_ms, label, note, screenshot_url, active_profiles,
           source, detector, profile_id, video_ms, rect, evidence,
-          shot_url, shot_clean_url, closeup_url, pattern_count, headline, fact, for_team, internal_ref)
-       VALUES ($1, $2, $3, $4, $5, $6, 'runner', $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+          shot_url, shot_clean_url, closeup_url, pattern_count, headline, fact, for_team, internal_ref,
+          shot_persona_url)
+       VALUES ($1, $2, $3, $4, $5, $6, 'runner', $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
       [sessionId, timestampMs, moment.headline, moment.fact, shotKeys.shot, JSON.stringify(profiles || []),
        moment.detector, moment.profile, moment.videoMs, JSON.stringify(moment.element.rect),
        JSON.stringify({
          tier: moment.tier, step: moment.step, measured: moment.evidence, element: moment.element,
-         pattern: moment.pattern, number: moment.number, held: moment.held
+         pattern: moment.pattern, number: moment.number, held: moment.held, pauseNote: moment.pauseNote ?? null
        }),
        shotKeys.shot, shotKeys.clean, shotKeys.closeup, moment.pattern?.count ?? 1,
-       moment.headline, moment.fact, moment.forTeam, moment.internalRef ?? null]
+       moment.headline, moment.fact, moment.forTeam, moment.internalRef ?? null,
+       shotKeys.persona ?? null]
     )
     await pool.query('UPDATE sessions SET empathy_moment_count = empathy_moment_count + 1 WHERE id = $1', [sessionId])
   },

@@ -1,0 +1,5 @@
+{
+  "../../walk/three.html": { "stops": 3, "ended": "wrapped" },
+  "../../walk/hidden.html": { "stops": 3, "ended": "wrapped" },
+  "../../walk/skiplink.html": { "stops": 4, "ended": "wrapped" }
+}

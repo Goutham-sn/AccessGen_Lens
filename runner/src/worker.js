@@ -2,17 +2,27 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import Bull from 'bull'
-import { config } from './config.js'
+import { config, requireSecrets } from './config.js'
 import { createEgressProxy } from './egressProxy.js'
 import { addLocalNetworks } from './blocklist.js'
 import { launchBrowser, createSemaphore } from './browser.js'
 import { runPersona } from './persona.js'
 import { store } from './store.js'
 import { progress } from './progress.js'
+import { capabilityGaps } from './checks/index.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
 async function main() {
+  requireSecrets()
+
+  // The capabilities file says what the runner can do. Refuse to start if a
+  // live check has no module or a listed profile has no implementation.
+  const gaps = capabilityGaps()
+  if (gaps.length) {
+    console.error(`[runner] Not starting: ${gaps.join('; ')}.`)
+    process.exit(1)
+  }
   const profilesSource = await fs.readFile(path.join(here, '../dist/profiles.js'), 'utf8')
 
   const blocked = await addLocalNetworks(config.internalServices)

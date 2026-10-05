@@ -4,6 +4,7 @@
 .env
 .env.*
 backend
+!backend/src/config/runnerCapabilities.js
 web-app
 extension/background
 extension/content-scripts

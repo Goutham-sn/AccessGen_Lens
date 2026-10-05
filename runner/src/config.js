@@ -1,10 +1,12 @@
-// Secrets have no defaults: a missing one stops the runner at startup with a
-// message that names it.
-const REQUIRED = ['DATABASE_URL', 'MINIO_ACCESS_KEY', 'MINIO_SECRET_KEY']
-const missing = REQUIRED.filter((n) => !process.env[n])
-if (missing.length) {
-  console.error(`[runner] Missing required setting(s): ${missing.join(', ')}. Set them in .env (see .env.example).`)
-  process.exit(1)
+// Secrets have no defaults. The worker calls this first thing, so a missing
+// one stops the runner at startup with a message that names it. (It is not
+// run on import, so tests and checks can load the plain modules.)
+export function requireSecrets() {
+  const missing = ['DATABASE_URL', 'MINIO_ACCESS_KEY', 'MINIO_SECRET_KEY'].filter((n) => !process.env[n])
+  if (missing.length) {
+    console.error(`[runner] Missing required setting(s): ${missing.join(', ')}. Set them in .env (see .env.example).`)
+    process.exit(1)
+  }
 }
 
 // Runner settings. Every number here has a reason next to it.

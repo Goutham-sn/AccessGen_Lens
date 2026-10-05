@@ -15,6 +15,10 @@ const REGISTRY = {
   'low-vision': LowVision
 }
 
+// Read by src/checks/index.js to confirm every filter profile the backend
+// lists has an implementation here.
+export const FILTER_PROFILE_IDS = Object.keys(REGISTRY)
+
 const active = []
 
 globalThis[Symbol.for('accessgen.runner.profiles')] = {

@@ -1,0 +1,28 @@
+import { RUNNER_CAPABILITIES, liveChecks } from '../../../backend/src/config/runnerCapabilities.js'
+import { WALK_PROFILES } from '../walkProfiles.js'
+import { FILTER_PROFILE_IDS } from '../inject/profilesEntry.js'
+import tabWalk from './tabWalk.js'
+import filterVideo from './filterVideo.js'
+
+// Every check the runner can run, by the id used in
+// backend/src/config/runnerCapabilities.js. Later phases register their
+// detectors here. A check marked live there must have a module here.
+export const CHECKS = {
+  [tabWalk.id]: tabWalk,
+  [filterVideo.id]: filterVideo
+}
+
+// What is wrong with the runner against the capabilities file, in plain
+// words. Empty when everything lines up.
+export function capabilityGaps() {
+  const gaps = []
+  for (const id of liveChecks()) {
+    if (!CHECKS[id]) gaps.push(`check "${id}" is marked live but has no module in src/checks`)
+  }
+  const implemented = new Set([...WALK_PROFILES, ...FILTER_PROFILE_IDS])
+  for (const profile of Object.keys(RUNNER_CAPABILITIES)) {
+    if (!implemented.has(profile)) gaps.push(`profile "${profile}" is listed but the runner has no way to simulate it`)
+  }
+  return gaps
+}
+

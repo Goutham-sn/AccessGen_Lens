@@ -7,6 +7,7 @@ import { loadPage } from './load.js'
 import { tabWalk } from './walk.js'
 import { createTimings } from './timings.js'
 import { trimStart } from './trim.js'
+import { WALK_PROFILES } from './walkProfiles.js'
 import {
   detectChallenge, detectModal, installOverlay, overlayKeyChip, overlayHideChip,
   applyProfiles, scrollStep, settle
@@ -16,7 +17,6 @@ const STOPPED_CHALLENGE = 'This page asked to confirm that a person is visiting,
 const STOPPED_DIALOG = 'The page opened a browser message box as soon as it loaded, so we stopped there and left it untouched.'
 const STOPPED_TIME = 'We reached the time limit for this run and kept what we had seen so far.'
 
-const WALK_PROFILES = new Set(['keyboard-only', 'screen-reader'])
 
 // Runs one persona: a hidden measure pass, then the recorded pass that
 // produces the video. Every exit path finalizes the session.

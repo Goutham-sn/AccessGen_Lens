@@ -98,6 +98,9 @@ export async function streamMedia(req, res, next) {
   try {
     const key = req.params[0]
     if (!key || key.includes('..')) return res.status(400).json({ error: 'Bad key' })
+    // Only session media is ever served. Anything else in the bucket, such
+    // as quarantine/ (kept by scripts/orphan-media.js), is not reachable.
+    if (!key.startsWith('sessions/')) return res.status(404).json({ error: 'Not found' })
 
     const stat = await statObject(key).catch(() => null)
     if (!stat) return res.status(404).json({ error: 'Not found' })

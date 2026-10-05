@@ -11,12 +11,15 @@ export async function getPlayback(req, res, next) {
     if (!session) return res.status(404).json({ error: 'Session not found' })
     if (session.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' })
 
-    const [frames, events, empathyMoments] = await Promise.all([
+    const [frames, events, empathyMoments, uploadWindow] = await Promise.all([
       Frame.findBySession(session.id),
       Event.findBySession(session.id),
-      EmpathyMoment.findBySession(session.id)
+      EmpathyMoment.findBySession(session.id),
+      Session.uploadWindow(session.id)
     ])
 
-    res.json({ session, frames, events, empathyMoments })
+    // uploadWindow: { open, waitUntil }. Playback keeps waiting for a video
+    // only while open is true, as decided by the database clock.
+    res.json({ session, frames, events, empathyMoments, uploadWindow })
   } catch (err) { next(err) }
 }

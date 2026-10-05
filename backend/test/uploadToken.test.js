@@ -185,3 +185,19 @@ test('repeated /end calls never extend the grace period', async () => {
     `SELECT uploads_closed_at < NOW() - INTERVAL '8 minutes' AS still_old FROM sessions WHERE id = $1`, [s.id])
   assert.equal(r.still_old, true)
 })
+
+test('playback reports the upload window, decided by the database clock', async () => {
+  const s = await newSession()
+  const windowOf = async () => (await call(`/playback/${s.id}`, { bearer: access })).data.uploadWindow
+  const live = await windowOf()
+  assert.equal(live.open, true, 'still going: a recording can still arrive')
+  assert.equal(live.waitUntil, null)
+
+  await call(`/sessions/${s.id}/end`, { method: 'POST', uploadToken: s.token })
+  const ended = await windowOf()
+  assert.equal(ended.open, true, 'inside the grace period after /end')
+  assert.ok(ended.waitUntil, 'the window has an end')
+
+  await pool.query(`UPDATE sessions SET uploads_closed_at = NOW() - INTERVAL '11 minutes' WHERE id = $1`, [s.id])
+  assert.equal((await windowOf()).open, false, 'past the grace period')
+})

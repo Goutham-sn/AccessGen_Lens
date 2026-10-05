@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, mediaUrl } from '../services/api.js'
-import { uploadWindowEndsAt } from '../utils/uploadWindow.js'
+import { keepWaitingForVideo } from '../utils/uploadWindow.js'
 
 const POLL_MS = 4000
 // Loads playback data and controls the <video> element.
@@ -8,10 +8,11 @@ export function usePlayback(sessionId) {
   const videoRef = useRef(null)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
-  // True while video_url is still empty and the upload window (measured from
-  // the session's end, not from when this page opened) is still open. The
-  // recording can arrive after the backend has already marked the session
-  // no_video, so the status alone can't say whether a video is coming.
+  // True while video_url is still empty and the backend says the upload
+  // window is still open (worked out with the database clock, from the end
+  // of the session, not from when this page opened). The recording can
+  // arrive after the session is marked no_video, so the status alone can't
+  // say whether a video is coming.
   const [waitingForVideo, setWaitingForVideo] = useState(true)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -22,13 +23,13 @@ export function usePlayback(sessionId) {
     let cancelled = false
     let timer = null
     let loaded = false
-    let lastSession = null
+    let last = null
     setWaitingForVideo(true)
 
-    // Keep polling until the upload window closes. A session already past
-    // it shows "No recording" straight away, with no spinner.
+    // Keep polling until the backend says the window has closed. A session
+    // already past it shows "No recording" straight away, with no spinner.
     const pollAgain = () => {
-      if (Date.now() < uploadWindowEndsAt(lastSession)) timer = setTimeout(load, POLL_MS)
+      if (keepWaitingForVideo(last)) timer = setTimeout(load, POLL_MS)
       else setWaitingForVideo(false)
     }
 
@@ -37,7 +38,7 @@ export function usePlayback(sessionId) {
         .then((d) => {
           if (cancelled) return
           loaded = true
-          lastSession = d.session
+          last = d
           setData(d)
           if (d.session?.video_url) setWaitingForVideo(false)
           else pollAgain()

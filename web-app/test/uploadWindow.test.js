@@ -1,25 +1,26 @@
 // When Playback stops waiting for a recording:  npm test  (in web-app)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { uploadWindowEndsAt } from '../src/utils/uploadWindow.js'
+import { keepWaitingForVideo } from '../src/utils/uploadWindow.js'
 
-const MIN = 60 * 1000
+const session = (extra = {}) => ({ video_url: null, ...extra })
 
-test('an extension session waits until 10 minutes after it ended, not after the page opened', () => {
-  const end = Date.now() - 3 * MIN
-  assert.equal(uploadWindowEndsAt({ source: 'extension', end_time: new Date(end).toISOString() }), end + 10 * MIN)
+test('no video and the server says the window is open: keep waiting', () => {
+  assert.equal(keepWaitingForVideo({ session: session(), uploadWindow: { open: true, waitUntil: '2026-10-05T10:10:00Z' } }), true)
 })
 
-test('a session that ended more than 10 minutes ago is already final', () => {
-  const ended = new Date(Date.now() - 11 * MIN).toISOString()
-  assert.ok(Date.now() >= uploadWindowEndsAt({ source: 'extension', end_time: ended }))
+test('no video and the window has closed: final at once, no spinner', () => {
+  assert.equal(keepWaitingForVideo({ session: session(), uploadWindow: { open: false, waitUntil: '2026-10-05T10:10:00Z' } }), false)
 })
 
-test('a session still going keeps waiting', () => {
-  assert.equal(uploadWindowEndsAt({ source: 'extension', end_time: null }), Infinity)
+test('a video is there: stop waiting, whatever the window says', () => {
+  assert.equal(keepWaitingForVideo({ session: session({ video_url: 'sessions/x/session.webm' }), uploadWindow: { open: true } }), false)
 })
 
-test('a finished runner session never waits, an unfinished one does', () => {
-  assert.equal(uploadWindowEndsAt({ source: 'runner', processing_complete: true }), 0)
-  assert.equal(uploadWindowEndsAt({ source: 'runner', processing_complete: false }), Infinity)
+test('a response without the window (an older backend) never spins forever', () => {
+  assert.equal(keepWaitingForVideo({ session: session() }), false)
+})
+
+test('nothing loaded yet keeps the loading state', () => {
+  assert.equal(keepWaitingForVideo(null), true)
 })

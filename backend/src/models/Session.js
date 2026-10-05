@@ -77,6 +77,30 @@ export const Session = {
     return rows[0]
   },
 
+  // Whether a recording can still arrive, by the database clock, so the
+  // browser's clock never decides it. Extension sessions: until the grace
+  // period after uploads closed (or after end_time for older sessions).
+  // Runner sessions: until the run is finished, since the runner uploads
+  // before it finishes.
+  async uploadWindow(id, graceMinutes = RECORDING_GRACE_MINUTES) {
+    const { rows } = await query(
+      `SELECT
+         CASE
+           WHEN video_url IS NOT NULL THEN FALSE
+           WHEN source = 'runner' THEN NOT COALESCE(processing_complete, FALSE)
+           WHEN COALESCE(uploads_closed_at, end_time) IS NULL THEN TRUE
+           ELSE NOW() < COALESCE(uploads_closed_at, end_time) + make_interval(mins => $2)
+         END AS recording_window_open,
+         CASE
+           WHEN source = 'runner' OR COALESCE(uploads_closed_at, end_time) IS NULL THEN NULL
+           ELSE COALESCE(uploads_closed_at, end_time) + make_interval(mins => $2)
+         END AS wait_until
+         FROM sessions WHERE id = $1`,
+      [id, graceMinutes]
+    )
+    return rows[0] ? { open: rows[0].recording_window_open, waitUntil: rows[0].wait_until } : null
+  },
+
   // /end: frames and moments stop being accepted with the upload token. The
   // recording keeps its grace period, counted from this moment.
   async closeUploads(id) {

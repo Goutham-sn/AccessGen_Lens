@@ -9,7 +9,7 @@ export function PlaybackPlayer({ videoRef, videoUrl, processing, session, onTime
   if (processing) {
     return (
       <div className="flex h-96 items-center justify-center rounded-xl bg-ink-900 text-white">
-        <LoadingSpinner label="Compiling your session into video" />
+        <LoadingSpinner label="Waiting for the recording" />
       </div>
     )
   }
@@ -17,7 +17,7 @@ export function PlaybackPlayer({ videoRef, videoUrl, processing, session, onTime
   if (!videoUrl) {
     return (
       <div className="flex h-96 items-center justify-center rounded-xl bg-ink-900 text-gray-300 text-sm px-6 text-center">
-        This session has no recording — it may have been too short to compile.
+        No recording. This session ended without a video.
       </div>
     )
   }

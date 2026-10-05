@@ -1,5 +1,6 @@
 import { stick } from './measuringStick.js'
 import { overlayCall, locateAndDescribe, settle } from './pageScripts.js'
+import { cleanPageText } from './copy.js'
 
 // The evidence engine. Every detector hands its findings to this one module,
 // so every moment is captured the same way:
@@ -137,7 +138,15 @@ export function createEvidenceEngine({ page, readyAt, captionZeroAt = readyAt, n
       held,
       large,
       confirmed: true,
-      element: { selector: element.selector, role: element.role, name: element.name, rect: element.rect, html: element.html },
+      // Page-derived text is cleaned and capped before it is stored. The html
+      // is kept as evidence only; it is never rendered as markup anywhere.
+      element: {
+        selector: element.selector,
+        role: cleanPageText(element.role),
+        name: cleanPageText(element.name),
+        rect: element.rect,
+        html: element.html
+      },
       overlay: drawn,
       closeupClip: clip,
       pauseNote: filtered ? pauseNote : null,

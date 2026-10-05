@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
-import { Button } from '../components/shared/Button.jsx'
 import { Badge } from '../components/shared/Badge.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { useSessionStore } from '../store/sessionStore.js'
@@ -87,8 +86,8 @@ export default function Dashboard() {
     <PageWrapper
       title={`Welcome${user?.name ? `, ${user.name}` : ''}`}
       actions={
-        <Link to="/configure">
-          <Button size="lg">New session</Button>
+        <Link to="/start" className="inline-flex min-h-[48px] items-center justify-center rounded-lg bg-brand-700 px-6 py-3 text-base font-medium text-white hover:bg-brand-800">
+          New session
         </Link>
       }
     >
@@ -102,8 +101,11 @@ export default function Dashboard() {
             <p className="mt-1 text-sm text-ink-500">
               Start your first session and feel what your visitors feel.
             </p>
-            <Link to="/configure" className="mt-6 inline-block">
-              <Button>Choose your first experience</Button>
+            <Link
+              to="/start"
+              className="mt-6 inline-flex min-h-[40px] items-center rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+            >
+              Choose your first experience
             </Link>
           </div>
         ) : (

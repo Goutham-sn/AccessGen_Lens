@@ -66,7 +66,12 @@ async function restoreState() {
   state.pendingInitialLoad = false
   state.recordingInFlight = false
 }
-restoreState()
+// Every listener waits on this before touching state. A worker woken by an
+// event would otherwise handle it against the defaults, and a late restore
+// would overwrite whatever that handler had just written.
+const stateReady = restoreState().catch((err) => {
+  console.warn('[accessgen] state restore failed:', err?.message)
+})
 
 // ---------------------------------------------------------------- injection
 
@@ -549,28 +554,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false
   }
 
-  try {
-    const result = handler()
-    if (result && typeof result.then === 'function') {
-      result.then((value) => {
-        try { sendResponse(value) } catch {}
-      }).catch((err) => {
-        try { sendResponse({ error: err.message }) } catch {}
-      })
-      return true
-    }
-
-    sendResponse(result)
-    return false
-  } catch (err) {
-    sendResponse({ error: err.message })
-    return false
+  // This callback must stay synchronous and return true: an async callback
+  // returns a Promise instead of true, so Chrome closes the channel before
+  // sendResponse runs.
+  const run = async () => {
+    await stateReady
+    return handler()
   }
+  run().then((value) => {
+    try { sendResponse(value) } catch {}
+  }).catch((err) => {
+    try { sendResponse({ error: err.message }) } catch {}
+  })
+  return true
 })
 
 // -------------------------------------------------- navigation continuity
 
 chrome.webNavigation.onCommitted.addListener(async (details) => {
+  await stateReady
   if (!state.isActive) return
   if (details.tabId !== state.targetTabId || details.frameId !== 0) return
   // startSimulation is already injecting for this exact page load; this
@@ -596,10 +598,11 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 // Keyboard shortcut (manifest "commands"). Pressing it counts as invoking
 // the extension on the active tab, same as opening the popup there.
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === 'start-recording') beginRecording(tab?.id)
+  if (command === 'start-recording') stateReady.then(() => beginRecording(tab?.id))
 })
 
-chrome.tabs.onRemoved.addListener((tabId) => {
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await stateReady
   if (tabId !== state.targetTabId) return
 
   const sessionId = state.sessionId

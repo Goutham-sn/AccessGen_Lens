@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tricky: focus ring on the parent</title>
+<!-- Zero from every detector. The buttons have no outline of their own; the
+     ring is a box-shadow on their parent, through :focus-within. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  .chip { display: inline-block; padding: 6px; margin: 20px; border-radius: 8px; }
+  .chip:focus-within { box-shadow: 0 0 0 3px #036; }
+  .chip button { outline: none; border: 0; background: #eee; padding: 6px 12px; }
+</style>
+</head>
+<body>
+<main>
+  <span class="chip"><button>Alpha</button></span>
+  <span class="chip"><button>Beta</button></span>
+  <span class="chip"><button>Gamma</button></span>
+</main>
+</body>
+</html>

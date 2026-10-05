@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tricky: a dialog that keeps focus</title>
+<!-- Zero from every detector. A modal dialog is open on load and keeps Tab
+     between its two buttons. That is what a dialog should do, so it is not
+     a trap; the page behind it is never reached, so there is no long way. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  .dialog { position: fixed; top: 80px; left: 80px; background: #fff; border: 2px solid #333; padding: 24px; }
+</style>
+</head>
+<body>
+<div class="dialog" role="dialog" aria-modal="true" aria-label="Choose a store">
+  <p>Choose a store</p>
+  <button>Nearest</button> <button>Close</button>
+</div>
+<header><nav><a href="/1">Home</a><a href="/2">Shop</a></nav></header>
+<main><h1>Offers</h1><a href="/first">First offer</a></main>
+<script>
+  const buttons = Array.from(document.querySelectorAll('.dialog button'))
+  document.querySelector('.dialog').addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return
+    e.preventDefault()
+    const i = buttons.indexOf(document.activeElement)
+    buttons[(i + (e.shiftKey ? buttons.length - 1 : 1)) % buttons.length].focus()
+  })
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tricky: menus hidden with display none</title>
+<!-- Zero from every detector. Submenus are display: none or visibility:
+     hidden, so their links are not stops at all. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  nav > ul > li { display: inline-block; margin-right: 24px; position: relative; }
+  .sub { display: none; position: absolute; }
+  .sub2 { visibility: hidden; position: absolute; }
+</style>
+</head>
+<body>
+<header><nav><ul>
+  <li><a href="/p">Products</a><ul class="sub"><li><a href="/p1">Phones</a></li><li><a href="/p2">Laptops</a></li></ul></li>
+  <li><a href="/s">Services</a><ul class="sub2"><li><a href="/s1">Repairs</a></li><li><a href="/s2">Setup</a></li></ul></li>
+  <li><a href="/h">Help</a></li>
+</ul></nav></header>
+<main><h1>Shop</h1><a href="/deal">Today's deal</a></main>
+</body>
+</html>

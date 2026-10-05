@@ -1,4 +1,5 @@
 import { config } from './config.js'
+import { stick } from './measuringStick.js'
 import { settle, describeActive } from './pageScripts.js'
 
 // Presses Tab through the page, one stop at a time, and describes what has
@@ -9,10 +10,21 @@ import { settle, describeActive } from './pageScripts.js'
 // not, the body visit was focus getting lost mid-way, and it is kept as a
 // stop so a later detector can see it.
 //
-// Ends at maxStops, on wrap, when there is nothing to focus, or at the
-// deadline.
+// Chromium always passes through the body when Tab wraps on its own. When
+// focus comes back to a place it has already been without that, the page
+// is moving focus round in a circle. The walk keeps going until the same
+// places have come round in the same order trapRounds times, then ends with
+// 'cycle'. A stop seen before is marked `revisit`, so detectors measure
+// each place once.
+//
+// Focus inside a frame shows up as the frame element, press after press.
+// Those stops are never treated as a circle (see findCycle).
+//
+// Ends at maxStops, on wrap, on a cycle, when there is nothing to focus, or
+// at the deadline.
 export async function tabWalk(page, { deadline, paceMs = 0, onStop } = {}) {
   const stops = []
+  const seen = new Set()
   let first = null
   let presses = 0
 
@@ -25,6 +37,10 @@ export async function tabWalk(page, { deadline, paceMs = 0, onStop } = {}) {
   }
 
   async function record(stop) {
+    if (stop.kind === 'element') {
+      if (seen.has(stop.selector)) stop.revisit = true
+      seen.add(stop.selector)
+    }
     stops.push(stop)
     if (onStop) await onStop(stop, stops.length)
     if (paceMs) await page.waitForTimeout(paceMs)
@@ -52,9 +68,29 @@ export async function tabWalk(page, { deadline, paceMs = 0, onStop } = {}) {
       continue
     }
 
-    if (first && stop.selector === first) return { stops, ended: 'wrapped', presses }
     if (!first) first = stop.selector
     await record(stop)
+    const cycle = findCycle(stops, stick('keyboard', 'trapRounds'))
+    if (cycle) return { stops, ended: 'cycle', presses, cycle }
   }
   return { stops, ended: 'max', presses }
+}
+
+// The last stops are the same k element stops in the same order, `rounds`
+// times over. Returns { fromStep, k, rounds, presses } (fromStep is 1-based)
+// or null. Frame and body stops never form a cycle, and neither does one
+// place on its own: focus moving inside a closed shadow root also shows up
+// as the same element press after press, and we cannot tell the two apart.
+export function findCycle(stops, rounds) {
+  const n = stops.length
+  for (let k = 2; k * rounds <= n; k++) {
+    const tail = stops.slice(n - k * rounds)
+    if (tail.some((s) => s.kind !== 'element')) continue
+    const loop = tail.slice(0, k).map((s) => s.selector)
+    if (new Set(loop).size !== k) continue
+    if (tail.every((s, i) => s.selector === loop[i % k])) {
+      return { fromStep: n - k * rounds + 1, k, rounds, presses: k * rounds }
+    }
+  }
+  return null
 }

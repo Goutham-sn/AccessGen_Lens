@@ -3,13 +3,23 @@ import { WALK_PROFILES } from '../walkProfiles.js'
 import { FILTER_PROFILE_IDS } from '../inject/profilesEntry.js'
 import tabWalk from './tabWalk.js'
 import filterVideo from './filterVideo.js'
+import focusVisible from './focusVisible.js'
+import longWay from './longWay.js'
+import focusLost from './focusLost.js'
+import focusHidden from './focusHidden.js'
+import trap from './trap.js'
+
+// The keyboard detectors, in the order they run at each stop. Trap is last
+// because it ends the measure pass with one press of Escape.
+export const KEYBOARD_CHECKS = [focusVisible, longWay, focusLost, focusHidden, trap]
 
 // Every check the runner can run, by the id used in
 // backend/src/config/runnerCapabilities.js. Later phases register their
 // detectors here. A check marked live there must have a module here.
 export const CHECKS = {
   [tabWalk.id]: tabWalk,
-  [filterVideo.id]: filterVideo
+  [filterVideo.id]: filterVideo,
+  ...Object.fromEntries(KEYBOARD_CHECKS.map((c) => [c.id, c]))
 }
 
 // What is wrong with the runner against the capabilities file, in plain

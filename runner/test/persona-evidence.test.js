@@ -47,7 +47,7 @@ const testDetector = {
     if (step === 2) {
       return [{
         detector: 'test-detector', profile: 'keyboard-only', selector: stop.selector,
-        headline: 'David would lose his place here.', fact: 'A measured fact.', forTeam: 'What would change it.',
+        headline: 'David would lose the place here.', fact: 'A measured fact.', forTeam: 'What would change it.',
         evidence: { measured: true }
       }]
     }

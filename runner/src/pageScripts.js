@@ -56,8 +56,16 @@ export function describeActive() {
   const name = (el.getAttribute('aria-label') || el.getAttribute('alt') || el.getAttribute('title') ||
     el.textContent || el.getAttribute('placeholder') || '').trim().replace(/\s+/g, ' ').slice(0, 80)
 
+  const isFrame = el.tagName === 'IFRAME' || el.tagName === 'FRAME'
+  // A frame from another site has no readable document from here.
+  let crossOrigin = false
+  if (isFrame) {
+    try { crossOrigin = !el.contentDocument } catch { crossOrigin = true }
+  }
+
   return {
-    kind: el.tagName === 'IFRAME' || el.tagName === 'FRAME' ? 'frame' : 'element',
+    kind: isFrame ? 'frame' : 'element',
+    ...(isFrame ? { crossOrigin } : {}),
     selector: selectorFor(el),
     name,
     tag: el.tagName.toLowerCase(),

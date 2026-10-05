@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Long header, working skip link</title>
+<!-- long-way: 0. Twelve header links, but the first stop is a skip link
+     whose target is on the page. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  .skip { position: absolute; left: -9999px; top: 8px; background: #fff; padding: 8px; }
+  .skip:focus { left: 8px; }
+  nav a { margin-right: 8px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header><nav>
+  <a href="/1">Logo</a><a href="/2">Home</a><a href="/3">Products</a><a href="/4">Offers</a>
+  <a href="/5">Stores</a><a href="/6">Blog</a><a href="/7">About</a><a href="/8">Careers</a>
+  <a href="/9">Press</a><a href="/10">Help</a><a href="/11">Account</a><a href="/12">Basket</a>
+</nav></header>
+<main id="content"><h1>Today's offers</h1><a href="/first">First offer</a></main>
+</body>
+</html>

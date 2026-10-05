@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frame before the content</title>
+<!-- long-way: 0, with two coverage lines. A frame from another site with two
+     buttons sits among the header links, before the main landmark: focus
+     enters it at stop 6, and the presses inside cannot be counted. -->
+<style>body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; } nav a { margin-right: 8px; } iframe { width: 300px; height: 60px; }</style>
+</head>
+<body>
+<header><nav>
+  <a href="/1">Logo</a><a href="/2">Home</a><a href="/3">Products</a><a href="/4">Offers</a><a href="/5">Stores</a>
+  <iframe title="Newsletter" src="https://other-site.lens.test/frame-buttons.html"></iframe>
+  <a href="/6">Blog</a><a href="/7">About</a><a href="/8">Careers</a><a href="/9">Press</a><a href="/10">Help</a><a href="/11">Account</a>
+</nav></header>
+<main><h1>Today's offers</h1><a href="/first">First offer</a></main>
+</body>
+</html>

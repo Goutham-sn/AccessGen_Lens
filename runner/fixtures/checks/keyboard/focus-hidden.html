@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Focus hidden</title>
+<!-- focus-hidden: 2 findings, at stops 2 and 3.
+     Stop 2: covered by a named side panel.  Stop 3: covered by an unnamed box.
+     Not reported: stop 4 (the cover is transparent and empty), stop 5 (the
+     cover has opacity 0), stop 6 (covered on its left half only). -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  .wrap { position: relative; display: block; width: max-content; margin: 32px 0; }
+  .cover, .clear, .faded, .half { position: absolute; top: -4px; bottom: -4px; left: -4px; right: -4px; }
+  .cover { background: #fff; border: 1px solid #999; }
+  .clear { background: transparent; }
+  .faded { background: #fff; opacity: 0; }
+  .half { right: 50%; background: #fff; }
+  button:focus-visible { outline: 3px solid #036; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="wrap"><button>Visible</button></div>
+  <div class="wrap"><button>Under promo</button><aside class="cover" aria-label="Special offer">Sale</aside></div>
+  <div class="wrap"><button>Under box</button><div class="cover"></div></div>
+  <div class="wrap"><button>Under glass</button><div class="clear"></div></div>
+  <div class="wrap"><button>Under faded</button><div class="faded"></div></div>
+  <div class="wrap"><button>Half covered</button><div class="half"></div></div>
+</main>
+</body>
+</html>

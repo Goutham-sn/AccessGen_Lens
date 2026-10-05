@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trap</title>
+<!-- trap: 1 finding (page level). From stop 2, Tab goes round Red, Green and
+     Blue: the walk ends after 3 rounds (9 presses). After and More are never
+     reached. Escape does nothing. -->
+<style>body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; } #picker { margin: 16px 0; }</style>
+</head>
+<body>
+<main>
+  <a href="/start">Start</a>
+  <div id="picker"><button>Red</button><button>Green</button><button>Blue</button></div>
+  <a href="/after">After</a> <a href="/more">More</a>
+</main>
+<script>
+  const buttons = Array.from(document.querySelectorAll('#picker button'))
+  document.getElementById('picker').addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return
+    e.preventDefault()
+    const i = buttons.indexOf(document.activeElement)
+    buttons[(i + (e.shiftKey ? buttons.length - 1 : 1)) % buttons.length].focus()
+  })
+</script>
+</body>
+</html>

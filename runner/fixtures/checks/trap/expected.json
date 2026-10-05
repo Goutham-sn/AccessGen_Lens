@@ -1,0 +1,76 @@
+{
+  "../keyboard/clean.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/focus-visible.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way-cookie.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way-cookie-short.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way-h1.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way-h2.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way-frame.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way-skip-ok.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/long-way-skip-broken.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/focus-lost.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/focus-hidden.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/trap.html": {
+    "findings": 1,
+    "steps": [
+      null
+    ]
+  },
+  "../keyboard/tricky-skiplink.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/tricky-parent-ring.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/tricky-modal.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/tricky-hidden-menu.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/tricky-carousel.html": {
+    "findings": 0,
+    "steps": []
+  }
+}

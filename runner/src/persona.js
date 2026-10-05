@@ -8,10 +8,11 @@ import { tabWalk } from './walk.js'
 import { createTimings } from './timings.js'
 import { WALK_PROFILES } from './walkProfiles.js'
 import { detectorsFor } from './checks/index.js'
-import { createEvidenceEngine, makeFinding, groupFindings } from './evidence.js'
+import { createEvidenceEngine, groupFindings } from './evidence.js'
 import { measureCoverage } from './coverage.js'
+import { measurePass } from './measure.js'
 import { showSyncMark, readPageCorner, deliverVideo } from './videoSync.js'
-import { pauseNote } from './copy.js'
+import { pauseNote, coverageLines } from './copy.js'
 import {
   detectChallenge, detectModal, installOverlay, overlayKeyChip, overlayHideChip,
   applyProfiles, scrollStep, settle
@@ -89,32 +90,18 @@ export async function runPersona(job, s, deps) {
         debug.loadFailure = loaded.detail || null
       } else {
         Object.assign(coverage, await measureCoverage(page))
-        const ctx = { page, persona: s, profileIds }
-        if (walks) {
-          const walk = await tabWalk(page, {
-            deadline,
-            onStop: async (stop, n) => {
-              for (const d of detectors) {
-                if (!d.onStop) continue
-                try {
-                  for (const f of (await d.onStop({ ...ctx, stop, step: n })) || []) candidates.push(makeFinding({ ...f, step: n }))
-                } catch (err) {
-                  debug.detectorProblems.push({ detector: d.id, step: n, message: String(err?.message || err).slice(0, 300) })
-                }
-              }
-            }
-          })
-          measured = walk.stops
-          timings.mark('measureWalk')
-        }
-        for (const d of detectors) {
-          if (!d.measure) continue
-          try {
-            for (const f of (await d.measure({ ...ctx, stops: measured })) || []) candidates.push(makeFinding(f))
-          } catch (err) {
-            debug.detectorProblems.push({ detector: d.id, message: String(err?.message || err).slice(0, 300) })
-          }
-        }
+        const run = await measurePass(page, {
+          detectors, deadline, persona: s, profileIds, walks,
+          onWalked: () => timings.mark('measureWalk')
+        })
+        measured = run.walk?.stops ?? null
+        candidates.push(...run.candidates)
+        debug.detectorProblems.push(...run.problems)
+        // What we could not look at, in plain words.
+        coverage.notes = [
+          ...(coverage.closedShadowRoots ? [coverageLines.closedSections(coverage.closedShadowRoots)] : []),
+          ...run.notes
+        ]
         timings.mark('measureDetect')
       }
     } finally {
@@ -206,6 +193,9 @@ export async function runPersona(job, s, deps) {
             }
           }
 
+          // The recorded walk, once it has run: page-level confirms read it.
+          let recordedWalk = null
+
           // Confirm from this fresh state, before anything is drawn, then capture.
           const confirmAndCapture = async (group, stop) => {
             if (Date.now() >= deadline) return
@@ -215,7 +205,7 @@ export async function runPersona(job, s, deps) {
             if (!reason && d?.confirm) {
               // A detector may answer with a plain boolean or a promise.
               const ok = await Promise.resolve()
-                .then(() => d.confirm({ page, finding: group, stop, persona: s }))
+                .then(() => d.confirm({ page, finding: group, stop, persona: s, walk: recordedWalk }))
                 .catch(() => false)
               if (!ok) reason = 'did not happen again'
             }
@@ -240,6 +230,7 @@ export async function runPersona(job, s, deps) {
                 await page.evaluate(overlayKeyChip, { label: 'Tab', count: n })
               }
             })
+            recordedWalk = walk
             coverage.stopsVisited = walk.stops.length
             coverage.walkEnded = walk.ended
             coverage.framesReached = walk.stops.filter((x) => x.kind === 'frame').length

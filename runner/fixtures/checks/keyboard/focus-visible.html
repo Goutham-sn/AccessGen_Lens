@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Focus not visible</title>
+<!-- focus-visible: 2 findings, at stops 2 (Save) and 4 (Details).
+     Stop 1 has a ring, stop 3 changes its background, stop 5 is a text
+     field whose only sign is the text cursor, which counts as a sign. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  main > * { display: block; margin: 40px 0; }
+  .bare:focus { outline: none; }
+  .bg:focus { outline: none; background: #ffe58a; }
+  .ring:focus-visible { outline: 3px solid #036; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <button class="ring">Ringed</button>
+  <button class="bare">Save</button>
+  <button class="bg">Highlighted</button>
+  <a class="bare" href="/details">Details</a>
+  <input class="bare" aria-label="Name">
+</main>
+</body>
+</html>

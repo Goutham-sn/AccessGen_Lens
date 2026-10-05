@@ -24,6 +24,36 @@ export const MEASURING_STICK = {
       reason: 'When the same thing happens many times, three examples are enough to recognise the pattern.'
     }
   },
+  keyboard: {
+    nearbyPx: {
+      value: 24,
+      reason: 'A sign of focus sits on the element or right next to it. Looking 24 px around it takes in an outline or a glow, and stays close enough that a change there belongs to it.'
+    },
+    settleCapMs: {
+      value: 1000,
+      reason: 'Before measuring we wait for scrolling and short animations to finish, for at most a second, so a slow transition is not missed and a page that never stops moving does not hold up the walk.'
+    },
+    caretGapMs: {
+      value: 530,
+      reason: 'A text cursor blinks about twice a second. Two pictures taken just over half a second apart always catch it showing at least once.'
+    },
+    cornerInsetPx: {
+      value: 4,
+      reason: 'The corner points are taken 4 px inside the element, so a rounded corner or a thin border does not count as something on top.'
+    },
+    longWayStops: {
+      value: 10,
+      reason: 'We describe the way to the content once ten or more presses come before it, not counting the cookie notice. Fewer presses than that are common and quick.'
+    },
+    maxStopNames: {
+      value: 10,
+      reason: 'The first ten places Tab stops on are enough to show what comes before the content.'
+    },
+    trapRounds: {
+      value: 3,
+      reason: 'Going round the same places in the same order three times rules out a page that was still moving focus while it loaded.'
+    }
+  },
   calibration: {
     toleranceMs: {
       value: 100,

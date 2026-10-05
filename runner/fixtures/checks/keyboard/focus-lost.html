@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Focus lost</title>
+<!-- focus-lost: 5 findings.
+     Stop 2: "Jump" takes focus off itself, so Tab lands on the page.
+     Stop 4: a link outside the screen.     Stop 5: a fully transparent button.
+     Stop 6: a 0 by 0 px button.           Stop 7: a field outside the screen
+             whose label stays the same.
+     Stop 8 is also outside the screen, but its label shows a ring when it
+     has focus, so it is not reported. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  main > div { margin: 24px 0; }
+  .off { position: absolute; left: -9999px; }
+  .ghost { opacity: 0; }
+  .tiny { width: 0; height: 0; padding: 0; border: 0; overflow: hidden; }
+  .shows:focus-within .lab { outline: 3px solid #036; }
+</style>
+</head>
+<body>
+<main>
+  <div><button>One</button></div>
+  <div><button onfocus="this.blur()">Jump</button></div>
+  <div><button>Two</button></div>
+  <div class="off"><a href="/hidden">Hidden link</a></div>
+  <div><button class="ghost">Ghost</button></div>
+  <div><button class="tiny">Tiny</button></div>
+  <div><label for="email">Email</label><input id="email" class="off"></div>
+  <div class="shows"><label for="phone" class="lab">Phone</label><input id="phone" class="off"></div>
+  <div><button>Three</button></div>
+</main>
+</body>
+</html>

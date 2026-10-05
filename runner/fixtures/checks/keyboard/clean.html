@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clean page</title>
+<!-- Zero moments from every keyboard detector: a working skip link, a main
+     landmark, few stops before it, and the browser's own focus ring. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  .skip { position: absolute; left: -9999px; top: 8px; background: #fff; padding: 8px; }
+  .skip:focus { left: 8px; }
+  nav a { margin-right: 16px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header><nav><a href="/home">Home</a><a href="/shop">Shop</a><a href="/help">Help</a></nav></header>
+<main id="content">
+  <h1>Welcome</h1>
+  <p>Some text with <a href="/more">a link</a>.</p>
+  <label for="q">Search</label> <input id="q" type="search"> <button>Go</button>
+</main>
+<footer><a href="/contact">Contact</a></footer>
+</body>
+</html>

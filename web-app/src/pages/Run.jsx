@@ -10,6 +10,11 @@ const POLL_MS = 3000
 // Plain words for each state, before a live phase message arrives.
 function statusText(session, phase) {
   if (session.complete) {
+    if (session.status === 'no_video' || !session.hasVideo) {
+      return session.coverage?.stoppedReason
+        ? `Finished without a recording. ${session.coverage.stoppedReason}`
+        : 'Finished without a recording.'
+    }
     return session.coverage?.stoppedReason || 'Ready. The recording is saved.'
   }
   if (phase) return `${phase}…`

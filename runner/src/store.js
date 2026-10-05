@@ -28,11 +28,11 @@ export const store = {
   },
 
   // Every run ends here, with or without a video, so no session is left
-  // waiting forever.
+  // waiting forever. Without a video it ends as no_video, never complete.
   async finalize(sessionId, { videoKey, durationSeconds, recordingOffsetMs, coverage, timings, debug }) {
     await pool.query(
       `UPDATE sessions
-          SET status = 'complete',
+          SET status = CASE WHEN $3::text IS NULL THEN 'no_video' ELSE 'complete' END,
               processing_complete = TRUE,
               end_time = NOW(),
               duration_seconds = $2,

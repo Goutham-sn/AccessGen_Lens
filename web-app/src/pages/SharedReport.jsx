@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ReportCover } from '../components/report/ReportCover.jsx'
 import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
+import { LookedAt } from '../components/report/LookedAt.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { mediaUrl, API_URL } from '../services/api.js'
@@ -80,10 +81,8 @@ export default function SharedReport() {
           <div className="space-y-8">
             <ReportCover session={data.session} empathyMoments={data.empathyMoments} />
             <SimulationBanner text={data.intro} />
-            <EmpathyMoments
-              empathyMoments={data.empathyMoments}
-              personaName={data.session.persona_snapshot?.name}
-            />
+            <LookedAt lookedAt={data.lookedAt} idPrefix="shared-looked-at" />
+            <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.lookedAt?.zeroMoments} />
             {data.session.video_url && (
               <section aria-labelledby="shared-watch-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
                 <h2 id="shared-watch-heading" className="text-xl font-semibold text-ink-900 mb-4">Watch the session</h2>

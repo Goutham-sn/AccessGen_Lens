@@ -4,6 +4,7 @@ import { redis } from '../config/redis.js'
 import { Persona } from '../models/Persona.js'
 import { runQueue } from '../jobs/queue.js'
 import { RUNNER_CAPABILITIES, RUNNER_PROFILES } from '../config/runnerCapabilities.js'
+import { lookedAt } from '../utils/lookedAt.js'
 import { SIMULATION_INTRO } from '../config/copy.js'
 import { deleteSessionAndMedia } from '../utils/deleteSession.js'
 
@@ -129,7 +130,8 @@ export async function deleteRun(req, res, next) {
 export async function getRun(req, res, next) {
   try {
     const { rows } = await query(
-      `SELECT id, url, status, persona_snapshot, video_url, coverage, run_timings, processing_complete
+      `SELECT id, url, status, persona_snapshot, video_url, coverage, run_timings, processing_complete,
+              source, active_profiles, empathy_moment_count
          FROM sessions WHERE run_id = $1 AND user_id = $2 ORDER BY created_at ASC`,
       [req.params.id, req.user.id]
     )
@@ -144,6 +146,8 @@ export async function getRun(req, res, next) {
         hasVideo: Boolean(r.video_url),
         complete: r.processing_complete,
         coverage: r.coverage,
+        momentCount: r.empathy_moment_count,
+        lookedAt: lookedAt(r, r.empathy_moment_count),
         timings: r.run_timings
       }))
     })

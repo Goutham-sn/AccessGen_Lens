@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer'
+import { lookedAt } from '../utils/lookedAt.js'
 import { SIMULATION_INTRO } from '../config/copy.js'
 import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
@@ -34,7 +35,16 @@ export async function processReportGeneration(sessionId) {
 
 // The report's HTML. Pictures are data: URLs, so the page needs nothing
 // from the network. images: { [momentId]: dataUrl }.
+// What a run looked at and could not look at, above the moments.
+function lookedAtHtml(looked) {
+  if (!looked) return ''
+  const list = (items) => `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`
+  return `<h2>What we looked at</h2>${list(looked.items)}` +
+    (looked.gaps.length ? `<h2>What we could not look at</h2>${list(looked.gaps)}` : '')
+}
+
 export function buildReportHtml({ session, moments, cover = null, images = {} }) {
+  const looked = lookedAt(session, moments.length)
   const persona = session.persona_snapshot
   const who = persona?.name || 'A visitor'
   const minutes = Math.max(1, Math.round((session.duration_seconds || 0) / 60))
@@ -90,8 +100,9 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
         <div class="num"><span class="big">${session.event_count || 0}</span>interactions needed</div>
       </div>
       ${persona?.story ? `<p>${esc(persona.story)}</p>` : ''}
+      ${lookedAtHtml(looked)}
       <h2>Where the experience broke down</h2>
-      ${momentCards.join('') || '<p>No breakdown moments were flagged during this session.</p>'}
+      ${momentCards.join('') || `<p>${esc(looked?.zeroMoments || 'No moments were flagged during this session.')}</p>`}
       <h2>What this means</h2>
       <p>None of this is about compliance. It is about whether ${esc(who)} can do what they came to do.
       Each moment above is a place where a real person would slow down, get lost, or give up entirely.</p>

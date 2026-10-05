@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
+import { LookedAt } from '../components/report/LookedAt.jsx'
 import { api } from '../services/api.js'
 import { getSocket } from '../services/socket.js'
 import { useAuthStore } from '../store/authStore.js'
@@ -87,6 +88,12 @@ export default function Run() {
                 <p role="status" className="mt-1 text-sm text-ink-700">
                   {statusText(s, phases[s.id])}
                 </p>
+                {s.complete && s.lookedAt && (
+                  <div className="mt-4 space-y-3">
+                    <LookedAt lookedAt={s.lookedAt} headingLevel={3} idPrefix={`looked-at-${s.id}`} />
+                    {s.lookedAt.zeroMoments && <p className="text-sm text-ink-700">{s.lookedAt.zeroMoments}</p>}
+                  </div>
+                )}
                 {s.complete && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link

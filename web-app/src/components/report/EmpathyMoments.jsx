@@ -16,15 +16,15 @@ function fmtMs(ms) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export function EmpathyMoments({ empathyMoments, personaName }) {
+// emptyText: what to say when there are no moments. Never an all-clear;
+// for a run it comes from the backend ("We pressed Tab 14 times and
+// noticed nothing that matches what we look for here. ...").
+export function EmpathyMoments({ empathyMoments, emptyText }) {
   if (empathyMoments.length === 0) {
     return (
-      <section className="rounded-2xl border border-green-200 bg-green-50 p-6">
-        <h2 className="text-xl font-semibold text-green-900">No breakdown moments</h2>
-        <p className="mt-2 text-green-800">
-          {personaName || 'The visitor'} made it through without flagging a single moment of struggle.
-          That is genuinely worth celebrating.
-        </p>
+      <section aria-labelledby="moments-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
+        <h2 id="moments-heading" className="text-xl font-semibold text-ink-900">Moments</h2>
+        <p className="mt-2 text-ink-700">{emptyText || 'No moments were flagged during this session.'}</p>
       </section>
     )
   }

@@ -49,6 +49,24 @@ test('report cover shows a page title as plain text', async () => {
   assertPlainText(render([ReportCover, { session, empathyMoments: moments }]), 'ReportCover')
 })
 
+test('what we looked at shows coverage lines from the page as plain text', async () => {
+  const { LookedAt } = await vite.ssrLoadModule('/src/components/report/LookedAt.jsx')
+  const lookedAt = {
+    items: ['Where each press of Tab goes, stop by stop'],
+    gaps: [`The first stops include “${EVIL}”, which may jump to the content, but it is not a link to a place on this page, so we could not check where it goes.`],
+    zeroMoments: null
+  }
+  assertPlainText(render([LookedAt, { lookedAt }]), 'LookedAt')
+})
+
+test('no moments: the line given is shown, never a celebration', async () => {
+  const { EmpathyMoments } = await vite.ssrLoadModule('/src/components/report/EmpathyMoments.jsx')
+  const line = 'We pressed Tab 14 times and noticed nothing that matches what we look for here. We only look at these 2 things.'
+  const html = render([EmpathyMoments, { empathyMoments: [], emptyText: line }])
+  assert.ok(html.includes(line))
+  assert.ok(!/celebrat|made it through|encouraging/i.test(html), html)
+})
+
 test('playback sidebar shows a button name as plain text', async () => {
   const { EmpathySidebar } = await vite.ssrLoadModule('/src/components/playback/EmpathySidebar.jsx')
   const html = render([EmpathySidebar, {

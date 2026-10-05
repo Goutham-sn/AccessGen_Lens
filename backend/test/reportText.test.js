@@ -28,7 +28,12 @@ const session = {
   start_time: new Date().toISOString(),
   duration_seconds: 30,
   active_profiles: [{ id: 'keyboard-only', name: 'Keyboard Only' }],
-  persona_snapshot: { name: 'David', story: 'A story.' }
+  persona_snapshot: { name: 'David', story: 'A story.' },
+  // A runner session, so the PDF has "What we looked at"; its coverage line
+  // carries page text too.
+  source: 'runner',
+  processing_complete: true,
+  coverage: { presses: 14, notes: [`The first stops include “${EVIL}”, which may jump to the content.`] }
 }
 const moments = [{
   id: 'm1',
@@ -45,6 +50,7 @@ test('the report HTML carries a button name as escaped text, never as an element
   const html = buildReportHtml({ session, moments })
   assert.ok(!html.includes('<img src=x'), 'no raw tag from the page')
   assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'), 'escaped instead')
+  assert.ok(html.includes('What we could not look at'), 'the coverage line is in the PDF')
 })
 
 test('the PDF shows the button name as plain text', async () => {

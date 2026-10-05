@@ -5,6 +5,7 @@ import { ReportCover } from '../components/report/ReportCover.jsx'
 import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { JourneyMap } from '../components/report/JourneyMap.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
+import { LookedAt } from '../components/report/LookedAt.jsx'
 import { BeforeAfter } from '../components/report/BeforeAfter.jsx'
 import { HumanSummary } from '../components/report/HumanSummary.jsx'
 import { ShareDialog } from '../components/shared/ShareDialog.jsx'
@@ -103,7 +104,8 @@ export default function Report() {
         </section>
 
         <JourneyMap session={session} events={events} empathyMoments={empathyMoments} />
-        <EmpathyMoments empathyMoments={empathyMoments} personaName={persona?.name} />
+        <LookedAt lookedAt={data.lookedAt} />
+        <EmpathyMoments empathyMoments={empathyMoments} emptyText={data.lookedAt?.zeroMoments} />
 
         <BeforeAfter
           normalImageUrl={firstFrame ? mediaUrl(firstFrame.screenshot_url) : null}

@@ -16,7 +16,8 @@ const MAX_TYPE_LEN = 64
 const ALLOWED_FIELDS = {
   ACCESSGEN_PING: [],
   ACCESSGEN_GET_STATUS: [],
-  ACCESSGEN_START_SIMULATION: ['sessionId', 'url', 'profiles', 'token', 'apiUrl', 'uploadToken'],
+  ACCESSGEN_START_SIMULATION: ['sessionId', 'url', 'profiles', 'token', 'apiUrl', 'uploadToken',
+    'clickedAt'], // [timing]
   ACCESSGEN_STOP_SIMULATION: [],
   ACCESSGEN_UPDATE_PROFILES: ['profiles'],
   ACCESSGEN_LOG_EMPATHY_MOMENT: ['label', 'note']
@@ -28,6 +29,7 @@ function pickPayload(type, payload) {
   for (const key of ALLOWED_FIELDS[type]) {
     if (Object.prototype.hasOwnProperty.call(payload, key)) out[key] = payload[key]
   }
+  if ('clickedAt' in out && !Number.isFinite(out.clickedAt)) delete out.clickedAt // [timing]
   return out
 }
 

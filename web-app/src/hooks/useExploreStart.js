@@ -30,11 +30,16 @@ export function useExploreStart() {
     if (!profiles?.length) return 'Choose at least one condition first.'
 
     setStarting(true)
+    const clickedAt = Date.now() // [timing]
+    console.log('[timing] start clicked at', clickedAt) // [timing]
     try {
       // Names with the ids, so reports read naturally.
       const enriched = profiles.map((p) => ({ ...p, name: getProfile(p.id)?.name || p.id }))
+      console.time('[timing] createSession') // [timing]
       const { session, uploadToken } = await createSession({ url: target, activeProfiles: enriched, persona })
+      console.timeEnd('[timing] createSession') // [timing]
       setLastUrl(target)
+      console.time('[timing] extension ack') // [timing]
       await startSimulation({
         sessionId: session.id,
         url: target,
@@ -42,7 +47,10 @@ export function useExploreStart() {
         token: accessToken,
         uploadToken,
         apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3001',
+        clickedAt // [timing]
       })
+      console.timeEnd('[timing] extension ack') // [timing]
+      console.log(`[timing] web app done +${Date.now() - clickedAt}ms after click`) // [timing]
       navigate(`/session/${session.id}`)
       return null
     } catch (err) {

@@ -66,6 +66,11 @@ async function restoreState() {
   state.pendingInitialLoad = false
   state.recordingInFlight = false
 }
+const workerBootAt = Date.now() // [timing]
+function timing(clickedAt, label) { // [timing]
+  if (clickedAt) console.log(`[timing] ${label} +${Date.now() - clickedAt}ms after click (worker alive ${Date.now() - workerBootAt}ms)`) // [timing]
+} // [timing]
+
 // Every listener waits on this before touching state. A worker woken by an
 // event would otherwise handle it against the defaults, and a late restore
 // would overwrite whatever that handler had just written.
@@ -302,7 +307,8 @@ async function destroySimulation(tabId) {
 
 // ------------------------------------------------------------- lifecycle
 
-async function startSimulation({ profiles, sessionId, url, token, apiUrl, uploadToken }, senderTabId) {
+async function startSimulation({ profiles, sessionId, url, token, apiUrl, uploadToken, clickedAt }, senderTabId) {
+  timing(clickedAt, 'state ready, starting') // [timing]
   state.isActive = true
   state.sessionId = sessionId
   state.activeProfiles = profiles || []
@@ -325,6 +331,7 @@ async function startSimulation({ profiles, sessionId, url, token, apiUrl, upload
   } else {
     tab = await chrome.tabs.create({ url, active: true })
   }
+  timing(clickedAt, existing ? 'existing tab reused' : 'tab created') // [timing]
   state.targetTabId = tab.id
   await persistState()
   applyBadge()
@@ -347,7 +354,9 @@ async function startSimulation({ profiles, sessionId, url, token, apiUrl, upload
     })
   })
 
+  timing(clickedAt, 'page load complete') // [timing]
   await injectSimulation(state.targetTabId)
+  timing(clickedAt, 'simulation injected') // [timing]
   state.pendingInitialLoad = false
   return { ok: true, tabId: state.targetTabId }
 }
@@ -557,6 +566,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // This callback must stay synchronous and return true: an async callback
   // returns a Promise instead of true, so Chrome closes the channel before
   // sendResponse runs.
+  if (type === 'ACCESSGEN_START_SIMULATION') timing(payload?.clickedAt, 'start message received') // [timing]
   const run = async () => {
     await stateReady
     return handler()

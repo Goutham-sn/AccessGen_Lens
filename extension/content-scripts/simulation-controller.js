@@ -133,7 +133,9 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
     if (type === 'ACCESSGEN_INIT') {
       setSession(payload.sessionId)
       if (!panel) initPanel()
+      console.time('[timing] profiles applied to first filtered frame') // [timing]
       applyProfiles(payload.profiles || [])
+      requestAnimationFrame(() => requestAnimationFrame(() => console.timeEnd('[timing] profiles applied to first filtered frame'))) // [timing]
       panel?.setRecording(payload.videoRecording === true)
       send('session-event', { event: { type: 'simulation-started', url: location.href } })
       sendResponse({ ok: true })

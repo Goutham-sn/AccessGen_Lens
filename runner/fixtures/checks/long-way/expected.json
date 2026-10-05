@@ -51,7 +51,18 @@
       14
     ]
   },
+  "../keyboard/long-way-skip-menu.html": {
+    "findings": 0,
+    "steps": [],
+    "notes": [
+      "The first stops include “Skip To Content, shortcut Alt + 0”, which may jump to the content, but it is not a link to a place on this page, so we could not check where it goes."
+    ]
+  },
   "../keyboard/focus-lost.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/focus-lost-run.html": {
     "findings": 0,
     "steps": []
   },
@@ -62,6 +73,28 @@
   "../keyboard/trap.html": {
     "findings": 0,
     "steps": []
+  },
+  "../keyboard/frame-same-site.html": {
+    "findings": 0,
+    "steps": [],
+    "notes": [
+      "Focus entered a frame from this site at stop 2. We did not look inside it."
+    ]
+  },
+  "../keyboard/frame-stay.html": {
+    "findings": 0,
+    "steps": [],
+    "notes": [
+      "Focus entered a frame from another site at stop 1. We could not look inside it.",
+      "Tab stayed inside it for the rest of the walk, so we could not look at the rest of the page."
+    ]
+  },
+  "../keyboard/stop-limit.html": {
+    "findings": 0,
+    "steps": [],
+    "notes": [
+      "We pressed Tab 61 times and stopped. The page has more stops, which we did not look at."
+    ]
   },
   "../keyboard/tricky-skiplink.html": {
     "findings": 0,
@@ -80,6 +113,10 @@
     "steps": []
   },
   "../keyboard/tricky-carousel.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/tricky-focus-styles.html": {
     "findings": 0,
     "steps": []
   }

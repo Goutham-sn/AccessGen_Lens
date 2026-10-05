@@ -307,6 +307,60 @@ export function countUnreached() {
   return count
 }
 
+// Records every element that receives focus, in capture-phase focusin and
+// focus listeners on the document. They only record: nothing is prevented or
+// changed. Used to name the element that briefly had focus when a press of
+// Tab ends on the page itself.
+export function installFocusRecord() {
+  const KEY = Symbol.for('accessgen.runner.probe')
+  const store = window[KEY] || (window[KEY] = { reached: new WeakSet(), current: null })
+  if (store.focusRecord) return
+  store.focusRecord = []
+  const record = (e) => {
+    const target = (e.composedPath && e.composedPath()[0]) || e.target
+    if (store.focusRecord.length < 20 && !store.focusRecord.includes(target)) store.focusRecord.push(target)
+  }
+  // Both events: an element that calls blur() inside its own focus handler
+  // gets a focus event but Chromium never sends it focusin.
+  document.addEventListener('focusin', record, { capture: true, passive: true })
+  document.addEventListener('focus', record, { capture: true, passive: true })
+}
+
+export function clearFocusRecord() {
+  const store = window[Symbol.for('accessgen.runner.probe')]
+  if (store?.focusRecord) store.focusRecord.length = 0
+}
+
+// The first element that received focus during the last press and no
+// longer has it, or null. Clears the record.
+export function takeFlashed() {
+  const store = window[Symbol.for('accessgen.runner.probe')]
+  const record = store?.focusRecord || []
+  let active = document.activeElement
+  while (active && active.shadowRoot && active.shadowRoot.activeElement) active = active.shadowRoot.activeElement
+  const flashed = record.find((n) => n && n.nodeType === 1 && n !== active &&
+    n !== document.body && n !== document.documentElement) || null
+  record.length = 0
+  if (store) store.flashed = flashed
+  if (!flashed) return null
+
+  const parts = []
+  let cur = flashed
+  for (let depth = 0; cur && cur.nodeType === 1 && depth < 8; depth++) {
+    if (cur.id && document.querySelectorAll(`#${CSS.escape(cur.id)}`).length === 1) {
+      parts.unshift(`#${CSS.escape(cur.id)}`)
+      break
+    }
+    const tag = cur.tagName.toLowerCase()
+    const parent = cur.parentElement
+    if (!parent) { parts.unshift(tag); break }
+    const same = Array.from(parent.children).filter((c) => c.tagName === cur.tagName)
+    parts.unshift(same.length > 1 ? `${tag}:nth-of-type(${same.indexOf(cur) + 1})` : tag)
+    cur = parent
+  }
+  return { selector: parts.join(' > '), tag: flashed.tagName.toLowerCase() }
+}
+
 // Which recognised cookie notice is showing right now, if any.
 export function visibleCookieNotice(cookieMarkers) {
   for (const [provider, sel] of cookieMarkers) {
@@ -384,6 +438,16 @@ async function hasClosedShadowRoot(cdp, objectId) {
   return (node?.shadowRoots || []).some((r) => r.shadowRootType === 'closed')
 }
 
+// After a press that ended on the page itself: the element that had focus
+// for a moment during that press, with its name and role, or null.
+export async function readFlashed(page) {
+  const found = await page.evaluate(takeFlashed).catch(() => null)
+  if (!found) return null
+  const cdp = await cdpFor(page, pageState(page))
+  const ax = await accessibleOf(cdp, await objectIdOf(cdp, '.flashed')).catch(() => ({ name: '', role: '' }))
+  return { selector: found.selector, name: ax.name, role: roleWord(ax.role, found.tag) }
+}
+
 // Measures the stop the walk is on, once. ctx: { page, stop, step, note }
 export function probeStop(ctx) {
   const s = pageState(ctx.page)
@@ -397,7 +461,9 @@ async function measureStop({ page, stop, step, note }, s) {
   const base = { step, stop }
 
   if (stop.kind === 'frame') {
-    if (stop.crossOrigin && prev?.selector !== stop.selector) note?.(coverageLines.frameEntered(step))
+    if (prev?.selector !== stop.selector) {
+      note?.(stop.crossOrigin ? coverageLines.frameEntered(step) : coverageLines.frameEnteredSameSite(step))
+    }
     return { ...base, skip: 'frame' }
   }
   if (stop.kind !== 'element') return { ...base, skip: stop.kind }

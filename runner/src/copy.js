@@ -138,11 +138,31 @@ export function longWayCopy({ persona, presses, anchor, before, moreBefore, cook
   }
 }
 
-export function focusLostToPageCopy({ persona, prevStep, prev, next }) {
+const capitalise = (text) => text.charAt(0).toUpperCase() + text.slice(1)
+
+// presses: how many presses in a row ended on the page itself.
+// flashed: [{ name, role }] elements that had focus for a moment during
+// those presses (recorded, never guessed); empty when none was seen, and
+// then no cause is given.
+export function focusLostToPageCopy({ persona, prevStep, presses = 1, prev, next, flashed = [], maxNames = 10 }) {
+  const parts = []
+  if (presses === 1) {
+    parts.push(`After ${nameOnly(prev.name, prev.role)} (stop ${prevStep}), pressing Tab moved focus to the page itself, not to anything on it.`)
+    if (next) parts.push(`The next press went to ${nameOnly(next.name, next.role)}.`)
+  } else {
+    parts.push(`After ${nameOnly(prev.name, prev.role)} (stop ${prevStep}), the next ${presses} presses of Tab moved focus to the page itself, not to anything on it.`)
+    if (next) parts.push(`Press ${prevStep + presses + 1} went to ${nameOnly(next.name, next.role)}.`)
+  }
+  if (flashed.length) {
+    const names = flashed.slice(0, maxNames).map((f) => nameOnly(f.name, f.role))
+    if (flashed.length > maxNames) names.push(`${flashed.length - maxNames} more`)
+    parts.push(`${capitalise(listWords(names))} received focus and then lost it.`)
+  }
   return {
-    headline: `After stop ${prevStep}, ${persona} would lose track of the place on the page.`,
-    fact: `After ${nameOnly(prev.name, prev.role)} (stop ${prevStep}), pressing Tab moved focus to the page itself, not to anything on it.` +
-      (next ? ` The next press went to ${nameOnly(next.name, next.role)}.` : ''),
+    headline: presses === 1
+      ? `After stop ${prevStep}, ${persona} would lose track of the place on the page.`
+      : `${persona} would press Tab ${presses} times in a row and focus would not land on anything.`,
+    fact: parts.join(' '),
     forTeam: 'Make sure focus moves to the next control instead of falling back to the page.'
   }
 }
@@ -191,7 +211,12 @@ export function trapCopy({ persona, fromStep, k, rounds, presses, places, unreac
 // Coverage lines: what we could not look at, in plain words.
 export const coverageLines = {
   frameEntered: (step) => `Focus entered a frame from another site at stop ${step}. We could not look inside it.`,
+  frameEnteredSameSite: (step) => `Focus entered a frame from this site at stop ${step}. We did not look inside it.`,
+  stayedInFrame: 'Tab stayed inside it for the rest of the walk, so we could not look at the rest of the page.',
   frameBeforeContent: 'A frame from another site came before the main content, so we did not count how long it takes to reach it.',
+  stopLimit: (presses) => `We pressed Tab ${presses} times and stopped. The page has more stops, which we did not look at.`,
+  skipControl: (name) => `The first stops include ${nameOnly(name, 'control')}, which may jump to the content, ` +
+    'but it is not a link to a place on this page, so we could not check where it goes.',
   closedSections: (count) => (count === 1
     ? '1 part of the page is in a closed section, so we could not look inside it.'
     : `${count} parts of the page are in closed sections, so we could not look inside them.`)

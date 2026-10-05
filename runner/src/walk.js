@@ -21,19 +21,23 @@ import { settle, describeActive } from './pageScripts.js'
 // Those stops are never treated as a circle (see findCycle).
 //
 // Ends at maxStops, on wrap, on a cycle, when there is nothing to focus, or
-// at the deadline.
-export async function tabWalk(page, { deadline, paceMs = 0, onStop } = {}) {
+// at the deadline. beforePress and afterPress(stop) run around every press;
+// whatever afterPress returns is added to that press's stop.
+export async function tabWalk(page, { deadline, paceMs = 0, onStop, beforePress, afterPress } = {}) {
   const stops = []
   const seen = new Set()
   let first = null
   let presses = 0
 
   async function press() {
+    if (beforePress) await beforePress()
     await page.keyboard.press('Tab')
     presses++
     await page.evaluate(settle)
     // Measure before anything is drawn for this stop.
-    return page.evaluate(describeActive)
+    const stop = await page.evaluate(describeActive)
+    const extra = afterPress ? await afterPress(stop) : null
+    return extra ? { ...stop, ...extra } : stop
   }
 
   async function record(stop) {
@@ -73,7 +77,22 @@ export async function tabWalk(page, { deadline, paceMs = 0, onStop } = {}) {
     const cycle = findCycle(stops, stick('keyboard', 'trapRounds'))
     if (cycle) return { stops, ended: 'cycle', presses, cycle }
   }
-  return { stops, ended: 'max', presses }
+
+  // At the stop limit, one more press shows whether the page has more
+  // stops: a place not seen yet means it does; the page itself followed by
+  // the first stop means the walk had in fact seen them all.
+  if (Date.now() < deadline) {
+    let next = pending || await press()
+    if (next.kind === 'body') {
+      next = await press()
+      if (next.kind !== 'body' && next.selector === first) return { stops, ended: 'wrapped', presses }
+    }
+    const unseen = next.kind === 'frame'
+      ? !stops.some((s) => s.selector === next.selector)
+      : next.kind === 'element' && !seen.has(next.selector)
+    return { stops, ended: 'max', presses, more: unseen }
+  }
+  return { stops, ended: 'max', presses, more: false }
 }
 
 // The last stops are the same k element stops in the same order, `rounds`

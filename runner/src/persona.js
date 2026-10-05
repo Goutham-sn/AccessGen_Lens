@@ -200,7 +200,10 @@ export async function runPersona(job, s, deps) {
           const confirmAndCapture = async (group, stop) => {
             if (Date.now() >= deadline) return
             let reason = null
-            if (stop && stop.selector !== group.selector) reason = 'not at the same stop'
+            // stopSelector: where focus is at this stop, when the moment
+            // highlights something else (focus-lost names the element that
+            // had focus for a moment while focus sits on the page itself).
+            if (stop && stop.selector !== (group.stopSelector ?? group.selector)) reason = 'not at the same stop'
             const d = byId[group.detector]
             if (!reason && d?.confirm) {
               // A detector may answer with a plain boolean or a promise.
@@ -232,6 +235,7 @@ export async function runPersona(job, s, deps) {
             })
             recordedWalk = walk
             coverage.stopsVisited = walk.stops.length
+            coverage.presses = walk.presses
             coverage.walkEnded = walk.ended
             coverage.framesReached = walk.stops.filter((x) => x.kind === 'frame').length
             if (walk.ended === 'time') coverage.stoppedReason = STOPPED_TIME

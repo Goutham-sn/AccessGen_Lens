@@ -1,6 +1,7 @@
 import { tabWalk } from './walk.js'
 import { makeFinding } from './evidence.js'
-import { releaseProbe } from './checks/keyboard/probe.js'
+import { releaseProbe, installFocusRecord, clearFocusRecord, readFlashed } from './checks/keyboard/probe.js'
+import { coverageLines } from './copy.js'
 
 // The hidden measure pass's detector run: no video, no overlay, no filter.
 // Shared by the persona flow, the check fixtures and the validation script,
@@ -32,8 +33,14 @@ export async function measurePass(page, { detectors, deadline, persona, profileI
 
     let walk = null
     if (walks) {
+      // Records which element gets focus during each press (it changes
+      // nothing), so a press that ends on the page itself can name the
+      // element that had focus for a moment.
+      await page.evaluate(installFocusRecord).catch(() => {})
       walk = await tabWalk(page, {
         deadline,
+        beforePress: () => page.evaluate(clearFocusRecord).catch(() => {}),
+        afterPress: async (stop) => (stop.kind === 'body' ? { flashed: await readFlashed(page) } : null),
         onStop: async (stop, step) => {
           for (const d of detectors) {
             if (!d.onStop) continue
@@ -46,6 +53,9 @@ export async function measurePass(page, { detectors, deadline, persona, profileI
         }
       })
       onWalked?.()
+      const last = walk.stops[walk.stops.length - 1]
+      if (last?.kind === 'frame' && (walk.ended === 'max' || walk.ended === 'time')) note(coverageLines.stayedInFrame)
+      if (walk.ended === 'max' && walk.more) note(coverageLines.stopLimit(walk.presses))
     }
 
     for (const d of detectors) {

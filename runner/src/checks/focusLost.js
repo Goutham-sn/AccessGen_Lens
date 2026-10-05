@@ -1,10 +1,12 @@
+import { stick } from '../measuringStick.js'
 import { focusLostToPageCopy, focusLostHiddenCopy } from '../copy.js'
 import { probeStop, pageState, personaName, readFocusedNow } from './keyboard/probe.js'
 import { runKeyboardFixture } from './keyboard/fixture.js'
 
 // Check 'focus-lost', two kinds:
 //   a. Tab moved focus to the page itself mid-way (the walk keeps such a
-//      body visit as a stop; a wrap at the end is not one).
+//      body visit as a stop; a wrap at the end is not one). Presses in a
+//      row that all end there are one moment.
 //   b. Tab landed on an element that cannot be seen: zero size, fully
 //      transparent through its parents, or outside the screen. Reported
 //      only if its label (when it has one) and its nearest parent also look
@@ -35,23 +37,38 @@ export default {
       evidence: { kind: 'hidden', hidden: p.hidden, rect: p.rect }
     }]
   },
+  // One moment per run of presses that end on the page itself. The element
+  // that had focus for a moment during those presses (recorded by the
+  // measure pass's focusin record) is named and highlighted; with none
+  // recorded, no cause is given and the page itself is highlighted.
   async measure(ctx) {
     const s = pageState(ctx.page)
     const stops = ctx.stops || []
     const findings = []
     for (let i = 0; i < stops.length; i++) {
       if (stops[i].kind !== 'body') continue
+      let j = i
+      while (j + 1 < stops.length && stops[j + 1].kind === 'body') j++
+      const presses = j - i + 1
       const prev = who(await s.probes.get(i))
-      if (!prev) continue
-      const next = who(await s.probes.get(i + 2))
-      findings.push({
-        detector: 'focus-lost',
-        profile: 'keyboard-only',
-        selector: 'body',
-        step: i + 1,
-        ...focusLostToPageCopy({ persona: personaName(ctx), prevStep: i, prev, next }),
-        evidence: { kind: 'to-page' }
-      })
+      const next = who(await s.probes.get(j + 2))
+      const flashed = stops.slice(i, j + 1).map((stop) => stop.flashed).filter(Boolean)
+      if (prev) {
+        findings.push({
+          detector: 'focus-lost',
+          profile: 'keyboard-only',
+          selector: flashed[0]?.selector ?? 'body',
+          // The recorded walk is on the page itself at this stop.
+          stopSelector: 'body',
+          step: i + 1,
+          ...focusLostToPageCopy({
+            persona: personaName(ctx), prevStep: i, presses, prev, next,
+            flashed, maxNames: stick('keyboard', 'maxStopNames')
+          }),
+          evidence: { kind: 'to-page', presses, flashed: flashed.map((f) => f.selector) }
+        })
+      }
+      i = j
     }
     return findings
   },

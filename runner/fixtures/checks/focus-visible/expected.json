@@ -42,7 +42,15 @@
     "findings": 0,
     "steps": []
   },
+  "../keyboard/long-way-skip-menu.html": {
+    "findings": 0,
+    "steps": []
+  },
   "../keyboard/focus-lost.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/focus-lost-run.html": {
     "findings": 0,
     "steps": []
   },
@@ -51,6 +59,18 @@
     "steps": []
   },
   "../keyboard/trap.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/frame-same-site.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/frame-stay.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/stop-limit.html": {
     "findings": 0,
     "steps": []
   },
@@ -71,6 +91,10 @@
     "steps": []
   },
   "../keyboard/tricky-carousel.html": {
+    "findings": 0,
+    "steps": []
+  },
+  "../keyboard/tricky-focus-styles.html": {
     "findings": 0,
     "steps": []
   }

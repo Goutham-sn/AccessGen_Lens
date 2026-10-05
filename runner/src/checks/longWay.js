@@ -17,6 +17,12 @@ import { runKeyboardFixture } from './keyboard/fixture.js'
 //     cookie notice aside, whose target is on the page)
 //   - focus never entered a frame from another site; if it did, the
 //     presses inside cannot be counted, so a coverage line is added instead
+//   - none of the first 3 stops (cookie notice aside) is a control named
+//     like a skip control ("skip", "jump to", "main content") that is not a
+//     same-page link; if one is, a coverage line is added instead
+const SKIP_CONTROL_STOPS = 3
+const SKIP_WORDS = /skip|jump to|main content/i
+
 export default {
   id: 'long-way',
   async beforeWalk({ page }) {
@@ -51,8 +57,18 @@ export default {
     const cookieStops = before.filter((p) => p?.cookie).map((p) => p.step)
     if (before.length - cookieStops.length < stick('keyboard', 'longWayStops')) return []
 
-    const firstOwn = before.find((p) => p && !p.skip && !p.cookie)
+    const own = before.filter((p) => p && !p.skip && !p.cookie)
+    const firstOwn = own[0]
     if (firstOwn?.skipLink?.exists) return []
+
+    // A control near the start whose name says it skips (for example a
+    // skip menu button) but that is not a same-page link: we cannot check
+    // where it goes without pressing it, so nothing is reported.
+    const skipControl = own.slice(0, SKIP_CONTROL_STOPS).find((p) => !p.skipLink && SKIP_WORDS.test(p.name || ''))
+    if (skipControl) {
+      ctx.note?.(coverageLines.skipControl(skipControl.name))
+      return []
+    }
 
     const maxNames = stick('keyboard', 'maxStopNames')
     const words = (p) => {

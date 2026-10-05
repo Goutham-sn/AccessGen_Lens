@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Focus lost, several presses in a row</title>
+<!-- focus-lost: 2 findings.
+     Stop 2: presses 2, 3 and 4 all end on the page itself, because Alpha,
+     Beta and Gamma take focus off themselves as they get it (like the W3C
+     BAD demo). One moment, naming the three. Press 5 goes to Two.
+     Stop 7: Drop takes focus off itself on the Tab key, before focus moves,
+     so nothing else receives focus: one press, no cause given. -->
+<style>body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; } main > * { display: block; margin: 12px 0; }</style>
+</head>
+<body>
+<main>
+  <a href="/one">One</a>
+  <a href="/a" onfocus="this.blur()">Alpha</a>
+  <a href="/b" onfocus="this.blur()">Beta</a>
+  <a href="/c" onfocus="this.blur()">Gamma</a>
+  <a href="/two">Two</a>
+  <button id="drop">Drop</button>
+  <a href="/three">Three</a>
+</main>
+<script>
+  document.getElementById('drop').addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return
+    e.preventDefault()
+    e.currentTarget.blur()
+  })
+</script>
+</body>
+</html>

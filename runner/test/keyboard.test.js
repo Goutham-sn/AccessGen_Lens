@@ -19,6 +19,8 @@ import { findCycle } from '../src/walk.js'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURES = path.join(here, '../fixtures/checks')
 const details = process.env.KEYBOARD_DETAILS === '1'
+// Pages that only appear inside a frame on another fixture page.
+const FRAME_PARTS = new Set(['frame-buttons.html', 'frame-many.html'])
 
 let browser
 before(async () => { browser = await chromium.launch({ chromiumSandbox: true }) })
@@ -26,7 +28,7 @@ after(async () => { await browser?.close() })
 
 test('every keyboard fixture page is listed for every keyboard detector', async () => {
   const pages = (await fs.readdir(path.join(FIXTURES, 'keyboard')))
-    .filter((f) => f.endsWith('.html') && f !== 'frame-buttons.html')
+    .filter((f) => f.endsWith('.html') && !FRAME_PARTS.has(f))
     .map((f) => `../keyboard/${f}`)
     .sort()
   for (const check of KEYBOARD_CHECKS) {
@@ -49,6 +51,17 @@ for (const check of KEYBOARD_CHECKS) {
     assert.deepEqual(result, expected)
   })
 }
+
+test('focus lost: the element that had focus for a moment is named, and no cause is given when none did', async () => {
+  const check = KEYBOARD_CHECKS.find((c) => c.id === 'focus-lost')
+  const fixtureDir = path.join(FIXTURES, check.id)
+  const page = '../keyboard/focus-lost-run.html'
+  const result = await check.runFixture(browser, { fixtureDir, expected: { [page]: { findings: 2 } }, details: true })
+  const [run, single] = result[page].details
+  assert.equal(run.headline, 'David would press Tab 3 times in a row and focus would not land on anything.')
+  assert.ok(run.fact.endsWith('Press 5 went to “Two”. “Alpha”, “Beta” and “Gamma” received focus and then lost it.'), run.fact)
+  assert.ok(!single.fact.includes('received focus'), single.fact)
+})
 
 const stop = (selector, kind = 'element') => ({ kind, selector })
 

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tricky: three kinds of focus ring</title>
+<!-- Zero from every detector. Each control shows focus a different way:
+     outline-style auto, the browser's own default ring (no styles at all),
+     and a box-shadow ring with the outline turned off. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  main > * { display: block; margin: 40px 0; }
+  .auto:focus { outline-style: auto; }
+  .shadow:focus { outline: none; box-shadow: 0 0 0 3px #036; }
+</style>
+</head>
+<body>
+<main>
+  <button class="auto">Outline auto</button>
+  <button>Default ring</button>
+  <a href="/default">Default ring link</a>
+  <input aria-label="Default ring field">
+  <button class="shadow">Shadow ring</button>
+  <a class="shadow" href="/shadow">Shadow ring link</a>
+</main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Long header, skip menu button</title>
+<!-- long-way: 0, with a coverage line. Modelled on the APG pages, where a
+     skip menu script adds a button as the first stop. It is not a link to a
+     place on the page, so where it goes cannot be checked without pressing
+     it, and no long-way moment is reported. -->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  .skipto { position: absolute; top: 0; left: 40%; }
+  .skipto [role="menu"] { display: none; }
+  nav a { margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="skipto">
+  <button aria-haspopup="true" aria-expanded="false" aria-label="Skip To Content, shortcut Alt + 0">Skip To Content</button>
+  <div role="menu"><div role="menuitem" tabindex="-1">Main</div></div>
+</div>
+<header><nav>
+  <a href="/1">Logo</a><a href="/2">Home</a><a href="/3">Patterns</a><a href="/4">Practices</a>
+  <a href="/5">Index</a><a href="/6">About</a><a href="/7">Read this first</a><a href="/8">News</a>
+  <a href="/9">Resources</a><a href="/10">Help</a><a href="/11">Contact</a><a href="/12">GitHub</a>
+</nav></header>
+<main><h1>Dialog example</h1><a href="/open">Open dialog</a></main>
+</body>
+</html>

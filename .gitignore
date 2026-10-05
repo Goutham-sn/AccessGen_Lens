@@ -26,6 +26,9 @@ recordings/
 screenshots/
 frames/
 
+# Keyboard validation runs (CSV and screenshots of real sites), kept on disk only
+/runner/validation/
+
 # Test output
 coverage/
 test-results/

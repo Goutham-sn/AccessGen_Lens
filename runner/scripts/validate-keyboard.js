@@ -89,11 +89,14 @@ const runRows = [row(['url', 'label', 'final url', 'http status', 'load ms', 'ru
   ...detectorIds.map((id) => `${id} moments`), 'stopped reason', 'run date'])]
 const noteRows = [row(['url', 'note'])]
 
+// UTF-8 with a byte order mark, so spreadsheet apps show quotes and
+// accented names as written.
+const BOM = '﻿'
 async function writeAll() {
-  await fs.writeFile(path.join(outDir, 'moments.csv'), momentRows.join('\n') + '\n')
-  await fs.writeFile(path.join(outDir, 'moments-detail.csv'), detailRows.join('\n') + '\n')
-  await fs.writeFile(path.join(outDir, 'runs.csv'), runRows.join('\n') + '\n')
-  await fs.writeFile(path.join(outDir, 'notes.csv'), noteRows.join('\n') + '\n')
+  await fs.writeFile(path.join(outDir, 'moments.csv'), BOM + momentRows.join('\n') + '\n')
+  await fs.writeFile(path.join(outDir, 'moments-detail.csv'), BOM + detailRows.join('\n') + '\n')
+  await fs.writeFile(path.join(outDir, 'runs.csv'), BOM + runRows.join('\n') + '\n')
+  await fs.writeFile(path.join(outDir, 'notes.csv'), BOM + noteRows.join('\n') + '\n')
 }
 
 const STOPPED_CHALLENGE = 'Bot wall: the page asked to confirm that a person is visiting. We stopped and did not try to get past it.'

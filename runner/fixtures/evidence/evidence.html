@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><title>Evidence fixture</title>
+  <style>
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #ffffff; }
+    #corner { position: absolute; left: 0; top: 0; width: 60px; height: 30px; }
+    #far-corner { position: absolute; right: 0; bottom: 0; width: 60px; height: 30px; }
+    main { padding: 120px 40px; }
+    .row { display: flex; gap: 12px; margin: 16px 0; }
+    #big { width: 1200px; height: 600px; background: #e5e7eb; margin-top: 40px; }
+    .spacer { height: 1600px; }
+    #below { margin-bottom: 200px; }
+  </style>
+</head>
+<body>
+  <a id="corner" href="#corner">Top</a>
+  <main>
+    <h1>Evidence fixture</h1>
+    <div class="row">
+      <button id="b1" type="button">One</button>
+      <button id="b2" type="button">Two</button>
+      <button id="b3" type="button">Three</button>
+      <button id="b4" type="button">Four</button>
+      <button id="b5" type="button">Five</button>
+      <button id="b6" type="button">Six</button>
+      <button id="b7" type="button">Seven</button>
+      <button id="b8" type="button">Eight</button>
+      <button id="b9" type="button">Nine</button>
+    </div>
+    <label>Card number <input id="secret" value="4111 1111 1111 1111"></label>
+    <div id="scripted">Visible text<script>window.__fixture = 1</script></div>
+    <div id="big">A very large block</div>
+    <div class="spacer"></div>
+    <button id="below" type="button">Far below</button>
+  </main>
+  <a id="far-corner" href="#far-corner">End</a>
+</body>
+</html>

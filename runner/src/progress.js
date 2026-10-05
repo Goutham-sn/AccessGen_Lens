@@ -22,6 +22,12 @@ export const progress = {
   phase(sessionId, phase) {
     emitter.to(`session:${sessionId}`).emit('run-phase', { sessionId, phase, label: PHASES[phase] || phase })
   },
+  // Each moment as soon as it is captured, so the Run page can show it.
+  moment(sessionId, m) {
+    emitter.to(`session:${sessionId}`).emit('run-moment', {
+      sessionId, number: m.number, headline: m.headline, videoMs: m.videoMs, patternCount: m.pattern?.count ?? 1
+    })
+  },
   done(sessionId, payload) {
     emitter.to(`session:${sessionId}`).emit('run-done', { sessionId, ...payload })
     // Playback already refetches on this event.

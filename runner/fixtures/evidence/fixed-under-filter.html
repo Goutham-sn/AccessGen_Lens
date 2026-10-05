@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><title>Fixed and sticky under a filter</title>
+  <style>
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; }
+    header { position: sticky; top: 0; height: 64px; background: #1f2937; color: #fff; }
+    #fixed { position: fixed; right: 16px; bottom: 16px; width: 220px; height: 80px; background: #2563eb; color: #fff; }
+    #absolute { position: absolute; left: 30px; top: 900px; width: 100px; height: 40px; background: #16a34a; }
+    .content { height: 3000px; padding: 16px; }
+  </style>
+</head>
+<body>
+  <header id="sticky">Sticky header</header>
+  <div class="content"><h1>Long page</h1><p>Text.</p></div>
+  <div id="fixed">Fixed panel</div>
+  <div id="absolute">Absolute</div>
+</body>
+</html>

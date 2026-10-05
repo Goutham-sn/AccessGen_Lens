@@ -29,10 +29,13 @@ export async function trimStart(inputPath, trimMs) {
   if (!ffmpeg || trimMs <= 0) return null
   const out = inputPath.replace(/\.webm$/, '') + '.trimmed.webm'
   await new Promise((resolve, reject) => {
+    // -ss after -i: decode from the start and cut exactly. Seeking before
+    // -i jumps by the file's keyframes and cut 150 to over 500 ms too much
+    // on Playwright's recordings (measured with the timing mark).
     execFile(ffmpeg, [
       '-hide_banner', '-loglevel', 'error',
-      '-ss', (trimMs / 1000).toFixed(3),
       '-i', inputPath,
+      '-ss', (trimMs / 1000).toFixed(3),
       '-an', '-c:v', 'vp8', '-qmin', '0', '-qmax', '50', '-crf', '8',
       '-deadline', 'realtime', '-speed', '16', '-threads', '4', '-b:v', '1M',
       '-y', out

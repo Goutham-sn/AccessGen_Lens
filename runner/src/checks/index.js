@@ -26,3 +26,10 @@ export function capabilityGaps() {
   return gaps
 }
 
+// The detectors a persona runs: registered modules that measure something,
+// whose check is live for at least one of the persona's profiles.
+export function detectorsFor(profileIds) {
+  return Object.values(CHECKS).filter((c) =>
+    (c.onStop || c.measure) &&
+    profileIds.some((p) => RUNNER_CAPABILITIES[p]?.checks?.[c.id] === true))
+}

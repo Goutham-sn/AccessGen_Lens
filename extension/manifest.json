@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "AccessGen Lens",
+  "version": "1.0.0",
+  "description": "Experience your website as a person with a disability would.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "tabCapture",
+    "offscreen"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:5173/*"],
+      "js": ["content-scripts/bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "commands": {
+    "start-recording": {
+      "suggested_key": { "default": "Alt+Shift+R" },
+      "description": "Start recording the simulated tab"
+    }
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["overlay/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

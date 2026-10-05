@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-gray-50 text-ink-900 font-sans;
+  }
+
+  /* WCAG 2.2 — 2.4.11/2.4.13: always-visible, unobscured focus indicator */
+  :focus-visible {
+    outline: 3px solid #1d3fd8;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Respect users who turn off motion (framer-motion also honours this) */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50
+      focus:bg-brand-700 focus:text-white focus:px-4 focus:py-2 focus:rounded-md;
+  }
+}

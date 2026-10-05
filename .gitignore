@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Secrets and local environment (the example file is kept)
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Local data (Docker keeps these in named volumes; ignore any local copies)
+postgres_data/
+pgdata/
+minio_data/
+redis_data/
+data/
+
+# Recordings, screenshots and frame dumps
+*.webm
+*.mp4
+recordings/
+screenshots/
+frames/
+
+# Test output
+coverage/
+test-results/
+playwright-report/
+*.log
+npm-debug.log*
+
+# Scratch and OS files
+scratch/
+tmp/
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Editor and local tool settings
+.vscode/
+.idea/
+.claude/settings.local.json
+
+# Local working notes, kept on disk only
+DEBUG_DIAGNOSIS.md

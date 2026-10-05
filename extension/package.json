@@ -1,0 +1,17 @@
+{
+  "name": "accessgen-lens-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "build:watch": "vite build --watch"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1"
+  },
+  "devDependencies": {
+    "vite": "^5.2.12",
+    "vite-plugin-static-copy": "^1.0.5"
+  }
+}

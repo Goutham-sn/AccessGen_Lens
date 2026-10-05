@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AccessGen Lens</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <span class="logo" aria-hidden="true">◉</span>
+    <h1>AccessGen Lens</h1>
+  </header>
+
+  <main>
+    <div id="status" class="status" role="status">Checking…</div>
+
+    <div id="active-info" class="active-info" hidden>
+      <p class="label">Simulating on</p>
+      <p id="active-url" class="url"></p>
+      <ul id="active-profiles" class="profiles"></ul>
+      <div id="recording-info" class="recording-info">
+        <p id="recording-status" role="status"></p>
+        <button id="record-btn" type="button" hidden>Start recording</button>
+        <p id="shortcut-hint" class="hint"></p>
+      </div>
+      <button id="stop-btn" type="button">Stop simulation</button>
+    </div>
+
+    <div id="idle-info" class="idle-info" hidden>
+      <p>No simulation running.</p>
+      <p class="hint">Open the AccessGen Lens web app to begin.</p>
+      <button id="open-app" type="button">Open web app</button>
+    </div>
+  </main>
+</body>
+<script type="module" src="popup.js"></script>
+</html>

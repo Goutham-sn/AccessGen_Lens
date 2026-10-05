@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><title>Skip link</title>
+  <style>
+    .skip { position: absolute; left: -9999px; }
+    .skip:focus { left: 8px; top: 8px; }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <nav><a href="#a">Home</a> <a href="#b">About</a></nav>
+  <main id="content" tabindex="-1">
+    <h1>Skip link</h1>
+    <button type="button">Start</button>
+  </main>
+</body>
+</html>

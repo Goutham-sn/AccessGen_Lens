@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+backend
+web-app
+extension/background
+extension/content-scripts
+extension/offscreen
+extension/popup
+extension/icons
+extension/scripts

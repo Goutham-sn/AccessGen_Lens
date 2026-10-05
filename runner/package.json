@@ -1,0 +1,22 @@
+{
+  "name": "accessgen-lens-runner",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/worker.js",
+  "scripts": {
+    "start": "node src/worker.js",
+    "build:profiles": "node scripts/build-profiles.js",
+    "test": "node --test test/*.test.js",
+    "ssrf-check": "node scripts/ssrf-check.js"
+  },
+  "dependencies": {
+    "@socket.io/redis-emitter": "^5.1.0",
+    "bull": "^4.16.5",
+    "esbuild": "^0.28.2",
+    "ioredis": "^5.4.1",
+    "minio": "^7.1.3",
+    "pg": "^8.11.5",
+    "playwright": "1.63.0"
+  }
+}

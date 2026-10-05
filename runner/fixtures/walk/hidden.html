@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Hidden elements are not stops</title></head>
+<body>
+  <main>
+    <h1>Hidden elements are not stops</h1>
+    <a href="#one">One</a>
+    <button type="button" style="display:none">Not shown</button>
+    <a href="#gone" style="visibility:hidden">Not visible</a>
+    <div tabindex="-1">Focusable by script only</div>
+    <nav hidden><a href="#menu">Closed menu</a></nav>
+    <button type="button">Two</button>
+    <input type="text" aria-label="Three">
+  </main>
+</body>
+</html>

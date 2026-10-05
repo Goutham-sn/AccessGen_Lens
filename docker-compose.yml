@@ -1,0 +1,121 @@
+# Secrets (Postgres password, MinIO keys, JWT secrets) come from .env in this
+# folder. There are no defaults: compose stops with a message naming any that
+# are missing. See .env.example.
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: accessgen_lens
+      POSTGRES_USER: accessgen
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set. Add it to .env (see .env.example)}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U accessgen -d accessgen_lens"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    # Append-only file on a named volume, so queued runs and the per-user
+    # run limits survive a container rebuild.
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is not set. Add it to .env (see .env.example)}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is not set. Add it to .env (see .env.example)}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://accessgen:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set. Add it to .env (see .env.example)}@postgres:5432/accessgen_lens
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is not set. Add it to .env (see .env.example)}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is not set. Add it to .env (see .env.example)}
+      MINIO_BUCKET: accessgen-lens
+      MINIO_USE_SSL: "false"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is not set. Add it to .env (see .env.example)}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is not set. Add it to .env (see .env.example)}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 3001
+      NODE_ENV: development
+      WEB_APP_URL: http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # "Watch it happen": server-side Chromium that walks a public page as a
+  # persona and records it. The browser only reaches the internet through
+  # the runner's own egress proxy, which refuses private and internal
+  # addresses (including the services above).
+  runner:
+    build:
+      context: .
+      dockerfile: runner/Dockerfile
+    init: true
+    shm_size: 1gb
+    security_opt:
+      - seccomp=./runner/seccomp_profile.json
+    environment:
+      DATABASE_URL: postgresql://accessgen:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set. Add it to .env (see .env.example)}@postgres:5432/accessgen_lens
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is not set. Add it to .env (see .env.example)}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is not set. Add it to .env (see .env.example)}
+      MINIO_BUCKET: accessgen-lens
+      MINIO_USE_SSL: "false"
+      RUNNER_MAX_CONTEXTS: 4
+      RUNNER_PERSONA_CAP_MS: 90000
+      RUNNER_INTERNAL_SERVICES: postgres,redis,minio,backend,runner
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  minio_data:
+  redis_data:

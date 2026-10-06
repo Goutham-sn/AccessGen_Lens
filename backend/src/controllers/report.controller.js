@@ -30,7 +30,7 @@ function buildHumanSummary(session, moments) {
 
   if (moments.length > 0) {
     const phrases = moments.slice(0, 3).map((m) =>
-      `${who} ${LABEL_PHRASES[m.label] || 'struggled'}${m.note ? ` — "${m.note}"` : ''}`
+      `${who} ${LABEL_PHRASES[m.label] || 'struggled'}${m.note ? `: "${m.note}"` : ''}`
     )
     paras.push(
       `There were ${moments.length} moment${moments.length === 1 ? '' : 's'} where the experience broke down. ` +

@@ -121,13 +121,32 @@ export async function findMarkOnset(browser, videoPath, { fromMs, toMs }) {
 // Pure decision, given where the mark was stamped and where it was seen.
 // A correction larger than the limit is treated as a misread: no correction,
 // and a cut late enough that the mark is gone whatever the real delay was.
+// `reason` says, in plain words, why no correction was used (null when one
+// was); it is kept in run_timings.sync with measuredMs, which is recorded
+// for every run where the mark was found.
 export function planCut({ onsetMs, whiteStampMs, offStampMs, limitMs }) {
   const found = onsetMs !== null && onsetMs !== undefined
   const measured = found ? onsetMs - whiteStampMs : null
   const applied = found && Math.abs(measured) <= limitMs
   const correctionMs = applied ? measured : 0
   const cutMs = applied ? onsetMs + LIGHT_MS + CUT_MARGIN_MS : offStampMs + limitMs
-  return { found, measuredMs: measured, applied, correctionMs, cutMs }
+  let reason = null
+  if (!found) reason = 'The timing mark was not found in the recording, so no correction was used.'
+  else if (!applied) reason = `The timing mark was seen ${measured} ms from where it was stamped, over the ${limitMs} ms limit, so no correction was used.`
+  return { found, measuredMs: measured, applied, correctionMs, cutMs, limitMs, reason }
+}
+
+// The delivered video's clock. videoStart is the wall time of the raw
+// video's first frame; correctionMs is how much later than stamped the
+// recording shows things (the measured lag, or 0 when it was not used);
+// cutMs is how much of the start was cut off.
+export function deliveredClock({ videoStart, correctionMs, cutMs }) {
+  return {
+    // Video time of wall time T in the delivered file.
+    toVideoMs: (wallMs) => wallMs - videoStart + correctionMs - cutMs,
+    // Wall time of the delivered file's first frame.
+    zeroWallMs: videoStart + cutMs - correctionMs
+  }
 }
 
 // True when the first `seconds` of a video show no trace of the mark: the
@@ -180,14 +199,13 @@ export async function deliverVideo({ browser, rawPath, videoStart, readyAt, mark
       found: plan.found,
       measuredMs: plan.measuredMs,
       applied: plan.applied,
+      reason: plan.reason,
+      limitMs: plan.limitMs,
       correctionMs: plan.correctionMs,
       cutMs,
       recut,
       noMarkInVideo: noMark
     },
-    // Video time of wall time T in the delivered file.
-    toVideoMs: (wallMs) => wallMs - videoStart + plan.correctionMs - cutMs,
-    // Wall time of the delivered file's first frame.
-    zeroWallMs: videoStart + cutMs - plan.correctionMs
+    ...deliveredClock({ videoStart, correctionMs: plan.correctionMs, cutMs })
   }
 }

@@ -56,6 +56,7 @@ export async function measurePass(page, { detectors, deadline, persona, profileI
       const last = walk.stops[walk.stops.length - 1]
       if (last?.kind === 'frame' && (walk.ended === 'max' || walk.ended === 'time')) note(coverageLines.stayedInFrame)
       if (walk.ended === 'max' && walk.more) note(coverageLines.stopLimit(walk.presses))
+      if (walk.ended === 'time') note(coverageLines.outOfTime(walk.stops.length))
     }
 
     for (const d of detectors) {

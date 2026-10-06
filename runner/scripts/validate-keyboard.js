@@ -43,7 +43,7 @@ import { config } from '../src/config.js'
 import { createEgressProxy } from '../src/egressProxy.js'
 import { addLocalNetworks } from '../src/blocklist.js'
 import { launchBrowser, newSafeContext } from '../src/browser.js'
-import { loadPage } from '../src/load.js'
+import { loadPage, STILL_CHANGING } from '../src/load.js'
 import { measureCoverage } from '../src/coverage.js'
 import { measurePass } from '../src/measure.js'
 import { KEYBOARD_CHECKS } from '../src/checks/index.js'
@@ -85,7 +85,7 @@ const row = (cells) => cells.map(cell).join(',')
 const detectorIds = KEYBOARD_CHECKS.map((c) => c.id)
 const momentRows = [row(['url', 'detector', 'selector', 'highlighted screenshot', 'verified by hand'])]
 const detailRows = [row(['url', 'detector', 'step', 'selector', 'headline', 'fact', 'highlighted screenshot', 'clean screenshot'])]
-const runRows = [row(['url', 'label', 'final url', 'http status', 'load ms', 'run ms', 'stops', 'walk ended',
+const runRows = [row(['url', 'label', 'final url', 'http status', 'load ms', 'run ms', 'stops', 'walk ended', 'walk incomplete',
   ...detectorIds.map((id) => `${id} moments`), 'stopped reason', 'run date'])]
 const noteRows = [row(['url', 'note'])]
 
@@ -127,9 +127,10 @@ try {
       record.loadMs = Date.now() - started
       record.finalUrl = page.url()
       if (!loaded.ok) {
-        record.reason = `Did not load: ${loaded.reason}`
+        record.reason = loaded.empty ? loaded.reason : `Did not load: ${loaded.reason}`
         continue
       }
+      if (loaded.changing) noteRows.push(row([url, STILL_CHANGING]))
       record.status = loaded.status ?? ''
       if (dialogSeen) { record.reason = STOPPED_DIALOG; continue }
       if (await page.evaluate(detectChallenge).catch(() => null)) { record.reason = STOPPED_CHALLENGE; continue }
@@ -140,7 +141,7 @@ try {
       const run = await measurePass(page, { detectors: KEYBOARD_CHECKS, deadline, persona: { persona: { name: 'David' } } })
       record.stops = run.walk?.stops.length ?? 0
       record.ended = run.walk?.ended ?? ''
-      if (record.ended === 'time') record.reason = 'Reached the time limit for one page; kept what was measured.'
+      if (record.ended === 'time') record.reason = `Walk incomplete: ${coverageLines.outOfTime(record.stops)}`
       for (const note of run.notes) noteRows.push(row([url, note]))
       for (const p of run.problems) noteRows.push(row([url, `Detector problem (${p.detector}${p.step ? `, stop ${p.step}` : ''}): ${p.message}`]))
       for (const id of detectorIds) record.counts[id] = run.candidates.filter((f) => f.detector === id).length
@@ -179,7 +180,7 @@ try {
     } finally {
       await context.close().catch(() => {})
       const runMs = Date.now() - started
-      runRows.push(row([url, label, record.finalUrl, record.status, record.loadMs, runMs, record.stops, record.ended,
+      runRows.push(row([url, label, record.finalUrl, record.status, record.loadMs, runMs, record.stops, record.ended, record.ended === 'time' ? 'yes' : '',
         ...detectorIds.map((id) => record.counts[id] ?? ''), record.reason, runDate]))
       const counts = detectorIds.map((id) => `${id} ${record.counts[id] ?? '-'}`).join(', ')
       console.log(`  status ${record.status || '-'}, load ${record.loadMs} ms, run ${runMs} ms, stops ${record.stops || 0} (${record.ended || '-'})`)

@@ -3,7 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { config } from './config.js'
 import { newSafeContext } from './browser.js'
-import { loadPage } from './load.js'
+import { loadPage, STILL_CHANGING } from './load.js'
 import { tabWalk } from './walk.js'
 import { createTimings } from './timings.js'
 import { WALK_PROFILES } from './walkProfiles.js'
@@ -11,6 +11,7 @@ import { detectorsFor } from './checks/index.js'
 import { createEvidenceEngine, groupFindings } from './evidence.js'
 import { measureCoverage } from './coverage.js'
 import { measurePass } from './measure.js'
+import { sampleBrowserMemory } from './memory.js'
 import { showSyncMark, readPageCorner, deliverVideo } from './videoSync.js'
 import { pauseNote, coverageLines } from './copy.js'
 import {
@@ -42,6 +43,9 @@ export async function runPersona(job, s, deps) {
   const { browser, sem, blockedHosts, store, progress, profilesSource, extraRoute } = deps
   const label = `${s.persona.name} ${s.sessionId.slice(0, 8)}`
   const timings = createTimings(label)
+  // Peak browser memory for run_timings. The browser is shared, so with more
+  // than one live context this includes the other personas running alongside.
+  const memory = sampleBrowserMemory()
   const deadline = Date.now() + config.personaCapMs
   const profileIds = s.profiles.map((p) => p.id)
   const walks = profileIds.some((id) => WALK_PROFILES.has(id))
@@ -95,10 +99,13 @@ export async function runPersona(job, s, deps) {
           onWalked: () => timings.mark('measureWalk')
         })
         measured = run.walk?.stops ?? null
+        // A walk cut short by the time limit is never summarised as a normal result.
+        if (run.walk?.ended === 'time') coverage.walkIncomplete = true
         candidates.push(...run.candidates)
         debug.detectorProblems.push(...run.problems)
         // What we could not look at, in plain words.
         coverage.notes = [
+          ...(loaded.changing ? [STILL_CHANGING] : []),
           ...(coverage.closedShadowRoots ? [coverageLines.closedSections(coverage.closedShadowRoots)] : []),
           ...run.notes
         ]
@@ -238,7 +245,12 @@ export async function runPersona(job, s, deps) {
             coverage.presses = walk.presses
             coverage.walkEnded = walk.ended
             coverage.framesReached = walk.stops.filter((x) => x.kind === 'frame').length
-            if (walk.ended === 'time') coverage.stoppedReason = STOPPED_TIME
+            if (walk.ended === 'time') {
+              coverage.stoppedReason = STOPPED_TIME
+              coverage.walkIncomplete = true
+              const line = coverageLines.outOfTime(walk.stops.length)
+              if (!coverage.notes?.includes(line)) coverage.notes = [...(coverage.notes || []), line]
+            }
             timings.mark('walk')
           } else {
             progress.phase(s.sessionId, 'looking')
@@ -331,6 +343,7 @@ export async function runPersona(job, s, deps) {
   }
 
   const timingResult = timings.done()
+  timingResult.browserPeakMb = await memory.stop()
   // How the video's timing was settled, kept with the timings so a missing
   // mark or an ignored correction is visible later.
   if (syncTimings) timingResult.sync = syncTimings

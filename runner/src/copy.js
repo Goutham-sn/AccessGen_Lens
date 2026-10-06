@@ -214,6 +214,7 @@ export const coverageLines = {
   frameEnteredSameSite: (step) => `Focus entered a frame from this site at stop ${step}. We did not look inside it.`,
   stayedInFrame: 'Tab stayed inside it for the rest of the walk, so we could not look at the rest of the page.',
   frameBeforeContent: 'A frame from another site came before the main content, so we did not count how long it takes to reach it.',
+  outOfTime: (step) => `We ran out of time at stop ${step}, so we did not look at the rest of the page.`,
   stopLimit: (presses) => `We pressed Tab ${presses} times and stopped. The page has more stops, which we did not look at.`,
   skipControl: (name) => `The first stops include ${nameOnly(name, 'control')}, which may jump to the content, ` +
     'but it is not a link to a place on this page, so we could not check where it goes.',

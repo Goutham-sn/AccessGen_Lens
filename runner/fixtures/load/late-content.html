@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Content after 6 seconds</title></head>
+<!-- Empty until 6 s after loading, like a page that builds itself with
+     script. Ready only once the content is there and has settled. -->
+<body>
+<script>
+  setTimeout(() => {
+    document.body.insertAdjacentHTML('beforeend', '<main><h1>Late content</h1><a href="/next">Next</a></main>')
+  }, 6000)
+</script>
+</body>
+</html>

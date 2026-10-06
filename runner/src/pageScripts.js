@@ -1,23 +1,26 @@
 // Functions that run inside the page via page.evaluate. Each one must be
 // self-contained: Playwright serializes it, so no outside variables.
 
-// Resolves once the DOM has gone quietMs without a mutation, or after capMs.
-export function waitForDomQuiet({ quietMs, capMs }) {
-  return new Promise((resolve) => {
-    let timer = setTimeout(done, quietMs)
-    const cap = setTimeout(done, capMs)
-    const obs = new MutationObserver(() => {
-      clearTimeout(timer)
-      timer = setTimeout(done, quietMs)
-    })
-    obs.observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true })
-    function done() {
-      obs.disconnect()
-      clearTimeout(timer)
-      clearTimeout(cap)
-      resolve()
-    }
-  })
+// For the readiness wait (load.js): how many DOM changes this document has
+// had since it was first asked, and whether it has anything to show yet
+// (visible text, or something Tab can reach). The observer only counts; a
+// new document after a navigation starts its own count.
+export function contentState() {
+  const KEY = Symbol.for('accessgen.runner.ready')
+  let state = window[KEY]
+  if (!state) {
+    state = window[KEY] = { changes: 0, hasContent: false }
+    new MutationObserver((list) => { state.changes += list.length })
+      .observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true })
+  }
+  if (!state.hasContent && document.body) {
+    const text = (document.body.innerText || '').trim().length > 0
+    const focusable = !text && Array.from(document.querySelectorAll(
+      'a[href], button, input, select, textarea, summary, [tabindex], [contenteditable]'
+    )).some((n) => n.tabIndex >= 0 && !n.disabled && n.getClientRects().length > 0)
+    state.hasContent = text || focusable
+  }
+  return { changes: state.changes, hasContent: state.hasContent }
 }
 
 // Two animation frames: style, layout and paint have caught up.

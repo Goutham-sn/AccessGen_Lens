@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Never stops changing</title></head>
+<!-- Has content, but a clock changes it every 100 ms: still changing at the
+     12 s cap, so the run goes ahead with a coverage line. -->
+<body>
+<main><h1>Live prices</h1><p id="tick">0</p><a href="/next">Next</a></main>
+<script>
+  let n = 0
+  setInterval(() => { document.getElementById('tick').textContent = String(++n) }, 100)
+</script>
+</body>
+</html>

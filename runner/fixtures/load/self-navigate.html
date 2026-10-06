@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Reloads itself once</title></head>
+<!-- Shows content at once, then reloads itself after 800 ms, one time only.
+     Ready only on the second load, at least a second after it. -->
+<body>
+<main><h1 id="which">First load</h1><a href="/next">Next</a></main>
+<script>
+  if (sessionStorage.getItem('reloaded')) {
+    document.getElementById('which').textContent = 'Second load'
+  } else {
+    sessionStorage.setItem('reloaded', '1')
+    setTimeout(() => location.reload(), 800)
+  }
+</script>
+</body>
+</html>

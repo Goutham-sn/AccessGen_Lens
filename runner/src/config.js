@@ -34,8 +34,13 @@ export const config = {
   load: {
     commitTimeoutMs: 15000, // DNS + TLS + first byte on a slow site
     loadEventCapMs: 5000, // never wait longer than this for "load"
-    domQuietMs: 300, // how long the DOM must stay still to call it settled
-    domQuietCapMs: 1500 // ...but never wait longer than this for quiet
+    // Ready: visible text or something to Tab to, the DOM unchanged for
+    // quietMs, and no navigation for noNavigationMs. A navigation starts the
+    // wait for quiet again. The whole wait, from the first byte, is capped.
+    quietMs: 500,
+    noNavigationMs: 1000,
+    readyCapMs: 12000,
+    readyPollMs: 100
   },
   walk: {
     maxStops: 60,

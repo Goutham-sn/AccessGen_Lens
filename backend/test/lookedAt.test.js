@@ -58,3 +58,20 @@ test('extension sessions with no moments point to I Felt This', () => {
   assert.equal(noMomentsText(ext, 0), 'You did not mark any moments in this session. Press I Felt This when something feels wrong.')
   assert.equal(noMomentsText(ext, 2), null)
 })
+
+test('a run that included unverified checks says so, separately from what was looked at', () => {
+  const withUnverified = runner({}, { unverifiedChecks: ['focus-lost', 'trap'], unverifiedMoments: 2 })
+  const looked = lookedAt(withUnverified, 2)
+  assert.deepEqual(looked.unverified, {
+    label: 'Unverified, for testing',
+    items: [CHECK_WORDS['focus-lost'], CHECK_WORDS.trap],
+    moments: 2
+  })
+  assert.ok(!looked.items.includes(CHECK_WORDS.trap), 'unverified checks are never listed with the live ones')
+  // The no-moments line counts what was run, unverified included.
+  const none = lookedAt(withUnverified, 0)
+  assert.equal(none.zeroMoments,
+    `We pressed Tab 14 times and noticed nothing that matches what we look for here. We only look at these ${looked.items.length + 2} things.`)
+  // Without the dev mode there is no unverified block at all.
+  assert.equal(lookedAt(runner(), 2).unverified, null)
+})

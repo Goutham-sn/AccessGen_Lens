@@ -1,3 +1,5 @@
+import { UnverifiedLabel } from '../shared/UnverifiedLabel.jsx'
+
 // What a run looked at and what it could not look at, shown above the
 // moments so nobody reads an empty list as "nothing to see". Data comes
 // from the backend (lookedAt in backend/src/utils/lookedAt.js); nothing here
@@ -17,6 +19,17 @@ export function LookedAt({ lookedAt, headingLevel = 2, idPrefix = 'looked-at' })
         </ul>
       ) : (
         <p className="mt-3 text-ink-700">{lookedAt.noItems}</p>
+      )}
+      {lookedAt.unverified && (
+        <div className="mt-4">
+          <UnverifiedLabel />
+          <p className="mt-2 text-sm text-ink-700">
+            {lookedAt.unverified.moments} {lookedAt.unverified.moments === 1 ? 'moment' : 'moments'} from these checks.
+          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-700">
+            {lookedAt.unverified.items.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </div>
       )}
       {lookedAt.gaps.length > 0 && (
         <>

@@ -1,6 +1,7 @@
 import { getProfile } from '../../data/profiles.js'
 import { mediaUrl } from '../../services/api.js'
 import { Badge } from '../shared/Badge.jsx'
+import { UnverifiedLabel } from '../shared/UnverifiedLabel.jsx'
 
 const LABEL_STORIES = {
   'Got completely stuck here': 'Progress stopped completely at this point. There was no obvious way forward.',
@@ -48,6 +49,7 @@ export function EmpathyMoments({ empathyMoments, emptyText }) {
             <p className="text-xs text-ink-500 tabular-nums">
               Moment {i + 1} · {fmtMs(m.timestamp_ms)} into the session
             </p>
+            {m.unverified && <p className="mt-2"><UnverifiedLabel /></p>}
             <h3 className="mt-1 text-lg font-semibold text-rose-800">"{m.label}"</h3>
             {m.note && <p className="mt-2 text-ink-700 italic">"{m.note}"</p>}
             <p className="mt-2 text-sm text-ink-600">{LABEL_STORIES[m.label] || ''}</p>

@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer'
 import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
-import { SIMULATION_INTRO } from '../config/copy.js'
+import { SIMULATION_INTRO, SNAPSHOT_NOTE, ranOnLine, UNVERIFIED_LABEL } from '../config/copy.js'
 import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { getObjectBuffer, putBuffer } from '../utils/storage.js'
@@ -39,7 +39,9 @@ export async function processReportGeneration(sessionId) {
 function lookedAtHtml(looked) {
   if (!looked) return ''
   const list = (items) => `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`
+  const u = looked.unverified
   return `<h2>What we looked at</h2>${looked.noItems ? `<p>${esc(looked.noItems)}</p>` : list(looked.items)}` +
+    (u ? `<p><span class="unverified">${esc(u.label)}</span> ${u.moments} ${u.moments === 1 ? 'moment' : 'moments'} from these checks.</p>${list(u.items)}` : '') +
     (looked.gaps.length ? `<h2>What we could not look at</h2>${list(looked.gaps)}` : '')
 }
 
@@ -58,6 +60,7 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
         ${img ? `<img src="${img}" alt="" />` : ''}
         <div class="moment-body">
           <p class="moment-time">${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} into the session</p>
+          ${m.unverified ? `<p><span class="unverified">${esc(UNVERIFIED_LABEL)}</span></p>` : ''}
           <h3>"${esc(m.label)}"</h3>
           ${m.note ? `<p class="note">${esc(m.note)}</p>` : ''}
         </div>
@@ -83,6 +86,9 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
     .moment h3 { margin: 4px 0 8px; font-size: 18px; }
     .moment-time { color: #667085; font-size: 12px; margin: 0; }
     .note { font-style: italic; color: #475467; }
+    .snapshot { font-size: 14px; color: #475467; }
+    .unverified { display: inline-block; border: 1px solid #b54708; background: #fffaeb; color: #93370d;
+                  border-radius: 6px; padding: 1px 8px; font-size: 13px; font-weight: bold; }
     .intro { font-size: 16px; background: #f2f4f7; border-radius: 12px; padding: 16px 20px; }
   </style></head><body>
     <div class="page cover">
@@ -93,6 +99,7 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
     </div>
     <div class="page">
       <p class="intro">${esc(SIMULATION_INTRO)}</p>
+      <p class="snapshot">${esc(ranOnLine(session.start_time))} ${esc(SNAPSHOT_NOTE)}</p>
       <h2>The experience in numbers</h2>
       <div class="numbers">
         <div class="num"><span class="big">${minutes}m</span>time spent</div>

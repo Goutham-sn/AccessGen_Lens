@@ -6,6 +6,24 @@ export const SIMULATION_INTRO =
   'We open the page the way a person would use it and show you what happens. ' +
   'What to change is up to you and your team.'
 
+// Shown wherever a moment from an unverified check appears: the moment card,
+// the run page, the report and the PDF. See runnerCapabilities.js.
+export const UNVERIFIED_LABEL = 'Unverified, for testing'
+
+// Reports are a snapshot of one visit. Shown with the run date and time on
+// the report, the shared report and the PDF.
+export const SNAPSHOT_NOTE = 'The same page can give different results on different days.'
+
+// "Run on 6 October 2026 at 14:32 UTC." For the PDF, which has no viewer
+// time zone to use; the web report formats the same instant in the viewer's.
+export function ranOnLine(startTime) {
+  const d = new Date(startTime)
+  if (Number.isNaN(d.getTime())) return ''
+  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
+  return `Run on ${date} at ${time} UTC.`
+}
+
 // What each runner check looks at, in plain words. Shown on the run page
 // and in the reports under "What we looked at", only for checks that are
 // live for the session's conditions (see runnerCapabilities.js).

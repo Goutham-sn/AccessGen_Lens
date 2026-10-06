@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { SIMULATION_INTRO } from '../config/copy.js'
+import { SIMULATION_INTRO, SNAPSHOT_NOTE } from '../config/copy.js'
 import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
 import { nanoid } from 'nanoid'
 import { Session } from '../models/Session.js'
@@ -37,7 +37,7 @@ export async function listShares(req, res, next) {
   } catch (err) { next(err) }
 }
 
-// Public endpoint — resolves a share token into full report data.
+// Public endpoint: resolves a share token into full report data.
 export async function viewShared(req, res, next) {
   try {
     const share = await SharedReport.findByToken(req.params.token)
@@ -59,7 +59,7 @@ export async function viewShared(req, res, next) {
       EmpathyMoment.findBySession(session.id)
     ])
     res.json({ session, frames, empathyMoments, lookedAt: lookedAt(session, empathyMoments.length),
-      noMomentsText: noMomentsText(session, empathyMoments.length), intro: SIMULATION_INTRO })
+      noMomentsText: noMomentsText(session, empathyMoments.length), intro: SIMULATION_INTRO, snapshotNote: SNAPSHOT_NOTE })
   } catch (err) { next(err) }
 }
 

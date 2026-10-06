@@ -6,6 +6,7 @@ import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { JourneyMap } from '../components/report/JourneyMap.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
 import { LookedAt } from '../components/report/LookedAt.jsx'
+import { SnapshotNote } from '../components/report/SnapshotNote.jsx'
 import { BeforeAfter } from '../components/report/BeforeAfter.jsx'
 import { HumanSummary } from '../components/report/HumanSummary.jsx'
 import { ShareDialog } from '../components/shared/ShareDialog.jsx'
@@ -82,6 +83,7 @@ export default function Report() {
       <div className="space-y-8 pb-16">
         <ReportCover session={session} empathyMoments={empathyMoments} />
         <SimulationBanner text={intro} />
+        <SnapshotNote ranAt={session.start_time} note={data.snapshotNote} />
 
         {/* The experience in numbers */}
         <section aria-labelledby="numbers-heading" className="rounded-2xl border border-gray-200 bg-white p-6">

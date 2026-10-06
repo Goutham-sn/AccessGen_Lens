@@ -1,6 +1,6 @@
 import { liveChecksFor } from '../config/runnerCapabilities.js'
 import {
-  CHECK_WORDS, zeroMomentsLine, recordedOnlyLine, nothingMeasuredLine, EXTENSION_NO_MOMENTS
+  CHECK_WORDS, zeroMomentsLine, recordedOnlyLine, nothingMeasuredLine, EXTENSION_NO_MOMENTS, UNVERIFIED_LABEL
 } from '../config/copy.js'
 
 // What a runner session looked at and could not look at, for the run page
@@ -8,6 +8,10 @@ import {
 //   items        one line per live check for the session's conditions,
 //                taken from the live-check list only
 //   noItems      shown instead of the list when there is no live check
+//   unverified   null, or { label, items, moments } when the run included
+//                checks that are not live yet (dev-only unverified mode):
+//                the label to show, what they look at, and how many moments
+//                came from them. Never mixed into `items`
 //   gaps         coverage lines from the run ("Focus entered a frame ...")
 //   zeroMoments  the line shown instead of a moments list when there are
 //                none, or null. Never given for a run that stopped early or
@@ -18,16 +22,23 @@ export function lookedAt(session, momentCount) {
   const items = liveChecksFor((session.active_profiles || []).map((p) => p.id))
     .map((id) => CHECK_WORDS[id]).filter(Boolean)
   const coverage = session.coverage || {}
+  const unverifiedItems = (Array.isArray(coverage.unverifiedChecks) ? coverage.unverifiedChecks : [])
+    .map((id) => CHECK_WORDS[id]).filter(Boolean)
   const walked = coverage.presses != null
   const normalEnd = session.processing_complete && !coverage.stoppedReason && !coverage.walkIncomplete
 
   let zeroMoments = null
   if (momentCount === 0 && normalEnd) {
-    zeroMoments = walked ? zeroMomentsLine({ presses: coverage.presses, things: items.length }) : recordedOnlyLine(name)
+    zeroMoments = walked
+      ? zeroMomentsLine({ presses: coverage.presses, things: items.length + unverifiedItems.length })
+      : recordedOnlyLine(name)
   }
   return {
     items,
     noItems: items.length === 0 ? nothingMeasuredLine(name) : null,
+    unverified: unverifiedItems.length
+      ? { label: UNVERIFIED_LABEL, items: unverifiedItems, moments: coverage.unverifiedMoments ?? 0 }
+      : null,
     gaps: Array.isArray(coverage.notes) ? coverage.notes : [],
     zeroMoments
   }

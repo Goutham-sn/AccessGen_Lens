@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'vite'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { UNVERIFIED_LABEL as BACKEND_LABEL } from '../../backend/src/config/copy.js'
 
 const EVIL = '<img src=x onerror=alert(1)>'
 const ESCAPED = '&lt;img src=x onerror=alert(1)&gt;'
@@ -59,6 +60,18 @@ test('what we looked at shows coverage lines from the page as plain text', async
   assertPlainText(render([LookedAt, { lookedAt }]), 'LookedAt')
 })
 
+test('the report says when it ran and that results differ between days', async () => {
+  const { SnapshotNote } = await vite.ssrLoadModule('/src/components/report/SnapshotNote.jsx')
+  const note = 'The same page can give different results on different days.'
+  const html = render([SnapshotNote, { ranAt: '2026-10-06T14:32:00Z', note, locale: 'en-GB', timeZone: 'UTC' }])
+  assert.ok(html.includes('Run on 6 October 2026, 14:32 UTC.') || html.includes('Run on 6 October 2026 at 14:32 UTC.'), html)
+  assert.ok(html.includes(note), html)
+  // A date that cannot be read is left out, the note stays.
+  const bad = render([SnapshotNote, { ranAt: 'not a date', note }])
+  assert.ok(!bad.includes('Run on'), bad)
+  assert.ok(bad.includes(note))
+})
+
 test('no moments: the line given is shown, never a celebration', async () => {
   const { EmpathyMoments } = await vite.ssrLoadModule('/src/components/report/EmpathyMoments.jsx')
   const line = 'We pressed Tab 14 times and noticed nothing that matches what we look for here. We only look at these 2 things.'
@@ -73,4 +86,34 @@ test('playback sidebar shows a button name as plain text', async () => {
     empathyMoments: moments, onJump: () => {}, currentTime: 0, sessionMsToVideoSeconds: (ms) => ms / 1000
   }])
   assertPlainText(html, 'EmpathySidebar')
+})
+
+test('unverified moments carry the label on the card, in the playback list and in what we looked at', async () => {
+  const { UNVERIFIED_LABEL } = await vite.ssrLoadModule('/src/components/shared/UnverifiedLabel.jsx')
+  assert.equal(UNVERIFIED_LABEL, BACKEND_LABEL, 'the web and the PDF say the same thing')
+  assert.equal(UNVERIFIED_LABEL, 'Unverified, for testing')
+  const count = (html) => html.split(UNVERIFIED_LABEL).length - 1
+
+  const { EmpathyMoments } = await vite.ssrLoadModule('/src/components/report/EmpathyMoments.jsx')
+  const { EmpathySidebar } = await vite.ssrLoadModule('/src/components/playback/EmpathySidebar.jsx')
+  const { LookedAt } = await vite.ssrLoadModule('/src/components/report/LookedAt.jsx')
+  const plain = { ...moments[0], active_profiles: [] }
+  const marked = { ...plain, unverified: true }
+
+  assert.equal(count(render([EmpathyMoments, { empathyMoments: [marked] }])), 1, 'moment card')
+  assert.equal(count(render([EmpathyMoments, { empathyMoments: [plain] }])), 0, 'not on a verified one')
+  const sidebar = (m) => render([EmpathySidebar, {
+    empathyMoments: [m], onJump: () => {}, currentTime: 0, sessionMsToVideoSeconds: (ms) => ms / 1000
+  }])
+  assert.equal(count(sidebar(marked)), 1, 'playback list')
+  assert.equal(count(sidebar(plain)), 0)
+
+  const looked = {
+    items: ['Where each press of Tab goes, stop by stop'], gaps: [], zeroMoments: null,
+    unverified: { label: BACKEND_LABEL, items: ['Whether Tab keeps going round the same places'], moments: 2 }
+  }
+  const html = render([LookedAt, { lookedAt: looked }])
+  assert.equal(count(html), 1, 'run page and report (what we looked at)')
+  assert.ok(html.includes('2 moments from these checks.'))
+  assert.equal(count(render([LookedAt, { lookedAt: { ...looked, unverified: null } }])), 0)
 })

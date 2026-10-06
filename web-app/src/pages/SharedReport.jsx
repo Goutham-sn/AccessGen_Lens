@@ -4,6 +4,7 @@ import { ReportCover } from '../components/report/ReportCover.jsx'
 import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
 import { LookedAt } from '../components/report/LookedAt.jsx'
+import { SnapshotNote } from '../components/report/SnapshotNote.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { mediaUrl, API_URL } from '../services/api.js'
@@ -50,7 +51,7 @@ export default function SharedReport() {
       <header className="bg-white border-b border-gray-200 h-14 flex items-center px-4">
         <span className="flex items-center gap-2 font-semibold text-ink-900">
           <span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700 text-white text-sm">◉</span>
-          AccessGen Lens — shared report
+          AccessGen Lens: shared report
         </span>
       </header>
       <main id="main-content" className="mx-auto max-w-4xl px-4 py-10">
@@ -81,6 +82,7 @@ export default function SharedReport() {
           <div className="space-y-8">
             <ReportCover session={data.session} empathyMoments={data.empathyMoments} />
             <SimulationBanner text={data.intro} />
+            <SnapshotNote ranAt={data.session.start_time} note={data.snapshotNote} />
             <LookedAt lookedAt={data.lookedAt} idPrefix="shared-looked-at" />
             <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.noMomentsText} />
             {data.session.video_url && (

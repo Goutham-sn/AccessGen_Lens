@@ -1,4 +1,5 @@
 import { mediaUrl } from '../../services/api.js'
+import { UnverifiedLabel } from '../shared/UnverifiedLabel.jsx'
 
 function fmtMs(ms) {
   const s = Math.floor(ms / 1000)
@@ -29,6 +30,7 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
                   />
                 )}
                 <p className="text-xs text-ink-500 tabular-nums">{fmtMs(m.timestamp_ms)}</p>
+                {m.unverified && <p className="mt-1"><UnverifiedLabel /></p>}
                 <p className="text-sm font-medium text-ink-900 mt-0.5">"{m.label}"</p>
                 {m.note && <p className="text-sm text-ink-600 mt-1 italic">{m.note}</p>}
               </>

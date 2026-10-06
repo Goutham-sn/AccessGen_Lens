@@ -26,6 +26,9 @@ async function measureFixture(browser, file) {
       persona: { persona: { name: 'David' } }
     })
     if (run.problems.length) throw new Error(`${path.basename(file)}: ${JSON.stringify(run.problems)}`)
+    // A walk cut short by the time limit (a slow or overloaded machine) would
+    // otherwise show up as missing findings; say what happened instead.
+    if (run.walk?.ended === 'time') throw new Error(`${path.basename(file)}: the walk reached the 60 s limit after ${run.walk.stops.length} stops`)
     return { candidates: run.candidates, notes: run.notes, ended: run.walk?.ended ?? null }
   } finally {
     await context.close()

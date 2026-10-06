@@ -2,6 +2,7 @@ import { tabWalk } from './walk.js'
 import { makeFinding } from './evidence.js'
 import { releaseProbe, installFocusRecord, clearFocusRecord, readFlashed } from './checks/keyboard/probe.js'
 import { coverageLines } from './copy.js'
+import { checkStatus } from '../../backend/src/config/runnerCapabilities.js'
 
 // The hidden measure pass's detector run: no video, no overlay, no filter.
 // Shared by the persona flow, the check fixtures and the validation script,
@@ -21,6 +22,9 @@ export async function measurePass(page, { detectors, deadline, persona, profileI
   const candidates = []
   const note = (line) => { if (!notes.includes(line)) notes.push(line) }
   const ctx = { page, persona, profileIds, note }
+  // A finding from a check that is not live yet says so, so it can be
+  // labelled wherever it is shown (see runnerCapabilities.js).
+  const tag = (d, f) => (checkStatus(d.id) === 'unverified' ? { ...f, unverified: true } : f)
   const problem = (d, err, step) => problems.push({
     detector: d.id, ...(step ? { step } : {}), message: String(err?.message || err).slice(0, 300)
   })
@@ -45,7 +49,7 @@ export async function measurePass(page, { detectors, deadline, persona, profileI
           for (const d of detectors) {
             if (!d.onStop) continue
             try {
-              for (const f of (await d.onStop({ ...ctx, stop, step })) || []) candidates.push(makeFinding({ ...f, step }))
+              for (const f of (await d.onStop({ ...ctx, stop, step })) || []) candidates.push(makeFinding(tag(d, { ...f, step })))
             } catch (err) {
               problem(d, err, step)
             }
@@ -62,7 +66,7 @@ export async function measurePass(page, { detectors, deadline, persona, profileI
     for (const d of detectors) {
       if (!d.measure) continue
       try {
-        for (const f of (await d.measure({ ...ctx, stops: walk?.stops ?? null, walk })) || []) candidates.push(makeFinding(f))
+        for (const f of (await d.measure({ ...ctx, stops: walk?.stops ?? null, walk })) || []) candidates.push(makeFinding(tag(d, f)))
       } catch (err) {
         problem(d, err)
       }

@@ -1,4 +1,4 @@
-import { RUNNER_CAPABILITIES, liveChecks } from '../../../backend/src/config/runnerCapabilities.js'
+import { RUNNER_CAPABILITIES, liveChecks, BUILT_UNVERIFIED, checksToRun } from '../../../backend/src/config/runnerCapabilities.js'
 import { WALK_PROFILES } from '../walkProfiles.js'
 import { FILTER_PROFILE_IDS } from '../inject/profilesEntry.js'
 import tabWalk from './tabWalk.js'
@@ -29,6 +29,9 @@ export function capabilityGaps() {
   for (const id of liveChecks()) {
     if (!CHECKS[id]) gaps.push(`check "${id}" is marked live but has no module in src/checks`)
   }
+  for (const id of BUILT_UNVERIFIED) {
+    if (!CHECKS[id]) gaps.push(`check "${id}" is marked built (unverified) but has no module in src/checks`)
+  }
   const implemented = new Set([...WALK_PROFILES, ...FILTER_PROFILE_IDS])
   for (const profile of Object.keys(RUNNER_CAPABILITIES)) {
     if (!implemented.has(profile)) gaps.push(`profile "${profile}" is listed but the runner has no way to simulate it`)
@@ -37,9 +40,11 @@ export function capabilityGaps() {
 }
 
 // The detectors a persona runs: registered modules that measure something,
-// whose check is live for at least one of the persona's profiles.
-export function detectorsFor(profileIds) {
-  return Object.values(CHECKS).filter((c) =>
-    (c.onStop || c.measure) &&
-    profileIds.some((p) => RUNNER_CAPABILITIES[p]?.checks?.[c.id] === true))
+// whose check is live for at least one of the persona's profiles. In the
+// dev-only unverified mode (UNVERIFIED_CHECKS=1, NODE_ENV not production;
+// see runnerCapabilities.js) the built-but-unverified checks listed for the
+// persona's profiles run too. `env` is for tests.
+export function detectorsFor(profileIds, env = process.env) {
+  const run = new Set(checksToRun(profileIds, env))
+  return Object.values(CHECKS).filter((c) => (c.onStop || c.measure) && run.has(c.id))
 }

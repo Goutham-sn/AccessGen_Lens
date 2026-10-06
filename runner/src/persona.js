@@ -12,6 +12,7 @@ import { createEvidenceEngine, groupFindings } from './evidence.js'
 import { measureCoverage } from './coverage.js'
 import { measurePass } from './measure.js'
 import { sampleBrowserMemory } from './memory.js'
+import { checkStatus } from '../../backend/src/config/runnerCapabilities.js'
 import { showSyncMark, readPageCorner, deliverVideo } from './videoSync.js'
 import { pauseNote, coverageLines } from './copy.js'
 import {
@@ -55,6 +56,10 @@ export async function runPersona(job, s, deps) {
     viewport: `${config.viewport.width}x${config.viewport.height}`,
     profilesSimulated: profileIds
   }
+  // Checks that run only because the dev-only unverified mode is on. Their
+  // moments are labelled wherever they are shown; coverage says so too.
+  const unverifiedChecks = detectors.filter((d) => checkStatus(d.id) === 'unverified').map((d) => d.id)
+  if (unverifiedChecks.length) coverage.unverifiedChecks = unverifiedChecks
   const debug = { mismatches: [], dropped: [], detectorProblems: [] }
   const candidates = []
   let videoKey = null
@@ -272,6 +277,7 @@ export async function runPersona(job, s, deps) {
           // Page-level findings, after the walk or scroll.
           for (const g of later) await confirmAndCapture(g, null)
           moments = engine.moments
+          if (unverifiedChecks.length) coverage.unverifiedMoments = moments.filter((m) => m.unverified).length
           if (moments.length) timings.mark('evidence')
 
           await page.evaluate(overlayHideChip).catch(() => {})

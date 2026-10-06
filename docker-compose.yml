@@ -105,6 +105,12 @@ services:
       RUNNER_MAX_CONTEXTS: 4
       RUNNER_PERSONA_CAP_MS: 90000
       RUNNER_INTERNAL_SERVICES: postgres,redis,minio,backend,runner
+      # Dev only. Checks that are built but not yet verified by hand produce
+      # moments (labelled "Unverified, for testing") only when UNVERIFIED_CHECKS=1
+      # and NODE_ENV is not production. The runner image runs as production, so
+      # both must be set on purpose, for example in .env (see .env.example).
+      NODE_ENV: ${RUNNER_NODE_ENV:-production}
+      UNVERIFIED_CHECKS: ${UNVERIFIED_CHECKS:-0}
     depends_on:
       postgres:
         condition: service_healthy

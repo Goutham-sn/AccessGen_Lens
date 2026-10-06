@@ -73,3 +73,40 @@ export function liveChecksFor(profileIds) {
   }
   return ids
 }
+
+// Each check has a status:
+//   live        its flag above is true for some profile: it runs for everyone
+//   unverified  built and registered in the runner, with its fixtures
+//               passing, but not yet checked by hand against real pages. It
+//               runs only in the dev-only unverified mode (below), and its
+//               moments are always labelled UNVERIFIED_LABEL
+//   null        not built yet
+// The flags above stay the one thing that makes a check live; the status is
+// derived from them, so nothing can be both. A check moves from unverified
+// to live when its flag is set to true, and only then.
+export const BUILT_UNVERIFIED = ['focus-visible', 'long-way', 'focus-lost', 'focus-hidden', 'trap']
+
+export function checkStatus(id) {
+  if (liveChecks().has(id)) return 'live'
+  if (BUILT_UNVERIFIED.includes(id)) return 'unverified'
+  return null
+}
+
+// Dev-only unverified mode: UNVERIFIED_CHECKS=1 and NODE_ENV not production.
+// In production the flag is ignored whatever it says.
+export function unverifiedEnabled(env = process.env) {
+  return env.UNVERIFIED_CHECKS === '1' && env.NODE_ENV !== 'production'
+}
+
+// The checks the runner runs for these conditions: the live ones, plus the
+// unverified ones listed for them when unverified mode is on.
+export function checksToRun(profileIds, env = process.env) {
+  const ids = []
+  for (const profile of profileIds) {
+    for (const [id, live] of Object.entries(RUNNER_CAPABILITIES[profile]?.checks || {})) {
+      const run = live || (unverifiedEnabled(env) && checkStatus(id) === 'unverified')
+      if (run && !ids.includes(id)) ids.push(id)
+    }
+  }
+  return ids
+}

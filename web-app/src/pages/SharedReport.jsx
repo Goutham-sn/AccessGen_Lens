@@ -82,7 +82,7 @@ export default function SharedReport() {
             <ReportCover session={data.session} empathyMoments={data.empathyMoments} />
             <SimulationBanner text={data.intro} />
             <LookedAt lookedAt={data.lookedAt} idPrefix="shared-looked-at" />
-            <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.lookedAt?.zeroMoments} />
+            <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.noMomentsText} />
             {data.session.video_url && (
               <section aria-labelledby="shared-watch-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
                 <h2 id="shared-watch-heading" className="text-xl font-semibold text-ink-900 mb-4">Watch the session</h2>

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { SIMULATION_INTRO } from '../config/copy.js'
-import { lookedAt } from '../utils/lookedAt.js'
+import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
 import { nanoid } from 'nanoid'
 import { Session } from '../models/Session.js'
 import { SharedReport } from '../models/SharedReport.js'
@@ -58,7 +58,8 @@ export async function viewShared(req, res, next) {
       Frame.findBySession(session.id),
       EmpathyMoment.findBySession(session.id)
     ])
-    res.json({ session, frames, empathyMoments, lookedAt: lookedAt(session, empathyMoments.length), intro: SIMULATION_INTRO })
+    res.json({ session, frames, empathyMoments, lookedAt: lookedAt(session, empathyMoments.length),
+      noMomentsText: noMomentsText(session, empathyMoments.length), intro: SIMULATION_INTRO })
   } catch (err) { next(err) }
 }
 

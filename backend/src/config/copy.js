@@ -29,9 +29,18 @@ export const CHECK_WORDS = {
 // When a run found no moments. Never an all-clear: it says what was done
 // and how little we look at.
 export function zeroMomentsLine({ presses, things }) {
-  const did = presses != null
-    ? `We pressed Tab ${presses} time${presses === 1 ? '' : 's'}`
-    : 'We looked at the page'
   const only = things === 1 ? 'We only look at this one thing.' : `We only look at these ${things} things.`
-  return `${did} and noticed nothing that matches what we look for here. ${only}`
+  return `We pressed Tab ${presses} time${presses === 1 ? '' : 's'} and noticed nothing that matches what we look for here. ${only}`
 }
+
+// A run with no Tab walk (the person's conditions are only shown on screen).
+export const recordedOnlyLine = (name) =>
+  `We recorded the page as ${name} would see it. We did not measure anything else in this run.`
+
+// A run whose conditions have no live checks at all.
+export const nothingMeasuredLine = (name) =>
+  `We do not measure anything for these conditions yet. The video shows the page as ${name} would see it.`
+
+// An extension session (the person explores and marks moments) with none.
+export const EXTENSION_NO_MOMENTS =
+  'You did not mark any moments in this session. Press I Felt This when something feels wrong.'

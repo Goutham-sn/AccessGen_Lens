@@ -16,15 +16,15 @@ function fmtMs(ms) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-// emptyText: what to say when there are no moments. Never an all-clear;
-// for a run it comes from the backend ("We pressed Tab 14 times and
-// noticed nothing that matches what we look for here. ...").
+// emptyText: what to say when there are no moments, from the backend
+// (noMomentsText). Never an all-clear. With none given, nothing is shown.
 export function EmpathyMoments({ empathyMoments, emptyText }) {
   if (empathyMoments.length === 0) {
+    if (!emptyText) return null
     return (
       <section aria-labelledby="moments-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
         <h2 id="moments-heading" className="text-xl font-semibold text-ink-900">Moments</h2>
-        <p className="mt-2 text-ink-700">{emptyText || 'No moments were flagged during this session.'}</p>
+        <p className="mt-2 text-ink-700">{emptyText}</p>
       </section>
     )
   }

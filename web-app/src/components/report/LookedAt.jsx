@@ -16,7 +16,7 @@ export function LookedAt({ lookedAt, headingLevel = 2, idPrefix = 'looked-at' })
           {lookedAt.items.map((item) => <li key={item}>{item}</li>)}
         </ul>
       ) : (
-        <p className="mt-3 text-ink-700">Nothing is looked at for these conditions yet.</p>
+        <p className="mt-3 text-ink-700">{lookedAt.noItems}</p>
       )}
       {lookedAt.gaps.length > 0 && (
         <>

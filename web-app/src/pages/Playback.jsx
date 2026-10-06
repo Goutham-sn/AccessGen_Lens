@@ -130,6 +130,7 @@ export default function Playback() {
         <div className="order-3">
           <EmpathySidebar
             empathyMoments={empathyMoments}
+            emptyText={pb.data.noMomentsText}
             currentTime={pb.currentTime}
             sessionMsToVideoSeconds={pb.sessionMsToVideoSeconds}
             onJump={pb.seekTo}

@@ -105,7 +105,7 @@ export default function Report() {
 
         <JourneyMap session={session} events={events} empathyMoments={empathyMoments} />
         <LookedAt lookedAt={data.lookedAt} />
-        <EmpathyMoments empathyMoments={empathyMoments} emptyText={data.lookedAt?.zeroMoments} />
+        <EmpathyMoments empathyMoments={empathyMoments} emptyText={data.noMomentsText} />
 
         <BeforeAfter
           normalImageUrl={firstFrame ? mediaUrl(firstFrame.screenshot_url) : null}

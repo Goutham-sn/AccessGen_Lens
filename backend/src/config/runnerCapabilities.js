@@ -61,3 +61,15 @@ export function allChecks() {
   }
   return all
 }
+
+// The live checks for a set of conditions, in the order listed above, each
+// once.
+export function liveChecksFor(profileIds) {
+  const ids = []
+  for (const profile of profileIds) {
+    for (const [id, live] of Object.entries(RUNNER_CAPABILITIES[profile]?.checks || {})) {
+      if (live && !ids.includes(id)) ids.push(id)
+    }
+  }
+  return ids
+}

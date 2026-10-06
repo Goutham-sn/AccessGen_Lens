@@ -1,4 +1,5 @@
 import { Session } from '../models/Session.js'
+import { noMomentsText } from '../utils/lookedAt.js'
 import { Frame } from '../models/Frame.js'
 import { Event } from '../models/Event.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
@@ -20,6 +21,6 @@ export async function getPlayback(req, res, next) {
 
     // uploadWindow: { open, waitUntil }. Playback keeps waiting for a video
     // only while open is true, as decided by the database clock.
-    res.json({ session, frames, events, empathyMoments, uploadWindow })
+    res.json({ session, frames, events, empathyMoments, uploadWindow, noMomentsText: noMomentsText(session, empathyMoments.length) })
   } catch (err) { next(err) }
 }

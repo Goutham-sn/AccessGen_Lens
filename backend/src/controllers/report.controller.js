@@ -5,7 +5,7 @@ import { Event } from '../models/Event.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { enqueueReportGeneration } from '../jobs/queue.js'
 import { getObjectBuffer } from '../utils/storage.js'
-import { lookedAt } from '../utils/lookedAt.js'
+import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
 
 const LABEL_PHRASES = {
   'Got completely stuck here': 'came to a complete stop',
@@ -37,8 +37,10 @@ function buildHumanSummary(session, moments) {
       phrases.join('. ') + '.'
     )
   } else {
-    // Never an all-clear: for a run, say what was done and how little we look at.
-    paras.push(lookedAt(session, 0)?.zeroMoments || 'No moments were flagged during this session.')
+    // Never an all-clear: say what was done and how little we look at, or
+    // why a run stopped.
+    const line = noMomentsText(session, 0)
+    if (line) paras.push(line)
   }
 
   paras.push(
@@ -67,6 +69,7 @@ export async function getReport(req, res, next) {
       empathyMoments,
       humanSummary: buildHumanSummary(session, empathyMoments),
       lookedAt: lookedAt(session, empathyMoments.length),
+      noMomentsText: noMomentsText(session, empathyMoments.length),
       intro: SIMULATION_INTRO
     })
   } catch (err) { next(err) }

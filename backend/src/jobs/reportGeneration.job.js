@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer'
-import { lookedAt } from '../utils/lookedAt.js'
+import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
 import { SIMULATION_INTRO } from '../config/copy.js'
 import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
@@ -39,7 +39,7 @@ export async function processReportGeneration(sessionId) {
 function lookedAtHtml(looked) {
   if (!looked) return ''
   const list = (items) => `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`
-  return `<h2>What we looked at</h2>${list(looked.items)}` +
+  return `<h2>What we looked at</h2>${looked.noItems ? `<p>${esc(looked.noItems)}</p>` : list(looked.items)}` +
     (looked.gaps.length ? `<h2>What we could not look at</h2>${list(looked.gaps)}` : '')
 }
 
@@ -102,7 +102,7 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
       ${persona?.story ? `<p>${esc(persona.story)}</p>` : ''}
       ${lookedAtHtml(looked)}
       <h2>Where the experience broke down</h2>
-      ${momentCards.join('') || `<p>${esc(looked?.zeroMoments || 'No moments were flagged during this session.')}</p>`}
+      ${momentCards.join('') || `<p>${esc(noMomentsText(session, 0) || '')}</p>`}
       <h2>What this means</h2>
       <p>None of this is about compliance. It is about whether ${esc(who)} can do what they came to do.
       Each moment above is a place where a real person would slow down, get lost, or give up entirely.</p>

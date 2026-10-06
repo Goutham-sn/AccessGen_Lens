@@ -1,16 +1,17 @@
-// "What we looked at" and the no-moments line (no database needed):
+// "What we looked at" and the no-moments lines (no database needed):
 //   docker compose exec backend node --test test/lookedAt.test.js
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { lookedAt } from '../src/utils/lookedAt.js'
-import { zeroMomentsLine, CHECK_WORDS } from '../src/config/copy.js'
-import { liveChecks, allChecks } from '../src/config/runnerCapabilities.js'
+import { lookedAt, noMomentsText } from '../src/utils/lookedAt.js'
+import { CHECK_WORDS } from '../src/config/copy.js'
+import { allChecks, liveChecksFor } from '../src/config/runnerCapabilities.js'
 
-const runner = (extra = {}) => ({
+const runner = (extra = {}, coverage = {}) => ({
   source: 'runner',
   processing_complete: true,
+  persona_snapshot: { name: 'David' },
   active_profiles: [{ id: 'keyboard-only' }, { id: 'deuteranopia' }],
-  coverage: { presses: 14, notes: ['Focus entered a frame from another site at stop 3. We could not look inside it.'] },
+  coverage: { presses: 14, notes: ['Focus entered a frame from another site at stop 3. We could not look inside it.'], ...coverage },
   ...extra
 })
 
@@ -20,21 +21,40 @@ test('every check has words', () => {
 
 test('lists only the live checks for the session conditions, with the coverage lines', () => {
   const looked = lookedAt(runner(), 3)
-  const live = [...liveChecks()].filter((id) => ['tab-walk', 'filter-video'].includes(id))
-  assert.deepEqual(looked.items, live.map((id) => CHECK_WORDS[id]))
+  assert.deepEqual(looked.items, liveChecksFor(['keyboard-only', 'deuteranopia']).map((id) => CHECK_WORDS[id]))
+  assert.equal(looked.noItems, null)
   assert.deepEqual(looked.gaps, ['Focus entered a frame from another site at stop 3. We could not look inside it.'])
   assert.equal(looked.zeroMoments, null, 'there are moments')
 })
 
-test('no moments: says what was done and how little we look at', () => {
+test('no moments after a Tab walk: says what was done and how little we look at', () => {
   const looked = lookedAt(runner(), 0)
   assert.equal(looked.zeroMoments,
     `We pressed Tab 14 times and noticed nothing that matches what we look for here. We only look at these ${looked.items.length} things.`)
-  assert.equal(zeroMomentsLine({ presses: null, things: 1 }),
-    'We looked at the page and noticed nothing that matches what we look for here. We only look at this one thing.')
 })
 
-test('not for sessions the runner did not make, and not before a run is finished', () => {
-  assert.equal(lookedAt({ ...runner(), source: 'extension' }, 0), null)
+test('no Tab walk: says the page was recorded and nothing else measured', () => {
+  const looked = lookedAt(runner({ active_profiles: [{ id: 'low-vision' }] }, { presses: undefined }), 0)
+  assert.equal(looked.zeroMoments, 'We recorded the page as David would see it. We did not measure anything else in this run.')
+})
+
+test('no live check for the conditions: says so instead of a list', () => {
+  const looked = lookedAt(runner({ active_profiles: [{ id: 'screen-reader' }] }), 2)
+  assert.deepEqual(looked.items, [])
+  assert.equal(looked.noItems, 'We do not measure anything for these conditions yet. The video shows the page as David would see it.')
+})
+
+test('a stopped run or an incomplete walk is never summarised as a normal result', () => {
+  const stopped = runner({}, { stoppedReason: 'The page was still empty after 12 seconds, so we could not look at it.' })
+  assert.equal(lookedAt(stopped, 0).zeroMoments, null)
+  assert.equal(noMomentsText(stopped, 0), 'The page was still empty after 12 seconds, so we could not look at it.')
+  assert.equal(lookedAt(runner({}, { walkIncomplete: true }), 0).zeroMoments, null)
   assert.equal(lookedAt(runner({ processing_complete: false }), 0).zeroMoments, null)
+})
+
+test('extension sessions with no moments point to I Felt This', () => {
+  const ext = { source: 'extension', coverage: null }
+  assert.equal(lookedAt(ext, 0), null)
+  assert.equal(noMomentsText(ext, 0), 'You did not mark any moments in this session. Press I Felt This when something feels wrong.')
+  assert.equal(noMomentsText(ext, 2), null)
 })

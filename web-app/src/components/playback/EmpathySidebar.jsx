@@ -5,16 +5,15 @@ function fmtMs(ms) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsToVideoSeconds }) {
+// emptyText comes from the backend (noMomentsText); never an all-clear.
+export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsToVideoSeconds, emptyText }) {
   return (
     <section aria-labelledby="empathy-sidebar-heading">
       <h2 id="empathy-sidebar-heading" className="text-sm font-semibold text-ink-900 mb-3">
         Moments of struggle ({empathyMoments.length})
       </h2>
       {empathyMoments.length === 0 ? (
-        <p className="text-sm text-ink-500">
-          No moments were flagged during this session.
-        </p>
+        emptyText ? <p className="text-sm text-ink-500">{emptyText}</p> : null
       ) : (
         <ul className="space-y-3">
           {empathyMoments.map((m) => {

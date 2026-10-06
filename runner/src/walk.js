@@ -37,7 +37,9 @@ export async function tabWalk(page, { deadline, paceMs = 0, onStop, beforePress,
     // Measure before anything is drawn for this stop.
     const stop = await page.evaluate(describeActive)
     const extra = afterPress ? await afterPress(stop) : null
-    return extra ? { ...stop, ...extra } : stop
+    // `press`: how many presses of Tab it took to get here from the start of
+    // the page, which is what a person checking by hand needs to count.
+    return { ...stop, press: presses, ...(extra || {}) }
   }
 
   async function record(stop) {

@@ -63,6 +63,27 @@ test('focus lost: the element that had focus for a moment is named, and no cause
   assert.ok(!single.fact.includes('received focus'), single.fact)
 })
 
+test('how to check by hand: the presses are counted from the start of the page', async () => {
+  const run = async (id, page) => {
+    const check = KEYBOARD_CHECKS.find((c) => c.id === id)
+    const result = await check.runFixture(browser, {
+      fixtureDir: path.join(FIXTURES, id), expected: { [page]: { findings: 1 } }, details: true
+    })
+    return result[page].details
+  }
+  const [save] = await run('focus-visible', '../keyboard/focus-visible.html')
+  assert.equal(save.byHand, 'press Tab 2 times, look at “Save” (button). Is there any sign that it has focus?')
+  const lost = await run('focus-lost', '../keyboard/focus-lost-run.html')
+  assert.equal(lost[0].byHand,
+    'press Tab 1 time to reach “One”, then press Tab 3 times more. Does focus land on anything you can see?')
+  const [trap] = await run('trap', '../keyboard/trap.html')
+  assert.equal(trap.byHand,
+    'press Tab 2 times to reach “Red”, then keep pressing Tab 8 times more. Does focus keep going round the same 3 places, and does Escape not get you out?')
+  const [hidden] = await run('focus-hidden', '../keyboard/focus-hidden.html')
+  assert.equal(hidden.byHand,
+    'press Tab 2 times, look at “Under promo” (button). Is it hidden behind “Special offer” (side panel)?')
+})
+
 const stop = (selector, kind = 'element') => ({ kind, selector })
 
 test('a cycle needs the same places, in the same order, three times', () => {

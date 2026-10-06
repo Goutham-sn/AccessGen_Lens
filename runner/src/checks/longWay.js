@@ -1,5 +1,5 @@
 import { stick } from '../measuringStick.js'
-import { longWayCopy, coverageLines } from '../copy.js'
+import { longWayCopy, coverageLines, byHand } from '../copy.js'
 import { probeStop, pageState, personaName, visibleCookieNotice, COOKIE_MARKERS } from './keyboard/probe.js'
 import { runKeyboardFixture } from './keyboard/fixture.js'
 
@@ -97,6 +97,7 @@ export default {
           ? { kind: 'broken', name: firstOwn.name, role: firstOwn.role, id: firstOwn.skipLink.id }
           : { kind: 'none' }
       }),
+      byHand: byHand.longWay({ press: target.stop.press, name: target.name, role: target.role }),
       evidence: { presses, anchor: anchor.kind, cookieStops, skipLink: firstOwn?.skipLink ?? null }
     }]
   },

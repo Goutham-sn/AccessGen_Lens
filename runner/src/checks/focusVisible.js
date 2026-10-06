@@ -1,5 +1,5 @@
 import { stick } from '../measuringStick.js'
-import { focusNotVisibleCopy } from '../copy.js'
+import { focusNotVisibleCopy, byHand } from '../copy.js'
 import { probeStop, personaName, readFocusedNow, hashOf } from './keyboard/probe.js'
 import { runKeyboardFixture } from './keyboard/fixture.js'
 
@@ -29,6 +29,7 @@ export default {
         persona: personaName(ctx), step: ctx.step, name: p.name, role: p.role,
         nearbyPx, parentsCompared: p.parentsCompared
       }),
+      byHand: byHand.focusVisible({ press: ctx.stop.press, name: p.name, role: p.role }),
       evidence: { nearbyPx, parentsCompared: p.parentsCompared, clip: p.clips.element, stylesHash: p.stylesHash }
     }]
   },

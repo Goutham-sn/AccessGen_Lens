@@ -10,7 +10,9 @@
 //
 // Writes, into one folder:
 //   moments.csv         url, detector, selector, highlighted screenshot,
-//                       verified by hand (left empty for you)
+//                       how to check by hand ("Open {url}, press Tab {n}
+//                       times, look at {name}. ..."), verified by hand
+//                       (left empty for you)
 //   moments-detail.csv  the same rows with the stop, headline, fact and a
 //                       clean screenshot, to read alongside
 //   runs.csv            per URL: label, final URL, HTTP status, load time,
@@ -83,8 +85,8 @@ const cell = (v) => {
 }
 const row = (cells) => cells.map(cell).join(',')
 const detectorIds = KEYBOARD_CHECKS.map((c) => c.id)
-const momentRows = [row(['url', 'detector', 'selector', 'highlighted screenshot', 'verified by hand'])]
-const detailRows = [row(['url', 'detector', 'step', 'selector', 'headline', 'fact', 'highlighted screenshot', 'clean screenshot'])]
+const momentRows = [row(['url', 'detector', 'selector', 'highlighted screenshot', 'how to check by hand', 'verified by hand'])]
+const detailRows = [row(['url', 'detector', 'step', 'selector', 'headline', 'fact', 'how to check by hand', 'highlighted screenshot', 'clean screenshot'])]
 const runRows = [row(['url', 'label', 'final url', 'http status', 'load ms', 'run ms', 'stops', 'walk ended', 'walk incomplete',
   ...detectorIds.map((id) => `${id} moments`), 'stopped reason', 'run date'])]
 const noteRows = [row(['url', 'note'])]
@@ -172,8 +174,10 @@ try {
             await page.evaluate(overlayCall, { method: 'clearMoment' })
           }
         }
-        momentRows.push(row([url, f.detector, f.selector, highlighted, '']))
-        detailRows.push(row([url, f.detector, f.step ?? '', f.selector, f.headline, f.fact, highlighted, clean]))
+        // "Open {url}, press Tab {n} times, look at {name}. ..."
+        const howTo = f.byHand ? `Open ${url}, ${f.byHand}` : ''
+        momentRows.push(row([url, f.detector, f.selector, highlighted, howTo, '']))
+        detailRows.push(row([url, f.detector, f.step ?? '', f.selector, f.headline, f.fact, howTo, highlighted, clean]))
       }
     } catch (err) {
       record.reason = record.reason || `The script stopped on this page: ${String(err?.message || err).slice(0, 300)}`

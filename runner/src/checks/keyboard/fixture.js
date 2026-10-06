@@ -50,7 +50,7 @@ export async function runKeyboardFixture(browser, { fixtureDir, expected, detail
     const all = { findings: mine.length, steps: mine.map((f) => f.step ?? null), notes: run.notes }
     const out = {}
     for (const key of Object.keys(expected[file])) out[key] = all[key]
-    if (details) out.details = mine.map((f) => ({ headline: f.headline, fact: f.fact, forTeam: f.forTeam }))
+    if (details) out.details = mine.map((f) => ({ headline: f.headline, fact: f.fact, forTeam: f.forTeam, byHand: f.byHand }))
     result[file] = out
   }
   return result

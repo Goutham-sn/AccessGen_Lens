@@ -1,5 +1,5 @@
 import { stick } from '../measuringStick.js'
-import { focusLostToPageCopy, focusLostHiddenCopy } from '../copy.js'
+import { focusLostToPageCopy, focusLostHiddenCopy, byHand } from '../copy.js'
 import { probeStop, pageState, personaName, readFocusedNow } from './keyboard/probe.js'
 import { runKeyboardFixture } from './keyboard/fixture.js'
 
@@ -34,6 +34,7 @@ export default {
         persona: personaName(ctx), step: ctx.step, name: p.name, role: p.role,
         hidden: p.hidden, label: p.label ? p.label.text : null
       }),
+      byHand: byHand.focusLostHidden({ press: ctx.stop.press, name: p.name, role: p.role }),
       evidence: { kind: 'hidden', hidden: p.hidden, rect: p.rect }
     }]
   },
@@ -65,6 +66,7 @@ export default {
             persona: personaName(ctx), prevStep: i, presses, prev, next,
             flashed, maxNames: stick('keyboard', 'maxStopNames')
           }),
+          byHand: byHand.focusLostToPage({ prevPress: stops[i - 1].press, prev, presses }),
           evidence: { kind: 'to-page', presses, flashed: flashed.map((f) => f.selector) }
         })
       }

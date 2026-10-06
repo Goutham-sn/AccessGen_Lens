@@ -1,4 +1,4 @@
-import { focusHiddenCopy } from '../copy.js'
+import { focusHiddenCopy, byHand } from '../copy.js'
 import { probeStop, personaName, readFocusedNow } from './keyboard/probe.js'
 import { runKeyboardFixture } from './keyboard/fixture.js'
 
@@ -18,6 +18,7 @@ export default {
       profile: 'keyboard-only',
       selector: ctx.stop.selector,
       ...focusHiddenCopy({ persona: personaName(ctx), step: ctx.step, name: p.name, role: p.role, cover: p.cover }),
+      byHand: byHand.focusHidden({ press: ctx.stop.press, name: p.name, role: p.role, cover: p.cover }),
       evidence: { coverTag: p.cover.tag, coverBox: p.cover.box, rect: p.rect }
     }]
   },

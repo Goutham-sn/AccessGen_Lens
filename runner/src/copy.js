@@ -11,7 +11,7 @@ const CONDITION_WORDS = {
 const MAX_PAGE_TEXT = 80
 // Control characters (C0 and C1), and the bidirectional overrides and
 // isolates that can make text display in a different order than it reads.
-const UNSAFE_CHARS = /[\u0000-\u001F\u007F-\u009F‎‏‪-‮⁦-⁩]/g
+const UNSAFE_CHARS = /[\u0000-\u001F\u007F-\u009F\u200E\u200F\u202A-\u202E\u2066-\u2069]/g
 
 // Any text taken from the page under test (an accessible name, the name of
 // something covering an element): control characters removed, whitespace
@@ -140,6 +140,38 @@ export function longWayCopy({ persona, presses, anchor, before, moreBefore, cook
 
 const capitalise = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
+// "link" -> "links", "text field" -> "text fields", "combo box" -> "combo boxes"
+function plural(word) {
+  if (/(s|x|z|ch|sh)$/.test(word)) return `${word}es`
+  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`
+  return `${word}s`
+}
+
+// A list of elements as short phrases, repeats grouped, in order of first
+// appearance: "an unnamed link" or "7 unnamed links", “Read more” or
+// “Read more” (3 times). Names are cleaned (control characters out, 80
+// characters at most) and never read as markup. Past maxGroups groups, the
+// rest are counted: { phrases, more } where `more` is the number of
+// elements left out.
+export function groupedNames(items, maxGroups = 10) {
+  const groups = new Map()
+  for (const item of items) {
+    const name = cleanPageText(item.name)
+    const role = cleanPageText(item.role) || 'element'
+    const key = name ? `n:${name}` : `u:${role}`
+    const group = groups.get(key) || { name, role, count: 0 }
+    group.count++
+    groups.set(key, group)
+  }
+  const all = [...groups.values()]
+  const shown = all.slice(0, maxGroups)
+  const phrases = shown.map((g) => {
+    if (g.name) return g.count === 1 ? `“${g.name}”` : `“${g.name}” (${g.count} times)`
+    return g.count === 1 ? `an unnamed ${g.role}` : `${g.count} unnamed ${plural(g.role)}`
+  })
+  return { phrases, more: all.slice(maxGroups).reduce((n, g) => n + g.count, 0) }
+}
+
 // presses: how many presses in a row ended on the page itself.
 // flashed: [{ name, role }] elements that had focus for a moment during
 // those presses (recorded, never guessed); empty when none was seen, and
@@ -154,9 +186,9 @@ export function focusLostToPageCopy({ persona, prevStep, presses = 1, prev, next
     if (next) parts.push(`Press ${prevStep + presses + 1} went to ${nameOnly(next.name, next.role)}.`)
   }
   if (flashed.length) {
-    const names = flashed.slice(0, maxNames).map((f) => nameOnly(f.name, f.role))
-    if (flashed.length > maxNames) names.push(`${flashed.length - maxNames} more`)
-    parts.push(`${capitalise(listWords(names))} received focus and then lost it.`)
+    const { phrases, more } = groupedNames(flashed, maxNames)
+    if (more > 0) phrases.push(`${more} more`)
+    parts.push(`${capitalise(listWords(phrases))} received focus and then lost it.`)
   }
   return {
     headline: presses === 1
@@ -206,6 +238,25 @@ export function trapCopy({ persona, fromStep, k, rounds, presses, places, unreac
       'We did not press Enter or Space, so we could not tell whether one of these controls leads out.',
     forTeam: 'Let Tab move past this group, or make it a dialog that Escape closes.'
   }
+}
+
+// How to check a finding by hand, for the validation list. After "Open
+// {url}, ": the presses to count and what to look at. Press counts are
+// counted from the start of the page, as the walk counted them.
+const times = (n) => `${n} ${n === 1 ? 'time' : 'times'}`
+export const byHand = {
+  focusVisible: ({ press, name, role }) =>
+    `press Tab ${times(press)}, look at ${named(name, role)}. Is there any sign that it has focus?`,
+  longWay: ({ press, name, role }) =>
+    `press Tab ${times(press)}, look at ${named(name, role)}. Is it the first stop inside the main content, with nothing before it that skips there?`,
+  focusLostHidden: ({ press, name, role }) =>
+    `press Tab ${times(press)}, look at ${named(name, role)}. Can you see where focus is?`,
+  focusLostToPage: ({ prevPress, prev, presses }) =>
+    `press Tab ${times(prevPress)} to reach ${nameOnly(prev.name, prev.role)}, then press Tab ${times(presses)} more. Does focus land on anything you can see?`,
+  focusHidden: ({ press, name, role, cover }) =>
+    `press Tab ${times(press)}, look at ${named(name, role)}. Is it hidden behind ${named(cover.name, cover.role)}?`,
+  trap: ({ press, first, k, more }) =>
+    `press Tab ${times(press)} to reach ${nameOnly(first.name, first.role)}, then keep pressing Tab ${times(more)} more. Does focus keep going round the same ${k} places, and does Escape not get you out?`
 }
 
 // Coverage lines: what we could not look at, in plain words.

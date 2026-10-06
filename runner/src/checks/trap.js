@@ -1,4 +1,4 @@
-import { trapCopy } from '../copy.js'
+import { trapCopy, byHand } from '../copy.js'
 import { settle, describeActive, detectModal } from '../pageScripts.js'
 import { probeStop, pageState, personaName, countUnreached } from './keyboard/probe.js'
 import { runKeyboardFixture } from './keyboard/fixture.js'
@@ -51,6 +51,7 @@ export default {
         persona: personaName(ctx), fromStep, k, rounds, presses,
         places: places.map((p) => ({ name: p.name, role: p.role })), unreached
       }),
+      byHand: byHand.trap({ press: places[0].stop.press, first: places[0], k, more: presses - 1 }),
       evidence: { fromStep, k, rounds, presses, unreached, selectors: [...selectors] }
     }]
   },

@@ -1,0 +1,9 @@
+{
+  "name": "accessgen-lens",
+  "private": true,
+  "type": "module",
+  "description": "Repo-wide checks. Each part (backend, web-app, runner) has its own package and tests.",
+  "scripts": {
+    "test": "node --test tests/repoText.test.js"
+  }
+}

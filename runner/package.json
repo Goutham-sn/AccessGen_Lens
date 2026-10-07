@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/worker.js",
     "build:profiles": "node scripts/build-profiles.js",
-    "test": "node --test test/*.test.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
     "ssrf-check": "node scripts/ssrf-check.js"
   },
   "dependencies": {

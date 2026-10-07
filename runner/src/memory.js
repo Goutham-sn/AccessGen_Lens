@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import os from 'node:os'
 
 // Peak memory of the browser while a persona runs, for run_timings. Reads
 // /proc in the runner container: the proportional set size (PSS) of every
@@ -42,5 +43,17 @@ export function sampleBrowserMemory(intervalMs = 500) {
       if (kb != null) peakKb = Math.max(peakKb ?? 0, kb)
       return peakKb == null ? null : Math.round(peakKb / 1024)
     }
+  }
+}
+
+// How loaded the machine was when a run began, for run_timings next to
+// browserPeakMb. In the runner container these describe the Docker host (its
+// VM on Windows and Mac): free memory in MB as the kernel reports it
+// available, total memory, and the 1, 5 and 15 minute load averages.
+export function hostSnapshot() {
+  return {
+    freeMemMb: Math.round(os.freemem() / 1048576),
+    totalMemMb: Math.round(os.totalmem() / 1048576),
+    loadAvg: os.loadavg().map((n) => Math.round(n * 100) / 100)
   }
 }

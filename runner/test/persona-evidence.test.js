@@ -110,6 +110,13 @@ test('a confirmed finding becomes a moment whose highlight appears at its video 
   }
   assert.equal(sync.noMarkInVideo, true, 'no trace of the mark in the delivered video')
 
+  // How loaded the machine was, recorded next to the browser's peak memory.
+  const timings = store.saved.finalized.timings
+  assert.ok(timings.browserPeakMb === null || timings.browserPeakMb > 0, `browserPeakMb ${timings.browserPeakMb}`)
+  assert.ok(timings.hostAtStart.freeMemMb > 0 && timings.hostAtStart.totalMemMb >= timings.hostAtStart.freeMemMb)
+  assert.equal(timings.hostAtStart.loadAvg.length, 3)
+  assert.ok(timings.hostAtStart.loadAvg.every((n) => typeof n === 'number' && n >= 0))
+
   // Session time and video time agree with recording_offset_ms.
   const offset = store.saved.finalized.recordingOffsetMs
   assert.equal(extra.timestampMs - offset, m.videoMs, 'timestamp_ms - recording_offset_ms = video_ms')

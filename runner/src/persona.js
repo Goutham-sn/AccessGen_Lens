@@ -11,7 +11,7 @@ import { detectorsFor } from './checks/index.js'
 import { createEvidenceEngine, groupFindings } from './evidence.js'
 import { measureCoverage } from './coverage.js'
 import { measurePass } from './measure.js'
-import { sampleBrowserMemory } from './memory.js'
+import { sampleBrowserMemory, hostSnapshot } from './memory.js'
 import { checkStatus } from '../../backend/src/config/runnerCapabilities.js'
 import { showSyncMark, readPageCorner, deliverVideo } from './videoSync.js'
 import { pauseNote, coverageLines } from './copy.js'
@@ -47,6 +47,8 @@ export async function runPersona(job, s, deps) {
   // Peak browser memory for run_timings. The browser is shared, so with more
   // than one live context this includes the other personas running alongside.
   const memory = sampleBrowserMemory()
+  // How loaded the machine was when this run began (free memory, load average).
+  const hostAtStart = hostSnapshot()
   const deadline = Date.now() + config.personaCapMs
   const profileIds = s.profiles.map((p) => p.id)
   const walks = profileIds.some((id) => WALK_PROFILES.has(id))
@@ -350,6 +352,7 @@ export async function runPersona(job, s, deps) {
 
   const timingResult = timings.done()
   timingResult.browserPeakMb = await memory.stop()
+  timingResult.hostAtStart = hostAtStart
   // How the video's timing was settled, kept with the timings so a missing
   // mark or an ignored correction is visible later.
   if (syncTimings) timingResult.sync = syncTimings

@@ -1,4 +1,4 @@
-// AccessGen Lens — simulation controller (injected into the target page).
+// AccessGen Lens: simulation controller (injected into the target page).
 // Receives INIT with the profile configuration, instantiates each profile
 // in layer order, mounts the control panel, and handles hot-swapping and
 // teardown.
@@ -120,7 +120,7 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
 
     panel.addEventListener('stop-simulation', () => {
       chrome.runtime.sendMessage({ type: 'ACCESSGEN_STOP_SIMULATION' }).catch(() => {
-        // Background worker unreachable — let the user try again rather
+        // Background worker unreachable: let the user try again rather
         // than leaving the button stuck in "Ending session…".
         panel?.setStopping(false)
       })

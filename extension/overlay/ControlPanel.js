@@ -56,7 +56,7 @@ export class AccessGenControlPanel extends HTMLElement {
       // to the AccessGen Lens tab. This dispatches to simulation-controller.js,
       // which asks the background worker to end the session, flush the
       // last frames, close this tab, and hand the finished recording back
-      // to the web app — all without the user leaving this page.
+      // to the web app, all without the user leaving this page.
       this.setStopping(true)
       this.dispatchEvent(new CustomEvent('stop-simulation'))
     })
@@ -88,7 +88,7 @@ export class AccessGenControlPanel extends HTMLElement {
       .filter(Boolean)
     const hintsBox = this.shadowRoot?.querySelector('.keyboard-hints')
     if (hintsBox) {
-      hintsBox.textContent = hints.join(' · ') || 'Browse naturally — everything is being recorded.'
+      hintsBox.textContent = hints.join(' · ') || 'Browse naturally. Everything is being recorded.'
     }
   }
 

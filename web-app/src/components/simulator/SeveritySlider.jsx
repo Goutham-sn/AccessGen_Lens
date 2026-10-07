@@ -1,6 +1,6 @@
 import { SEVERITY_LABELS } from '../../data/profiles.js'
 
-// Three-position severity control rendered as a radiogroup —
+// Three-position severity control rendered as a radiogroup:
 // keyboard operable, each option a ≥24px target.
 export function SeveritySlider({ profileId, profileName, value, onChange }) {
   return (

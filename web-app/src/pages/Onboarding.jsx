@@ -89,7 +89,7 @@ export default function Onboarding() {
         <section aria-labelledby="ext-heading" className="mt-12 rounded-xl border border-gray-200 bg-white p-5">
           <h2 id="ext-heading" className="font-semibold text-ink-900">The extension</h2>
           <p className="mt-1 text-sm text-ink-600">
-            The Chrome extension is the simulation engine — the part that transforms real pages.
+            The Chrome extension is the simulation engine: the part that transforms real pages.
           </p>
           <p className="mt-3 text-sm" aria-live="polite">
             {installed === null && <span className="text-ink-500">Checking for the extension…</span>}

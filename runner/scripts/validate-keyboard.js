@@ -93,7 +93,7 @@ const noteRows = [row(['url', 'note'])]
 
 // UTF-8 with a byte order mark, so spreadsheet apps show quotes and
 // accented names as written.
-const BOM = '﻿'
+const BOM = String.fromCharCode(0xFEFF)
 async function writeAll() {
   await fs.writeFile(path.join(outDir, 'moments.csv'), BOM + momentRows.join('\n') + '\n')
   await fs.writeFile(path.join(outDir, 'moments-detail.csv'), BOM + detailRows.join('\n') + '\n')

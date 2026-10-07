@@ -22,7 +22,7 @@ const INPUT_TYPES = {
 // You are not looking at the screen. You are listening to it.
 export class ScreenReader extends BaseProfile {
   init() {
-    // Blur the page — the eyes are elsewhere.
+    // Blur the page: the eyes are elsewhere.
     setPageFilter(this, 'blur(10px)')
 
     this.mountBanner()
@@ -131,7 +131,7 @@ export class ScreenReader extends BaseProfile {
 
   buildNaturalAnnouncement(role, label, states, description) {
     // This is where broken markup becomes audible: an unlabelled button
-    // announces as just "button" — exactly what a blind user hears.
+    // announces as just "button": exactly what a blind user hears.
     const parts = []
     parts.push(label || (role ? `unlabelled ${role}` : 'unlabelled element'))
     if (role && label) parts.push(role)
@@ -151,7 +151,7 @@ export class ScreenReader extends BaseProfile {
       utterance.pitch = 1.0
       window.speechSynthesis.speak(utterance)
     } catch {
-      // Speech unavailable — banner and log still work.
+      // Speech unavailable: banner and log still work.
     }
 
     this.banner.textContent = text

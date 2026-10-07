@@ -8,7 +8,7 @@ const VARIANTS = {
 }
 
 const SIZES = {
-  // min 24×24 target (WCAG 2.2 — 2.5.8); md/lg comfortably exceed it
+  // min 24×24 target (WCAG 2.2, 2.5.8); md/lg comfortably exceed it
   sm: 'px-3 py-1.5 text-sm min-h-[32px]',
   md: 'px-4 py-2 text-sm min-h-[40px]',
   lg: 'px-6 py-3 text-base min-h-[48px]'

@@ -18,13 +18,13 @@ async function rawRequest(path, options = {}, accessToken) {
   return res
 }
 
-// Refresh tokens are single-use — the backend deletes and reissues one on
+// Refresh tokens are single-use: the backend deletes and reissues one on
 // every call. If two requests hit a 401 around the same time (easy to
 // trigger: React StrictMode double-invokes effects in dev, or two calls
 // just happen to land near token expiry) and each independently POSTed to
 // /auth/refresh with the same token, the first would rotate it and the
 // second would arrive with an already-dead token, get its own 401 back,
-// and wipe the whole session via onAuthFailure — even though the user's
+// and wipe the whole session via onAuthFailure: even though the user's
 // login was perfectly fine. Sharing one in-flight refresh across every
 // concurrent caller avoids that.
 let refreshPromise = null
@@ -46,7 +46,7 @@ async function request(path, options = {}) {
   const { accessToken, refreshToken } = getTokens()
   let res = await rawRequest(path, options, accessToken)
 
-  // Access token expired — try one refresh, then replay the request.
+  // Access token expired: try one refresh, then replay the request.
   if (res.status === 401 && refreshToken) {
     const refreshed = await refreshTokens(refreshToken)
     if (refreshed.ok) {

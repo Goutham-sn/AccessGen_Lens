@@ -1,6 +1,6 @@
 import { BaseProfile } from '../BaseProfile.js'
 
-// Silence, immediately and permanently — then make visible what that
+// Silence, immediately and permanently, then make visible what that
 // silence costs: videos without captions get flagged as blockers.
 export class Deaf extends BaseProfile {
   init() {
@@ -59,7 +59,7 @@ export class Deaf extends BaseProfile {
     const badge = document.createElement('div')
     badge.className = 'accessgen-no-captions'
     badge.dataset.accessgen = 'true'
-    badge.textContent = 'No captions available — this video is silence.'
+    badge.textContent = 'No captions available. This video is silence.'
     wrapper.appendChild(badge)
     this.elements.push(badge)
   }

@@ -21,6 +21,6 @@ export function send(event, data = {}) {
       payload: { event, sessionId: state.sessionId, at: Date.now(), ...data }
     }).catch?.(() => {})
   } catch {
-    // Extension context invalidated (e.g. reloaded) — drop silently.
+    // Extension context invalidated (e.g. reloaded): drop silently.
   }
 }

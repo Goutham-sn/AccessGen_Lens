@@ -5,7 +5,7 @@ const TREMOR_FREQUENCY_2 = 0.13
 const AMPLITUDE = { 1: 3, 2: 8, 3: 18 }
 
 // The cursor shakes continuously with layered sine noise, and clicks land
-// where the *shaking* cursor is — not where the hand intended.
+// where the *shaking* cursor is, not where the hand intended.
 export class Tremor extends BaseProfile {
   init() {
     this.time = 0

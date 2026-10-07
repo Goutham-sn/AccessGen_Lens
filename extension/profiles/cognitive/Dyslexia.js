@@ -29,7 +29,7 @@ export class Dyslexia extends BaseProfile {
 
     // Store the latest Y and let a single rAF tick apply it, instead of
     // writing to style on every native mousemove event (which can fire
-    // far faster than the display refreshes) — same pattern Tremor and
+    // far faster than the display refreshes), the same pattern Tremor and
     // the vision-field profiles use, and why mouse movement felt laggy
     // here specifically while those stayed smooth.
     this.pendingY = null
@@ -64,7 +64,7 @@ export class Dyslexia extends BaseProfile {
         word-spacing: ${s.word} !important;
         line-height: ${s.line} !important;
       }
-      /* Justified text creates rivers of whitespace — never allow it. */
+      /* Justified text creates rivers of whitespace: never allow it. */
       [style*="text-align: justify"], [style*="text-align:justify"], p, li, div {
         text-align: left !important;
       }

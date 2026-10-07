@@ -24,8 +24,8 @@ export default function Landing() {
           </motion.h1>
           <motion.p {...fadeUp} className="mt-6 text-lg text-ink-600 max-w-2xl mx-auto">
             AccessGen Lens is not an audit tool. It won't show you checklists or violations.
-            It puts you inside the experience of a person with a disability — the shaking cursor,
-            the vanishing periphery, the silence where a video should speak — on your real website.
+            It puts you inside the experience of a person with a disability (the shaking cursor,
+            the vanishing periphery, the silence where a video should speak) on your real website.
           </motion.p>
           <motion.div {...fadeUp} className="mt-10 flex justify-center gap-3">
             <Link
@@ -51,7 +51,7 @@ export default function Landing() {
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
               {[
                 ['Choose a life', 'Pick disability profiles, or step into a persona like Meera, 72, with macular degeneration and a tremor.'],
-                ['Use your site', 'The Chrome extension transforms the real page. You browse it exactly as they would — and it is harder than you think.'],
+                ['Use your site', 'The Chrome extension transforms the real page. You browse it exactly as they would, and it is harder than you think.'],
                 ['Share the feeling', 'Every struggle is recorded into a video and a human-language report your whole team can feel.']
               ].map(([title, body], i) => (
                 <div key={title} className="rounded-2xl bg-white border border-gray-200 p-6">
@@ -93,7 +93,7 @@ export default function Landing() {
         </section>
       </main>
       <footer className="border-t border-gray-200 py-8 text-center text-sm text-ink-500">
-        AccessGen Lens — an empathy engine, not a checklist.
+        AccessGen Lens: an empathy engine, not a checklist.
       </footer>
     </div>
   )

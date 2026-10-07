@@ -10,7 +10,7 @@
     @apply bg-gray-50 text-ink-900 font-sans;
   }
 
-  /* WCAG 2.2 — 2.4.11/2.4.13: always-visible, unobscured focus indicator */
+  /* WCAG 2.2, 2.4.11/2.4.13: always-visible, unobscured focus indicator */
   :focus-visible {
     outline: 3px solid #1d3fd8;
     outline-offset: 2px;

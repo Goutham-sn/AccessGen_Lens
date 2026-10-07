@@ -24,9 +24,9 @@ export default defineConfig({
         // code-splitting builds"), even though none of our 5 entries
         // actually share code. So we stay on 'es' and wrap the compiled
         // TEXT of each chunk in an IIFE via intro/outro instead. This
-        // still wraps the entire bundle — including every module pulled
+        // still wraps the entire bundle, including every module pulled
         // in via import (communicator.js, ControlPanel.js, every profile
-        // class) — in one function scope. That matters because per-file
+        // class), in one function scope. That matters because per-file
         // manual IIFE wraps in the *source* only protect that one file's
         // own top-level code; Rollup hoists imported modules' top-level
         // `let`/`const`/`class` above them in the compiled output. Those
@@ -46,7 +46,7 @@ export default defineConfig({
           }
           return map[chunk.name] || '[name].js'
         },
-        // Bundle everything into each entry — no shared chunks, since
+        // Bundle everything into each entry: no shared chunks, since
         // content scripts are injected as single classic scripts.
         inlineDynamicImports: false,
         manualChunks: () => null

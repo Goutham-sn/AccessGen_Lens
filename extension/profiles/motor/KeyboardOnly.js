@@ -17,14 +17,14 @@ export class KeyboardOnly extends BaseProfile {
     this.visualiser = new FocusOrderVisualiser()
     this.visualiser.mount()
 
-    // Block every mouse and touch interaction — but let the AccessGen
+    // Block every mouse and touch interaction, but let the AccessGen
     // control panel itself stay clickable, or the user can't log moments.
     // This runs on every mousemove/mouseover/etc across the whole page, so
     // it has to be cheap: composedPath() allocates and walks a full array
     // on every single call, which is real, measurable overhead at that
     // frequency. Standard UI events cross shadow boundaries "retargeted",
     // so a click inside the panel's shadow DOM already shows up here as
-    // e.target === the panel's host element — no tree walk needed.
+    // e.target === the panel's host element: no tree walk needed.
     const blocker = (e) => {
       if (e.target?.dataset?.accessgenPanel) return
       e.preventDefault()

@@ -7,7 +7,7 @@ export function Modal({ open, onClose, title, children, wide = false }) {
   const panelRef = useRef(null)
   const previouslyFocused = useRef(null)
   // Read the latest onClose from a ref so the setup effect below doesn't
-  // need it as a dependency — onClose is often an inline arrow function
+  // need it as a dependency: onClose is often an inline arrow function
   // that gets a new identity on every parent render (e.g. while the user
   // types into a field inside the modal), which would otherwise re-run
   // the effect and steal focus back to the first focusable element.

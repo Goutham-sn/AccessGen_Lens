@@ -45,7 +45,7 @@ export class FocusOrderVisualiser {
         || element.textContent?.trim().slice(0, 20)
         || element.tagName
     })
-    // Keep the trail readable — show the last 40 stops.
+    // Keep the trail readable: show the last 40 stops.
     if (this.focusedElements.length > 40) this.focusedElements.shift()
     this.redraw()
   }

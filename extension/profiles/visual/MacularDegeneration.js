@@ -41,7 +41,7 @@ export class MacularDegeneration extends BaseProfile {
     grad.addColorStop(1, 'rgba(15,10,10,0)')
     ctx.fillStyle = grad
 
-    // Slightly irregular oval — scotomas are rarely perfect circles.
+    // Slightly irregular oval: scotomas are rarely perfect circles.
     ctx.save()
     ctx.translate(this.x, this.y)
     ctx.scale(1.25, 1)

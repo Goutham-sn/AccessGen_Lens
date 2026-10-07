@@ -82,8 +82,8 @@ document.getElementById('stop-btn').addEventListener('click', async () => {
     await chrome.runtime.sendMessage({ type: 'ACCESSGEN_STOP_SIMULATION' })
     refresh()
   } catch {
-    // Popups close as soon as they lose focus — very easy to trigger by
-    // clicking this button and then clicking anywhere else — which tears
+    // Popups close as soon as they lose focus (very easy to trigger by
+    // clicking this button and then clicking anywhere else), which tears
     // down this whole context mid-await and would otherwise surface as an
     // unhandled "message channel closed" rejection. The stop request still
     // reached the background either way; there's nothing left to update.

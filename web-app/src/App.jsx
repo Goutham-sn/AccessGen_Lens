@@ -27,7 +27,7 @@ function RequireAuth({ children }) {
 
 // Fires when the user ends a session from the overlay on the simulated
 // page (its "Stop Simulation" button) rather than from this app's own
-// Session page — the extension closes that tab itself, so this app needs
+// Session page: the extension closes that tab itself, so this app needs
 // its own way to notice the recording is ready and jump to it.
 function useExtensionSessionEndedListener() {
   const navigate = useNavigate()

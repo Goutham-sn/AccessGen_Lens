@@ -4,7 +4,7 @@ import { BaseProfile } from '../BaseProfile.js'
 // and periodic "attention drift" where the main content fades away.
 export class ADHD extends BaseProfile {
   init() {
-    // Phase 1 — amplify any animation already on the page.
+    // Phase 1: amplify any animation already on the page.
     this.injectStyle(`
       *[class*="animate"], *[class*="carousel"], *[class*="slider"], marquee {
         animation-duration: 0.6s !important;
@@ -25,7 +25,7 @@ export class ADHD extends BaseProfile {
       }
     `, 'accessgen-adhd-css')
 
-    // Phase 2 — peripheral distraction elements at viewport edges.
+    // Phase 2: peripheral distraction elements at viewport edges.
     const colors = ['#f59e0b', '#3b82f6', '#ec4899', '#22c55e', '#a855f7']
     const positions = [
       { top: '8%', left: '2%' }, { top: '15%', right: '3%' },
@@ -46,14 +46,14 @@ export class ADHD extends BaseProfile {
       this.distractions.push(d)
     }
 
-    // Phase 3 — attention drift every 15–30 seconds.
+    // Phase 3: attention drift every 15–30 seconds.
     this.dim = document.createElement('div')
     this.dim.id = 'accessgen-adhd-dim'
     this.dim.setAttribute('aria-hidden', 'true')
     this.addElement(this.dim)
     this.scheduleDrift()
 
-    // Phase 4 — autoplaying media dominates.
+    // Phase 4: autoplaying media dominates.
     document.querySelectorAll('video[autoplay], [class*="banner"] img').forEach((el) => {
       el.style.setProperty('filter', 'saturate(1.6) brightness(1.1)', 'important')
     })

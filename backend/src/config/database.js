@@ -193,6 +193,32 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS upload_token_expires_at TIMESTAMP;
 -- Set by /end: frames and moments stop, the recording gets a grace period.
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS uploads_closed_at TIMESTAMP;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS recording_token_used BOOLEAN DEFAULT FALSE;
+
+-- Task Mode: the goal a persona was given, as { goal, intents: [text, ...] }.
+-- Null for a session that is not a task run.
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS task JSONB;
+
+-- Task Mode: one row for the intent a persona did not reach. The facts here
+-- are structured, for counting and grouping. The words people read are the
+-- empathy moment, and moment_id links the two (null when no moment was made).
+CREATE TABLE IF NOT EXISTS task_failures (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
+  moment_id UUID REFERENCES empathy_moments(id) ON DELETE SET NULL,
+  intent_index INTEGER NOT NULL,
+  intent TEXT NOT NULL,
+  profile_id VARCHAR(64) NOT NULL,
+  reason VARCHAR(32) NOT NULL,
+  last_stop JSONB,
+  -- A place that matched the intent but was out of the persona's sight, as
+  -- { stop, score }. Null when nothing like it was on the page. This is what
+  -- tells "was there, could not be made out" from "was not there".
+  missed JSONB,
+  stops_attempted INTEGER NOT NULL,
+  elapsed_ms INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_task_failures_session ON task_failures(session_id);
 `
 
 export async function migrate() {

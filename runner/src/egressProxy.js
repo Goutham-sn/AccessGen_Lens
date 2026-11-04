@@ -17,6 +17,13 @@ const IDLE_TIMEOUT_MS = 30_000
 // How long one address gets to accept the connection before the next is tried.
 export const CONNECT_TIMEOUT_MS = 3000
 
+// Put on the proxy's own answers to plain HTTP requests (a refusal, or no
+// connection), which Chromium would otherwise show as an empty page. The page
+// loader reads it, so it can say the page could not be opened instead of
+// waiting for content that will never come. Removed from anything a site sends,
+// so a site cannot use it.
+export const EGRESS_HEADER = 'x-accessgen-egress'
+
 function splitHostPort(authority, defaultPort) {
   if (authority.startsWith('[')) {
     const end = authority.indexOf(']')
@@ -123,7 +130,7 @@ export function createEgressProxy({
     }
     if (target.protocol !== 'http:') {
       refuse(target.hostname, `scheme ${target.protocol}`)
-      res.writeHead(403).end()
+      res.writeHead(403, { [EGRESS_HEADER]: 'refused' }).end()
       return
     }
     const host = target.hostname.replace(/^\[|\]$/g, '')
@@ -131,7 +138,7 @@ export function createEgressProxy({
     const verdict = await vet(host, port)
     if (!verdict.ok) {
       refuse(host, verdict.reason)
-      res.writeHead(403).end()
+      res.writeHead(403, { [EGRESS_HEADER]: 'refused' }).end()
       return
     }
     stats.allowed++
@@ -140,7 +147,7 @@ export function createEgressProxy({
     try {
       connected = await connectFirst(verdict.addresses, port)
     } catch {
-      if (!res.headersSent) res.writeHead(502)
+      if (!res.headersSent) res.writeHead(502, { [EGRESS_HEADER]: 'unreachable' })
       res.end()
       return
     }
@@ -162,11 +169,13 @@ export function createEgressProxy({
       setHost: false,
       timeout: IDLE_TIMEOUT_MS
     }, (up) => {
-      res.writeHead(up.statusCode || 502, up.headers)
+      const relayed = { ...up.headers }
+      delete relayed[EGRESS_HEADER]
+      res.writeHead(up.statusCode || 502, relayed)
       up.pipe(res)
     })
     upstream.on('timeout', () => upstream.destroy())
-    upstream.on('error', () => { if (!res.headersSent) res.writeHead(502); res.end() })
+    upstream.on('error', () => { if (!res.headersSent) res.writeHead(502, { [EGRESS_HEADER]: 'unreachable' }); res.end() })
     req.pipe(upstream)
   })
 

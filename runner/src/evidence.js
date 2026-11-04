@@ -92,7 +92,7 @@ export function createEvidenceEngine({ page, readyAt, captionZeroAt = readyAt, n
     // 1b. The persona's view, before the filter is paused (only when a
     // filter is on; otherwise it would be the same as the clean shot).
     await call(page, 'hideAll')
-    const filtered = await page.evaluate(() => document.documentElement.style.filter !== '')
+    const filtered = await page.evaluate(() => document.documentElement.style.filter !== '' || document.querySelector('canvas[data-accessgen="true"]') !== null)
     let persona = null
     if (filtered) {
       await page.evaluate(settle)

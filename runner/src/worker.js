@@ -7,6 +7,7 @@ import { createEgressProxy } from './egressProxy.js'
 import { addLocalNetworks } from './blocklist.js'
 import { launchBrowser, createSemaphore } from './browser.js'
 import { runPersona } from './persona.js'
+import { runPrecheck } from './precheck.js'
 import { store } from './store.js'
 import { progress } from './progress.js'
 import { capabilityGaps } from './checks/index.js'
@@ -47,9 +48,12 @@ async function main() {
   const queue = new Bull('lens-runs', { redis: config.redisUrl })
 
   queue.process(config.jobConcurrency, async (job) => {
-    const { runId, userId, sessions } = job.data
-    console.log(`[runner] run ${runId}: ${sessions.length} persona(s) for ${job.data.url}`)
+    const { runId, userId, sessions, mode } = job.data
+    console.log(`[runner] run ${runId}: ${sessions.length} persona(s) for ${job.data.url}${mode === 'task' ? ` (task, ${job.data.task?.intents?.length ?? 0} intent(s))` : ''}`)
     try {
+      // A run is a regular run, or a task run (job.data.task). Anything else is
+      // refused: it would otherwise be walked as a regular run by mistake.
+      if (mode !== undefined && mode !== 'task') throw new Error(`unknown run mode: ${mode}`)
       const b = await getBrowser()
       // Personas in parallel; the semaphore caps live contexts.
       const results = await Promise.allSettled(sessions.map((s) => runPersona(job.data, s, {
@@ -65,10 +69,27 @@ async function main() {
   })
 
   queue.on('failed', (job, err) => console.error(`[runner] job ${job.id} failed:`, err.message))
-  console.log(`[runner] waiting for runs (max ${config.maxContexts} contexts, ${config.jobConcurrency} runs at once)`)
+
+  // The pre-check: a separate queue, concurrency and context cap, so a quick
+  // look never waits behind a run and never takes a run's contexts.
+  const precheckSem = createSemaphore(config.precheck.contexts)
+  const precheckQueue = new Bull('lens-precheck', { redis: config.redisUrl })
+  precheckQueue.process(config.precheck.concurrency, async (job) => {
+    const { url, userId } = job.data
+    try {
+      return await runPrecheck(url, { browser: await getBrowser(), sem: precheckSem, blockedHosts: proxy.blockedHosts })
+    } finally {
+      // Free the user's "one check at a time" marker, but only if it is ours.
+      const key = `precheck:active:${userId}`
+      if ((await progress.redis.get(key)) === String(job.id)) await progress.redis.del(key)
+    }
+  })
+  precheckQueue.on('failed', (job, err) => console.error(`[runner] precheck ${job.id} failed:`, err.message))
+  console.log(`[runner] waiting for runs (max ${config.maxContexts} contexts, ${config.jobConcurrency} runs at once) and pre-checks (${config.precheck.contexts} contexts, ${config.precheck.concurrency} at once)`)
 
   const shutdown = async () => {
     await queue.close().catch(() => {})
+    await precheckQueue.close().catch(() => {})
     await browser?.close().catch(() => {})
     await proxy.close().catch(() => {})
     await store.close().catch(() => {})

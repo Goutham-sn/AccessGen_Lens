@@ -110,3 +110,40 @@ export function checksToRun(profileIds, env = process.env) {
   }
   return ids
 }
+
+// Task Mode ("find these things in order"). A persona can run it when at
+// least one of its profiles is listed here: these are the profiles that decide
+// how the page is reached and what can be made out. Other runner profiles
+// (the colour filters) still apply on camera next to one of these. Kept apart
+// from RUNNER_CAPABILITIES because that list is what regular runs claim, and
+// tunnel vision has no checks and no filter in the runner yet.
+export const TASK_PROFILES = new Set(['keyboard-only', 'screen-reader', 'tunnel-vision'])
+
+// What a task may ask for. A run has 90 seconds in all and the page is
+// walked twice (see persona.js), so a long list cannot finish: six things at
+// most, each described in a short phrase.
+export const TASK_LIMITS = { goalChars: 200, intents: 6, intentChars: 100 }
+
+// Which of a persona's profiles a run simulates. A regular run takes the
+// runner's profiles; a task run also takes the task-only ones, and needs at
+// least one of those to say how the page is reached (`ok`).
+export function profilesForRun(profiles, isTask) {
+  const supported = profiles.filter((p) => RUNNER_PROFILES.has(p.id) || (isTask && TASK_PROFILES.has(p.id)))
+  return { supported, ok: isTask ? supported.some((p) => TASK_PROFILES.has(p.id)) : supported.length > 0 }
+}
+
+// The pre-check: a quick look at a page before anyone commits to a run (see
+// runner/src/precheck.js). Each signal says something to some profiles, and a
+// card shows it when any of its profiles is listed. It counts what is on the
+// page; it never says whether it is done well.
+export const PRECHECK_SIGNALS = {
+  // How many places Tab can reach.
+  'reachable-stops': ['keyboard-only', 'screen-reader'],
+  // How much text there is to read.
+  'text-amount': ['low-vision'],
+  // How much of the first screen looks different through the red-green filter.
+  'colour-change': ['deuteranopia'],
+  // How many of those places are out of sight, one after another, with tunnel
+  // vision. Only a run with something to find simulates tunnel vision.
+  'unseen-stops': ['tunnel-vision']
+}

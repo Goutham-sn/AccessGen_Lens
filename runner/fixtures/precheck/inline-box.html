@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Links around blocks</title>
+<style>
+  body { margin: 0; font: 16px/1.4 sans-serif; }
+  .arrow { width: 14px; height: 10px; background: #888; }
+  td { padding: 6px 10px; }
+</style>
+</head>
+<body>
+<!-- An inline link whose only content is a block, as a vote arrow is: the link has an empty first line box but a box of its own. Three stops. -->
+<table>
+  <tr><td><a href="/up1"><div class="arrow" title="upvote"></div></a></td><td>First story</td></tr>
+  <tr><td><a href="/up2"><div class="arrow" title="upvote"></div></a></td><td>Second story</td></tr>
+  <tr><td><a href="/up3"><div class="arrow" title="upvote"></div></a></td><td>Third story</td></tr>
+</table>
+</body>
+</html>

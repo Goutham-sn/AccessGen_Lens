@@ -4,9 +4,11 @@
 // flags say.
 //
 // One URL at a time, with a 5 second gap between them. Each URL is visited
-// once and never retried. A bot wall (a CAPTCHA or "are you human" page) or
-// a browser message box at load stops that URL; nothing is done to get past
-// either. A URL that does not load is listed and the run carries on.
+// once and never retried. A bot wall (a page that is itself a CAPTCHA or
+// "are you human" check, see src/botWall.js) or a browser message box at
+// load stops that URL; nothing is done to get past either. A page that only
+// embeds a CAPTCHA box or frame is looked at as usual. A URL that does not
+// load is listed and the run carries on.
 //
 // Writes, into one folder:
 //   moments.csv         url, detector, selector, highlighted screenshot,
@@ -18,8 +20,13 @@
 //   runs.csv            per URL: label, final URL, HTTP status, load time,
 //                       run time, stops, how the walk ended, moments per
 //                       detector, the reason it stopped (bot wall, did not
-//                       load, ...), and the run date
-//   notes.csv           what we could not look at, per URL
+//                       load, ...), the bot wall rule and its evidence
+//                       (marker, frame host, status, title, own content)
+//                       when a sign of one was seen, free memory and the
+//                       1 minute load average as the URL started, and the
+//                       run date
+//   notes.csv           what we could not look at, per URL, and the bot
+//                       wall evidence whenever a sign of one was seen
 //   screenshots/        a clean and a highlighted shot per finding
 //
 // Screenshots are taken after the measure pass is over, never during it.
@@ -51,7 +58,10 @@ import { measurePass } from '../src/measure.js'
 import { KEYBOARD_CHECKS } from '../src/checks/index.js'
 import { serveFixtureDir } from '../src/checks/fixtureServer.js'
 import { coverageLines } from '../src/copy.js'
-import { installOverlay, overlayCall, locateAndDescribe, settle, detectChallenge } from '../src/pageScripts.js'
+import { installOverlay, overlayCall, locateAndDescribe, settle } from '../src/pageScripts.js'
+import { checkBotWall, botWallRule, botWallEvidenceLine } from '../src/botWall.js'
+import { hostSnapshot } from '../src/memory.js'
+import { BOM, row } from './csv.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const runnerRoot = path.join(here, '..')
@@ -76,24 +86,14 @@ const entries = (await fs.readFile(path.resolve(runnerRoot, listFile), 'utf8'))
   .split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
   .map((l) => { const [url, ...rest] = l.split(/\s+/); return { url, label: rest.join(' ') } })
 
-// A CSV cell: quoted, quotes doubled, and never read as a formula by a
-// spreadsheet (page text could start with =, +, - or @).
-const cell = (v) => {
-  let s = v == null ? '' : String(v)
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
-  return `"${s.replace(/"/g, '""')}"`
-}
-const row = (cells) => cells.map(cell).join(',')
 const detectorIds = KEYBOARD_CHECKS.map((c) => c.id)
 const momentRows = [row(['url', 'detector', 'selector', 'highlighted screenshot', 'how to check by hand', 'verified by hand'])]
 const detailRows = [row(['url', 'detector', 'step', 'selector', 'headline', 'fact', 'how to check by hand', 'highlighted screenshot', 'clean screenshot'])]
 const runRows = [row(['url', 'label', 'final url', 'http status', 'load ms', 'run ms', 'stops', 'walk ended', 'walk incomplete',
-  ...detectorIds.map((id) => `${id} moments`), 'stopped reason', 'run date'])]
+  ...detectorIds.map((id) => `${id} moments`), 'stopped reason', 'bot wall rule', 'bot wall evidence',
+  'free memory mb at start', 'load average 1 min at start', 'run date'])]
 const noteRows = [row(['url', 'note'])]
 
-// UTF-8 with a byte order mark, so spreadsheet apps show quotes and
-// accented names as written.
-const BOM = String.fromCharCode(0xFEFF)
 async function writeAll() {
   await fs.writeFile(path.join(outDir, 'moments.csv'), BOM + momentRows.join('\n') + '\n')
   await fs.writeFile(path.join(outDir, 'moments-detail.csv'), BOM + detailRows.join('\n') + '\n')
@@ -115,7 +115,9 @@ try {
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, gapMs))
     console.log(`\n[${index + 1}/${entries.length}] ${url}  ${label}`)
     const started = Date.now()
-    const record = { finalUrl: '', status: '', loadMs: '', stops: '', ended: '', counts: {}, reason: '' }
+    // How loaded the machine was as this URL started (the Docker host's VM in the container).
+    const host = hostSnapshot()
+    const record = { finalUrl: '', status: '', loadMs: '', stops: '', ended: '', counts: {}, reason: '', wallRule: '', wallEvidence: '' }
     const context = await newSafeContext(browser, { blockedHosts: proxy.blockedHosts })
     try {
       if (flag('--fixtures')) await serveFixtureDir(context, path.join(runnerRoot, 'fixtures/checks/keyboard'))
@@ -135,7 +137,15 @@ try {
       if (loaded.changing) noteRows.push(row([url, STILL_CHANGING]))
       record.status = loaded.status ?? ''
       if (dialogSeen) { record.reason = STOPPED_DIALOG; continue }
-      if (await page.evaluate(detectChallenge).catch(() => null)) { record.reason = STOPPED_CHALLENGE; continue }
+      const botWall = await checkBotWall(page, loaded.status)
+      if (botWall.evidence) {
+        // Kept for every sign, stop or not, so each one can be checked by hand.
+        const line = botWallEvidenceLine(botWall.evidence)
+        record.wallRule = `${botWallRule(botWall.evidence)}, ${botWall.wall ? 'almost no own content: stopped' : 'own content: went ahead'}`
+        record.wallEvidence = line
+        noteRows.push(row([url, `${botWall.wall ? 'Bot wall, stopped' : 'Sign of a bot wall, went ahead'}. ${line}`]))
+      }
+      if (botWall.wall) { record.reason = STOPPED_CHALLENGE; continue }
       if (loaded.status >= 400) noteRows.push(row([url, `The page answered with status ${loaded.status}, so this may not be the page you meant.`]))
 
       const coverage = await measureCoverage(page)
@@ -185,10 +195,12 @@ try {
       await context.close().catch(() => {})
       const runMs = Date.now() - started
       runRows.push(row([url, label, record.finalUrl, record.status, record.loadMs, runMs, record.stops, record.ended, record.ended === 'time' ? 'yes' : '',
-        ...detectorIds.map((id) => record.counts[id] ?? ''), record.reason, runDate]))
+        ...detectorIds.map((id) => record.counts[id] ?? ''), record.reason, record.wallRule, record.wallEvidence,
+        host.freeMemMb, host.loadAvg[0], runDate]))
       const counts = detectorIds.map((id) => `${id} ${record.counts[id] ?? '-'}`).join(', ')
       console.log(`  status ${record.status || '-'}, load ${record.loadMs} ms, run ${runMs} ms, stops ${record.stops || 0} (${record.ended || '-'})`)
       console.log(`  ${record.reason || counts}`)
+      if (record.wallEvidence) console.log(`  ${record.wallEvidence}`)
       // Written after every URL, so a stopped run still leaves its rows.
       await writeAll()
     }

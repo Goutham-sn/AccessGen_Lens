@@ -1,4 +1,5 @@
 import { getProfile, SEVERITY_LABELS } from '../../data/profiles.js'
+import { avatarColorFor } from '../../data/personaCards.js'
 import { mediaUrl } from '../../services/api.js'
 import { Badge } from '../shared/Badge.jsx'
 
@@ -18,7 +19,7 @@ export function ReportCover({ session, empathyMoments }) {
         <span
           aria-hidden="true"
           className="mb-6 flex h-16 w-16 items-center justify-center rounded-full text-2xl font-semibold text-ink-900"
-          style={{ backgroundColor: persona.illustrationColor || '#dbe6fe' }}
+          style={{ backgroundColor: persona.illustrationColor || avatarColorFor(persona.name) || '#dbe6fe' }}
         >
           {persona.name.charAt(0)}
         </span>

@@ -1,17 +1,23 @@
 import { config } from './config.js'
 import { contentState } from './pageScripts.js'
+import { EGRESS_HEADER } from './egressProxy.js'
+
+const PRIVATE_OR_UNREACHABLE = 'We could not open this page. It may be private, or not reachable from the public internet.'
 
 // Plain words for the person running the tool. Never codes.
 function plainLoadFailure(err) {
   const msg = String(err?.message || '')
   if (/ERR_TUNNEL_CONNECTION_FAILED|ERR_PROXY|ERR_BLOCKED_BY_CLIENT|ERR_NAME_NOT_RESOLVED|ERR_ADDRESS_UNREACHABLE/.test(msg)) {
-    return 'We could not open this page. It may be private, or not reachable from the public internet.'
+    return PRIVATE_OR_UNREACHABLE
   }
   if (/Timeout/i.test(msg)) return 'The page took too long to start loading, so we stopped.'
   return 'We could not open this page.'
 }
 
-export const STILL_EMPTY = `The page was still empty after ${config.load.readyCapMs / 1000} seconds, so we could not look at it.`
+// How long it waited is the real wait: a shorter deadline (the pre-check's)
+// must not claim the usual twelve seconds.
+export const stillEmpty = (seconds) => `The page was still empty after ${seconds} seconds, so we could not look at it.`
+export const STILL_EMPTY = stillEmpty(config.load.readyCapMs / 1000)
 export const STILL_CHANGING = 'The page was still changing when we started, so what we measured may differ from what a person sees a moment later.'
 
 // The readiness rule, the same in the measure pass and the recorded pass:
@@ -37,6 +43,11 @@ export async function loadPage(page, url, { deadline }) {
     } catch (err) {
       return { ok: false, reason: plainLoadFailure(err), detail: String(err?.message || err).slice(0, 300) }
     }
+    // The proxy answers a refused or unreachable plain-HTTP page with an empty
+    // response, which would otherwise look like a page that is slow to fill.
+    const egress = response?.headers()[EGRESS_HEADER]
+    if (egress) return { ok: false, reason: egress === 'refused' ? PRIVATE_OR_UNREACHABLE : 'We could not open this page.', detail: `egress ${egress}` }
+
     const started = Date.now()
     const capAt = Math.min(started + config.load.readyCapMs, deadline)
 
@@ -68,7 +79,7 @@ export async function loadPage(page, url, { deadline }) {
     if (redirects > config.maxRedirects) {
       return { ok: false, reason: 'The page sent us through too many redirects, so we stopped.' }
     }
-    if (!hasContent) return { ok: false, empty: true, reason: STILL_EMPTY, finalUrl: page.url(), readyMs: Date.now() - started }
+    if (!hasContent) return { ok: false, empty: true, reason: stillEmpty(Math.round((capAt - started) / 1000)), finalUrl: page.url(), readyMs: Date.now() - started }
 
     return {
       ok: true,

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '../services/api.js'
+import { personaIdOf, snapshotOf } from '../utils/personaRecord.js'
 
 export const useSessionStore = create((set, get) => ({
   // Live session state
@@ -25,8 +26,8 @@ export const useSessionStore = create((set, get) => ({
     const data = await api.post('/sessions', {
       url,
       activeProfiles,
-      personaId: null,
-      personaSnapshot: persona || null
+      personaId: personaIdOf(persona),
+      personaSnapshot: snapshotOf(persona)
     })
     set({
       currentSession: data.session,

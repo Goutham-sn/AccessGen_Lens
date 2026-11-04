@@ -2,6 +2,14 @@ import { config } from './config.js'
 import { stick } from './measuringStick.js'
 import { settle, describeActive } from './pageScripts.js'
 
+// One key press, then what has focus once the page has settled. The step
+// tabWalk and taskWalk (task.js) share, so both read a stop the same way.
+export async function pressAndDescribe(page, key = 'Tab') {
+  await page.keyboard.press(key)
+  await page.evaluate(settle)
+  return page.evaluate(describeActive)
+}
+
 // Presses Tab through the page, one stop at a time, and describes what has
 // focus after each press. Observe only: Tab is the only key used here.
 //
@@ -31,11 +39,9 @@ export async function tabWalk(page, { deadline, paceMs = 0, onStop, beforePress,
 
   async function press() {
     if (beforePress) await beforePress()
-    await page.keyboard.press('Tab')
-    presses++
-    await page.evaluate(settle)
     // Measure before anything is drawn for this stop.
-    const stop = await page.evaluate(describeActive)
+    const stop = await pressAndDescribe(page, 'Tab')
+    presses++
     const extra = afterPress ? await afterPress(stop) : null
     // `press`: how many presses of Tab it took to get here from the start of
     // the page, which is what a person checking by hand needs to count.

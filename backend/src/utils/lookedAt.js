@@ -1,12 +1,14 @@
 import { liveChecksFor } from '../config/runnerCapabilities.js'
 import {
-  CHECK_WORDS, zeroMomentsLine, recordedOnlyLine, nothingMeasuredLine, EXTENSION_NO_MOMENTS, UNVERIFIED_LABEL
+  CHECK_WORDS, zeroMomentsLine, recordedOnlyLine, nothingMeasuredLine, EXTENSION_NO_MOMENTS, UNVERIFIED_LABEL,
+  taskLookedAt, taskAllReachedLine
 } from '../config/copy.js'
 
 // What a runner session looked at and could not look at, for the run page
 // and the reports. null for sessions the runner did not make.
 //   items        one line per live check for the session's conditions,
-//                taken from the live-check list only
+//                taken from the live-check list only. A task run (coverage.task)
+//                has one line about the list instead: no checks ran
 //   noItems      shown instead of the list when there is no live check
 //   unverified   null, or { label, items, moments } when the run included
 //                checks that are not live yet (dev-only unverified mode):
@@ -19,9 +21,11 @@ import {
 export function lookedAt(session, momentCount) {
   if (session?.source !== 'runner') return null
   const name = session.persona_snapshot?.name || 'this person'
-  const items = liveChecksFor((session.active_profiles || []).map((p) => p.id))
-    .map((id) => CHECK_WORDS[id]).filter(Boolean)
   const coverage = session.coverage || {}
+  const task = coverage.task || null
+  const items = task
+    ? [taskLookedAt(name, task.intents)]
+    : liveChecksFor((session.active_profiles || []).map((p) => p.id)).map((id) => CHECK_WORDS[id]).filter(Boolean)
   const unverifiedItems = (Array.isArray(coverage.unverifiedChecks) ? coverage.unverifiedChecks : [])
     .map((id) => CHECK_WORDS[id]).filter(Boolean)
   const walked = coverage.presses != null
@@ -29,7 +33,9 @@ export function lookedAt(session, momentCount) {
 
   let zeroMoments = null
   if (momentCount === 0 && normalEnd) {
-    zeroMoments = walked
+    zeroMoments = task
+      ? (task.reached === task.intents ? taskAllReachedLine(name, task.intents) : null)
+      : walked
       ? zeroMomentsLine({ presses: coverage.presses, things: items.length + unverifiedItems.length })
       : recordedOnlyLine(name)
   }

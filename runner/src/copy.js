@@ -5,7 +5,8 @@
 const CONDITION_WORDS = {
   deuteranopia: 'red-green colour blindness',
   achromatopsia: 'colour blindness',
-  'low-vision': 'low vision'
+  'low-vision': 'low vision',
+  'tunnel-vision': 'tunnel vision'
 }
 
 const MAX_PAGE_TEXT = 80
@@ -244,11 +245,21 @@ export function trapCopy({ persona, fromStep, k, rounds, presses, places, unreac
 // {url}, ": the presses to count and what to look at. Press counts are
 // counted from the start of the page, as the walk counted them.
 const times = (n) => `${n} ${n === 1 ? 'time' : 'times'}`
+// Where the long-way check took the content to start (its anchor kind).
+export const LONG_WAY_ANCHOR_WORDS = {
+  main: 'the first stop inside the main landmark',
+  h1: "the first stop after the page's first heading, which is an h1"
+}
+function anchorWords(anchor) {
+  const words = LONG_WAY_ANCHOR_WORDS[anchor]
+  if (!words) throw new Error(`unknown long-way anchor: ${anchor}`)
+  return words
+}
 export const byHand = {
   focusVisible: ({ press, name, role }) =>
     `press Tab ${times(press)}, look at ${named(name, role)}. Is there any sign that it has focus?`,
-  longWay: ({ press, name, role }) =>
-    `press Tab ${times(press)}, look at ${named(name, role)}. Is it the first stop inside the main content, with nothing before it that skips there?`,
+  longWay: ({ press, name, role, anchor }) =>
+    `press Tab ${times(press)}, look at ${named(name, role)}. Is it ${anchorWords(anchor)}, with nothing before it that skips there?`,
   focusLostHidden: ({ press, name, role }) =>
     `press Tab ${times(press)}, look at ${named(name, role)}. Can you see where focus is?`,
   focusLostToPage: ({ prevPress, prev, presses }) =>
@@ -257,6 +268,14 @@ export const byHand = {
     `press Tab ${times(press)}, look at ${named(name, role)}. Is it hidden behind ${named(cover.name, cover.role)}?`,
   trap: ({ press, first, k, more }) =>
     `press Tab ${times(press)} to reach ${nameOnly(first.name, first.role)}, then keep pressing Tab ${times(more)} more. Does focus keep going round the same ${k} places, and does Escape not get you out?`
+}
+
+// Why a place that was found was not pressed, in plain words.
+const NOT_PRESSED = {
+  'leaves-site': 'it leads to another site',
+  'new-tab': 'it opens in a new tab',
+  'submits-form': 'it would send a form',
+  download: 'it downloads a file'
 }
 
 // Coverage lines: what we could not look at, in plain words.
@@ -271,5 +290,82 @@ export const coverageLines = {
     'but it is not a link to a place on this page, so we could not check where it goes.',
   closedSections: (count) => (count === 1
     ? '1 part of the page is in a closed section, so we could not look inside it.'
-    : `${count} parts of the page are in closed sections, so we could not look inside them.`)
+    : `${count} parts of the page are in closed sections, so we could not look inside them.`),
+  taskOutOfTime: (intent) => `We ran out of time while looking for “${cleanPageText(intent)}”, so we do not know whether it can be reached.`,
+  taskNotFollowed: (intent, why) => `We found “${cleanPageText(intent)}” but did not press it, because ${NOT_PRESSED[why] || 'we only follow links on the same site and buttons that do not send a form'}. We stopped there.`
+}
+
+// ------------------------------------------------------------------------
+// Task Mode: a persona was given something to find and did not reach it.
+// This is the words people read. The structured record of the same failure
+// (reason code, counts) goes to task_failures and never into this text.
+
+const TAG_WORDS = { a: 'link', button: 'button', input: 'field', select: 'menu', textarea: 'text field' }
+
+// A stop from taskWalk as a role word: "link", "button", "text field".
+function stopWord(stop) {
+  return stop?.role ? roleWord(stop.role, stop.tag) : (TAG_WORDS[stop?.tag] || 'element')
+}
+
+const stopCount = (n) => `${n} ${n === 1 ? 'stop' : 'stops'}`
+
+// persona: the persona's name
+// profile: the profile the failure is filed under
+// intent: the text of what was looked for, from the person who set the goal
+// intentNumber (1-based) and intentCount: where it sits in the list
+// reason: from taskWalk's failure
+// lastStop: the last place reached, or null
+// missed: null, or { stop } for a place that matched but was out of sight
+// radiusPx: how far from the middle of the screen (or the stop before) a
+//   place with tunnel vision can still be made out
+//
+// Returns { headline, fact, forTeam }, or null when the reason is not
+// something the persona met on the page (the time limit is ours, and gets a
+// coverage line instead: see coverageLines.taskOutOfTime).
+export function taskNotFoundCopy({ persona, profile, intent, intentNumber, intentCount, reason, stopsAttempted, lastStop, missed = null, radiusPx }) {
+  const quoted = `“${cleanPageText(intent)}”`
+  const verb = profile === 'screen-reader' ? 'listened for' : 'looked for'
+  const before = intentNumber - 1
+  const place = intentCount > 1
+    ? ` It was step ${intentNumber} of ${intentCount}.${before === 0 ? '' : before === 1 ? ' The step before it was reached.' : ` The ${before} steps before it were reached.`}`
+    : ''
+  const last = lastStop ? ` The last stop was ${named(lastStop.name, stopWord(lastStop))}.` : ''
+
+  if (missed && (reason === 'wrapped' || reason === 'budget-stops')) {
+    const seen = missed.stop
+    return {
+      headline: `${persona} would not notice ${nameOnly(seen.name, stopWord(seen))} when Tab reached it.`,
+      fact: `${persona} ${verb} ${quoted} by pressing Tab. Press ${seen.press} reached ${named(seen.name, stopWord(seen))}, which matches it. ` +
+        `It was more than ${radiusPx} px from the middle of the screen and from the stop before it, outside the area ${persona} can make out.${place}`,
+      forTeam: 'Keep the focused element away from the edge of the screen when Tab brings it into view, for example with scroll padding.'
+    }
+  }
+  switch (reason) {
+    case 'wrapped':
+      return {
+        headline: `${persona} would not find ${quoted}.`,
+        fact: `${persona} ${verb} ${quoted} by pressing Tab. Tab went through ${stopCount(stopsAttempted)} and came back to where it started without reaching it.${last}${place}`,
+        forTeam: `Give what leads to ${quoted} a plain name that matches the words people look for, and make sure Tab can reach it.`
+      }
+    case 'budget-stops':
+      return {
+        headline: `${persona} would still be looking for ${quoted} after ${stopCount(stopsAttempted)}.`,
+        fact: `${persona} ${verb} ${quoted} by pressing Tab. After ${stopCount(stopsAttempted)} it had not been reached, so we stopped there and did not look at the rest.${last}${place}`,
+        forTeam: `Bring the way to ${quoted} closer to the start of the page, or add a link at the start that jumps to it.`
+      }
+    case 'trapped':
+      return {
+        headline: `${persona} would find Tab going round the same places while looking for ${quoted}.`,
+        fact: `${persona} ${verb} ${quoted} by pressing Tab. Tab went round the same places in the same order, so the rest of the page could not be reached.${last}${place}`,
+        forTeam: 'Let Tab move past this group so the rest of the page can be reached.'
+      }
+    case 'nothing-focusable':
+      return {
+        headline: `${persona} would find nothing to reach with Tab while looking for ${quoted}.`,
+        fact: `${persona} ${verb} ${quoted} by pressing Tab. Pressing Tab did not move focus to anything on the page.${place}`,
+        forTeam: 'Make the links and buttons on the page reachable with Tab.'
+      }
+    default:
+      return null
+  }
 }

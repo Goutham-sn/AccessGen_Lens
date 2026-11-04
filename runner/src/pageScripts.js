@@ -77,18 +77,54 @@ export function describeActive() {
   }
 }
 
-// A CAPTCHA or bot wall. We never try to get around one.
+// Signs of a bot wall (a CAPTCHA or "are you human" check), and how much
+// content the page has of its own. We never try to get around one; see
+// botWall.js for the rule that decides whether to stop.
+//
+// Three kinds of sign:
+//   marker  an element a challenge service puts on the page (a Cloudflare
+//           challenge form, a reCAPTCHA, hCaptcha or Turnstile box, ...)
+//   frame   a frame from a CAPTCHA service
+//   title   a title such as "Just a moment" or "Verify you are human"
+// Content of its own is counted outside the marker elements and outside
+// every frame: visible text (characters other than spaces), visible form
+// fields, and visible links and buttons.
 export function detectChallenge() {
-  const title = (document.title || '').toLowerCase()
-  const frameHit = Array.from(document.querySelectorAll('iframe')).some((f) =>
-    /recaptcha|hcaptcha\.com|challenges\.cloudflare\.com|turnstile|arkoselabs|funcaptcha/i.test(f.src || ''))
-  const markerHit = Boolean(document.querySelector(
-    '#challenge-form, #challenge-running, [id^="cf-chl"], .cf-turnstile, .g-recaptcha, .h-captcha, #px-captcha'
-  ))
-  const titleHit = /just a moment|attention required|verify you are human|are you a robot|access denied|security check/.test(title)
-  if (frameHit || markerHit) return 'challenge'
-  if (titleHit) return 'challenge-title'
-  return null
+  const MARKERS = ['#challenge-form', '#challenge-running', '[id^="cf-chl"]', '.cf-turnstile', '.g-recaptcha', '.h-captcha', '#px-captcha']
+  const FRAME = /recaptcha|hcaptcha\.com|challenges\.cloudflare\.com|turnstile|arkoselabs|funcaptcha/i
+  const TITLE = /just a moment|attention required|verify you are human|are you a robot|access denied|security check/i
+  const shown = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'
+  const chars = (s) => (String(s || '').match(/\S/g) || []).length
+
+  const markerSelector = MARKERS.find((sel) => document.querySelector(sel)) || null
+  const markerEls = Array.from(document.querySelectorAll(MARKERS.join(',')))
+  const frame = Array.from(document.querySelectorAll('iframe')).find((f) => FRAME.test(f.src || ''))
+  let frameHost = null
+  if (frame) { try { frameHost = new URL(frame.src).host } catch { frameHost = '' } }
+  const title = (document.title || '').trim().replace(/\s+/g, ' ').slice(0, 80)
+
+  const outside = (el) => !markerEls.some((m) => m.contains(el))
+  // Text inside shown markers is taken off the page's own count; outermost
+  // markers only, so nested ones are not taken off twice.
+  const outer = markerEls.filter((m) => !markerEls.some((o) => o !== m && o.contains(m)))
+  const body = document.body
+  const textChars = Math.max(0, chars(body?.innerText) -
+    outer.filter(shown).reduce((n, m) => n + chars(m.innerText), 0))
+  const own = (sel) => (body ? Array.from(body.querySelectorAll(sel)) : []).filter((el) => outside(el) && shown(el)).length
+
+  const rules = []
+  if (markerSelector) rules.push('marker')
+  if (frame) rules.push('frame')
+  if (TITLE.test(title)) rules.push('title')
+  return {
+    rules,
+    marker: markerSelector,
+    frameHost,
+    title,
+    textChars,
+    fields: own('input:not([type="hidden"]), select, textarea'),
+    controls: own('a[href], button, [role="button"], [role="link"]')
+  }
 }
 
 // Is a modal dialog open right now? We leave it alone and note it.
@@ -155,6 +191,7 @@ export function installOverlay() {
   const sync = root.querySelector('.sync')
   let chipShown = false
   let pausedFilter = null
+  let pausedCanvases = []
 
   window[KEY] = {
     keyChip(text, count) {
@@ -222,11 +259,16 @@ export function installOverlay() {
       if (pausedFilter !== null) return
       pausedFilter = document.documentElement.style.filter
       document.documentElement.style.filter = ''
+      // Conditions drawn on a canvas (tunnel vision) pause the same way.
+      pausedCanvases = Array.from(document.querySelectorAll('canvas[data-accessgen="true"]')).map((c) => [c, c.style.display])
+      for (const [c] of pausedCanvases) c.style.display = 'none'
     },
     resumeFilter() {
       if (pausedFilter === null) return
       document.documentElement.style.filter = pausedFilter
       pausedFilter = null
+      for (const [c, display] of pausedCanvases) c.style.display = display
+      pausedCanvases = []
     }
   }
 }
@@ -274,4 +316,100 @@ export function locateAndDescribe(selector) {
 // Applies the bundled extension profiles (see scripts/build-profiles.js).
 export function applyProfiles(profiles) {
   return window[Symbol.for('accessgen.runner.profiles')]?.apply(profiles) ?? 0
+}
+
+// Where the person was just at, for conditions that follow it (tunnel vision).
+export function setConditionAnchor(point) {
+  window[Symbol.for('accessgen.runner.profiles')]?.anchor(point)
+}
+
+// ---------------------------------------------------------------- task mode
+// Used by taskWalk (task.js). These only read the page; none of them acts.
+
+// What the focused element says about itself, for a person who can see it
+// and for one who hears it, plus the landmarks around it (nearest first)
+// and the scroll position, so a stop can be placed on the page.
+//   visibleText     the words on the control itself, or the label beside a field
+//   accessibleName  what a screen reader announces: aria-hidden parts left out
+export function describeContext() {
+  let el = document.activeElement
+  while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement
+  if (!el || el === document.body || el === document.documentElement) return null
+
+  const clean = (s) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, 120)
+  const named = (attr, node) => (node.getAttribute(attr) || '').split(/\s+/).filter(Boolean)
+    .map((id) => document.getElementById(id)).filter(Boolean)
+  function spoken(node) {
+    if (node.nodeType === 3) return node.nodeValue
+    if (node.nodeType !== 1 || node.getAttribute('aria-hidden') === 'true') return ''
+    if (node.tagName === 'IMG') return node.getAttribute('alt') || ''
+    return Array.from(node.childNodes).map(spoken).join(' ')
+  }
+  const labelText = (node) => (node.labels ? Array.from(node.labels).map((l) => l.textContent).join(' ') : '')
+
+  const tag = el.tagName.toLowerCase()
+  const isField = tag === 'input' || tag === 'select' || tag === 'textarea'
+  const type = isField ? (el.getAttribute('type') || 'text').toLowerCase() : ''
+  const pressable = tag === 'input' && (type === 'submit' || type === 'button' || type === 'reset')
+
+  const accessibleName = clean(
+    named('aria-labelledby', el).map(spoken).join(' ') ||
+    el.getAttribute('aria-label') ||
+    (isField && !pressable ? labelText(el) : '') ||
+    (tag === 'input' && type === 'image' ? el.getAttribute('alt') : '') ||
+    (pressable ? el.value : '') ||
+    spoken(el) ||
+    el.getAttribute('title') ||
+    (isField ? el.getAttribute('placeholder') : '')
+  )
+  const visibleText = clean(isField
+    ? (pressable ? el.value : (labelText(el) || el.getAttribute('placeholder')))
+    : (el.innerText || Array.from(el.querySelectorAll('img[alt]')).map((i) => i.getAttribute('alt')).join(' ')))
+
+  const KINDS = { navigation: 'nav', main: 'main', banner: 'header', contentinfo: 'footer', complementary: 'aside', search: 'search', form: 'form', region: 'region' }
+  const BY_TAG = { nav: 'nav', main: 'main', header: 'header', footer: 'footer', aside: 'aside', form: 'form' }
+  const landmarks = []
+  for (let n = el.parentElement; n; n = n.parentElement) {
+    const role = n.getAttribute('role')
+    const kind = role ? KINDS[role] : BY_TAG[n.tagName.toLowerCase()]
+    if (!kind) continue
+    const heading = n.querySelector('h1,h2,h3,h4,h5,h6,legend')
+    landmarks.push({
+      kind,
+      name: clean(named('aria-labelledby', n).map(spoken).join(' ') || n.getAttribute('aria-label')),
+      heading: clean(heading ? heading.innerText : '')
+    })
+  }
+  return { accessibleName, visibleText, landmarks, scroll: { x: window.scrollX, y: window.scrollY } }
+}
+
+// Whether pressing Enter on the focused element stays inside what Task Mode
+// allows: a link to a page on the same site, or a button that does not submit
+// a form. Reads only; the caller presses the key.
+export function describeActivation() {
+  let el = document.activeElement
+  while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement
+  if (!el) return { ok: false, why: 'nothing-focused' }
+  const tag = el.tagName.toLowerCase()
+  if (tag === 'button') {
+    if (el.disabled) return { ok: false, why: 'disabled' }
+    if (el.form && el.type !== 'button') return { ok: false, why: 'submits-form' }
+    return { ok: true }
+  }
+  if (tag === 'a') {
+    if (!el.hasAttribute('href')) return { ok: false, why: 'not-a-link' }
+    let url
+    try { url = new URL(el.href, location.href) } catch { return { ok: false, why: 'not-a-link' } }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return { ok: false, why: 'not-a-web-link' }
+    if (el.hasAttribute('download')) return { ok: false, why: 'download' }
+    if ((el.getAttribute('target') || '').toLowerCase() === '_blank') return { ok: false, why: 'new-tab' }
+    if (url.origin !== location.origin) return { ok: false, why: 'leaves-site' }
+    return { ok: true }
+  }
+  return { ok: false, why: 'not-a-link-or-button' }
+}
+
+// Changes whenever the browser loads a new document, and not otherwise.
+export function documentStamp() {
+  return performance.timeOrigin
 }

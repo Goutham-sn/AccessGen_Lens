@@ -97,7 +97,7 @@ export default {
           ? { kind: 'broken', name: firstOwn.name, role: firstOwn.role, id: firstOwn.skipLink.id }
           : { kind: 'none' }
       }),
-      byHand: byHand.longWay({ press: target.stop.press, name: target.name, role: target.role }),
+      byHand: byHand.longWay({ press: target.stop.press, name: target.name, role: target.role, anchor: anchor.kind }),
       evidence: { presses, anchor: anchor.kind, cookieStops, skipLink: firstOwn?.skipLink ?? null }
     }]
   },

@@ -4,10 +4,12 @@
 // pronouns: set by the product owner, for example
 //   { subject: 'she', object: 'her', possessive: 'her' }
 // Used only in card stories. null means they/them/their.
+// Where a story already says she/her or he/his, these match it. The three
+// stories with no gendered word (David, Fatima, James) stay null.
 export const BUILT_IN_PERSONAS = [
   {
     name: 'Meera', age: 72,
-    pronouns: null,
+    pronouns: { subject: 'she', object: 'her', possessive: 'her' },
     story: 'Retired schoolteacher who started using the internet to video call her grandchildren. Has age-related macular degeneration and a mild hand tremor that has worsened over the past year.',
     profiles: [
       { id: 'macular-degeneration', severity: 2 },
@@ -26,7 +28,7 @@ export const BUILT_IN_PERSONAS = [
   },
   {
     name: 'Ananya', age: 19,
-    pronouns: null,
+    pronouns: { subject: 'she', object: 'her', possessive: 'her' },
     story: 'First-year engineering student with dyslexia and ADHD diagnosed at age 12. Bright, capable, and passionate about technology. Struggles with dense text, cluttered layouts, and sites that compete for her attention.',
     profiles: [
       { id: 'dyslexia', severity: 2 },
@@ -35,7 +37,7 @@ export const BUILT_IN_PERSONAS = [
   },
   {
     name: 'Thomas', age: 51,
-    pronouns: null,
+    pronouns: { subject: 'he', object: 'him', possessive: 'his' },
     story: 'Former construction site manager who had a stroke two years ago affecting his right hand and peripheral vision. Determined to remain independent and stay active online.',
     profiles: [
       { id: 'tremor', severity: 2 },
@@ -51,7 +53,7 @@ export const BUILT_IN_PERSONAS = [
   },
   {
     name: 'Ravi', age: 65,
-    pronouns: null,
+    pronouns: { subject: 'he', object: 'him', possessive: 'his' },
     story: "Retired bank manager with Parkinson's disease diagnosed three years ago. Uses the computer for news, banking, and staying connected. His tremor has been worsening and sessions fatigue him quickly.",
     profiles: [
       { id: 'tremor', severity: 3 },

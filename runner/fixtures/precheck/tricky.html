@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tricky markup</title>
+<style>
+  .gone { display: none; }
+  .unseen { visibility: hidden; }
+  .faint { opacity: 0; }
+  .away { position: absolute; left: -9999px; top: 0; }
+</style>
+</head>
+<body>
+<!-- Each line says how many Tab stops it gives. Total: 12. -->
+<h1>Tricky markup</h1>
+
+<p><a href="/one.html">A plain link</a></p>                                  <!-- 1 -->
+<p><a href="/hidden.html" class="gone">Not shown</a></p>                     <!-- 0 -->
+<p><a href="/unseen.html" class="unseen">Not visible</a></p>                 <!-- 0 -->
+<p><a href="/faint.html" class="faint">Fully transparent</a></p>             <!-- 1: still focusable -->
+<p><a href="/away.html" class="away">Off to the left</a></p>                 <!-- 1: still focusable -->
+<p><a href="/minus.html" tabindex="-1">Skipped by Tab</a></p>                <!-- 0 -->
+<p><a>No address</a></p>                                                     <!-- 0 -->
+<p><button disabled>Disabled</button> <button>Enabled</button></p>           <!-- 1 -->
+<p><div tabindex="0">A focusable box</div></p>                               <!-- 1 -->
+<form>
+  <p><input type="radio" name="size" value="s"> S <input type="radio" name="size" value="m"> M <input type="radio" name="size" value="l"> L</p>  <!-- 1: one group -->
+  <p><input type="radio" name="colour" value="r"> R <input type="radio" name="colour" value="g"> G</p>                                         <!-- 1: another group -->
+  <p><input type="checkbox" name="tick"> Tick</p>                            <!-- 1 -->
+  <p><input type="text" name="word"> <input type="hidden" name="secret" value="x"></p>  <!-- 1 -->
+</form>
+<details><summary>Closed</summary><a href="/inside.html">Inside, not shown</a></details>   <!-- 1: the summary only -->
+<div inert><a href="/inert.html">Inert</a></div>                             <!-- 0 -->
+<div id="host"></div>                                                        <!-- 1: a button in an open shadow root -->
+<p contenteditable="true">Editable text</p>                                  <!-- 1 -->
+<script>
+  var root = document.getElementById('host').attachShadow({ mode: 'open' })
+  root.innerHTML = '<button>In a shadow root</button>'
+</script>
+</body>
+</html>

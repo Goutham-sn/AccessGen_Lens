@@ -4,6 +4,7 @@ import { ReportCover } from '../components/report/ReportCover.jsx'
 import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
 import { LookedAt } from '../components/report/LookedAt.jsx'
+import { TaskList } from '../components/report/TaskList.jsx'
 import { SnapshotNote } from '../components/report/SnapshotNote.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
@@ -83,6 +84,7 @@ export default function SharedReport() {
             <ReportCover session={data.session} empathyMoments={data.empathyMoments} />
             <SimulationBanner text={data.intro} />
             <SnapshotNote ranAt={data.session.start_time} note={data.snapshotNote} />
+            <TaskList session={data.session} idPrefix="shared-task" />
             <LookedAt lookedAt={data.lookedAt} idPrefix="shared-looked-at" />
             <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.noMomentsText} />
             {data.session.video_url && (

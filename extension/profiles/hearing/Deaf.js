@@ -59,7 +59,7 @@ export class Deaf extends BaseProfile {
     const badge = document.createElement('div')
     badge.className = 'accessgen-no-captions'
     badge.dataset.accessgen = 'true'
-    badge.textContent = 'No captions available. This video is silence.'
+    badge.textContent = 'No captions available. The spoken words cannot be followed.'
     wrapper.appendChild(badge)
     this.elements.push(badge)
   }

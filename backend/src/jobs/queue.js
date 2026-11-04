@@ -16,6 +16,13 @@ export const runQueue = new Bull('lens-runs', {
   defaultJobOptions: { attempts: 1, removeOnComplete: 100, removeOnFail: 100 }
 })
 
+// A quick look at a page before a run. Its own queue, so a short check never
+// waits behind runs that last a minute or more. Consumed only by the runner.
+export const precheckQueue = new Bull('lens-precheck', {
+  redis: REDIS_URL,
+  defaultJobOptions: { attempts: 1, removeOnComplete: 200, removeOnFail: 200 }
+})
+
 export function startWorkers(io) {
   sessionQueue.process(async (job) => processSession(job.data.sessionId))
   reportQueue.process(async (job) => processReportGeneration(job.data.sessionId))

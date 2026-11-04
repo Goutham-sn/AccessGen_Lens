@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Pricing</title></head>
+<body>
+  <nav>
+    <a href="home.html">Home</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <main>
+    <h1>Pricing</h1>
+    <p>One plan, one price.</p>
+    <button type="button" id="add">Add to cart</button>
+    <p id="cart" role="status"></p>
+    <a href="checkout.html">Checkout</a>
+  </main>
+  <script>
+    document.getElementById('add').addEventListener('click', function () {
+      document.getElementById('cart').textContent = '1 item in your cart'
+    })
+  </script>
+</body>
+</html>

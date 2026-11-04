@@ -11,6 +11,16 @@ const minio = new Minio.Client({
   secretKey: config.minio.secretKey
 })
 
+// The values for one task_failures row, in column order. Kept apart from the
+// query so the order can be checked without a database.
+export function taskFailureValues(sessionId, failure, momentId) {
+  return [
+    sessionId, momentId ?? null, failure.intentIndex, failure.intent, failure.profile, failure.reason,
+    failure.lastStop ? JSON.stringify(failure.lastStop) : null, failure.missed ? JSON.stringify(failure.missed) : null,
+    failure.stopsAttempted, Math.round(failure.elapsedMs)
+  ]
+}
+
 export const store = {
   async getSession(sessionId) {
     const { rows } = await pool.query('SELECT id, start_time, coverage FROM sessions WHERE id = $1', [sessionId])
@@ -34,14 +44,16 @@ export const store = {
 
   // One moment from the evidence engine. timestamp_ms is session time
   // (recording_offset_ms + video time), which is what Playback reads.
+  // Returns the new moment's id.
   async saveMoment(sessionId, moment, { timestampMs, shotKeys, profiles }) {
-    await pool.query(
+    const { rows } = await pool.query(
       `INSERT INTO empathy_moments
          (session_id, timestamp_ms, label, note, screenshot_url, active_profiles,
           source, detector, profile_id, video_ms, rect, evidence,
           shot_url, shot_clean_url, closeup_url, pattern_count, headline, fact, for_team, internal_ref,
           shot_persona_url, unverified)
-       VALUES ($1, $2, $3, $4, $5, $6, 'runner', $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+       VALUES ($1, $2, $3, $4, $5, $6, 'runner', $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+       RETURNING id`,
       [sessionId, timestampMs, moment.headline, moment.fact, shotKeys.shot, JSON.stringify(profiles || []),
        moment.detector, moment.profile, moment.videoMs, JSON.stringify(moment.element.rect),
        JSON.stringify({
@@ -53,6 +65,22 @@ export const store = {
        shotKeys.persona ?? null, Boolean(moment.unverified)]
     )
     await pool.query('UPDATE sessions SET empathy_moment_count = empathy_moment_count + 1 WHERE id = $1', [sessionId])
+    return rows[0].id
+  },
+
+  // The intent a task run did not reach, as the structured record that
+  // aggregation reads: { intentIndex, intent, profile, reason, lastStop,
+  // missed, stopsAttempted, elapsedMs } (see taskWalk). The words people read are the
+  // moment; momentId links to it. Returns the new row's id.
+  async saveTaskFailure(sessionId, failure, { momentId = null } = {}) {
+    const { rows } = await pool.query(
+      `INSERT INTO task_failures
+         (session_id, moment_id, intent_index, intent, profile_id, reason, last_stop, missed, stops_attempted, elapsed_ms)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id`,
+      taskFailureValues(sessionId, failure, momentId)
+    )
+    return rows[0].id
   },
 
   // Every run ends here, with or without a video, so no session is left

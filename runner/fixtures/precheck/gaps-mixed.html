@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pinned bar, tab order, an edge</title>
+<style>
+  body { margin: 0; font: 16px/1.4 sans-serif; color: #000; background: #fff; }
+body { position: relative; }
+#bar { position: fixed; left: 0; bottom: 0; width: 100%; height: 40px; background: #333; }
+#bar a { position: absolute; left: 20px; top: 8px; color: #fff; }
+</style>
+</head>
+<body>
+<a href="/g0.html" style="position:absolute;left:600px;top:300px;display:block;width:90px;height:30px;background:#ddd">stop 0</a>
+<a href="/g1.html" style="position:absolute;left:640px;top:340px;display:block;width:90px;height:30px;background:#ddd">stop 1</a>
+<a href="/g2.html" style="position:absolute;left:200px;top:700px;display:block;width:90px;height:30px;background:#ddd">stop 2</a>
+<a href="/g3.html" style="position:absolute;left:620px;top:1500px;display:block;width:90px;height:30px;background:#ddd">stop 3</a>
+<a href="/g4.html" style="position:absolute;left:660px;top:1530px;display:block;width:90px;height:30px;background:#ddd">stop 4</a>
+<a href="/g5.html" style="position:absolute;left:80px;top:3000px;display:block;width:90px;height:30px;background:#ddd">stop 5</a>
+<a href="/first.html" tabindex="2" style="position:absolute;left:30px;top:40px">First by tabindex</a>
+<div style="height:4000px"></div>
+<div id="bar"><a href="/bar.html">Pinned</a></div>
+</body>
+</html>

@@ -1,9 +1,13 @@
 import { getProfile } from '../../data/profiles.js'
+import { personCard } from '../../data/personaCards.js'
 import { Badge } from '../shared/Badge.jsx'
 
 export function PersonaCard({ persona, onSelect, selected = false }) {
   const initial = persona.name?.charAt(0)?.toUpperCase() || '?'
-  const color = persona.illustrationColor || '#dbe6fe'
+  // A built-in person's place and colour are on their /start card.
+  const card = persona.is_built_in ? personCard(persona.name) : null
+  const color = persona.illustrationColor || card?.avatarColor || '#dbe6fe'
+  const location = persona.location || card?.place
 
   return (
     <button
@@ -25,7 +29,7 @@ export function PersonaCard({ persona, onSelect, selected = false }) {
           <span className="font-medium text-ink-900">
             {persona.name}{persona.age ? `, ${persona.age}` : ''}
           </span>
-          {persona.location && <p className="text-xs text-ink-500">{persona.location}</p>}
+          {location && <p className="text-xs text-ink-500">{location}</p>}
         </div>
       </div>
       <p className="mt-3 text-sm text-ink-600 line-clamp-3">{persona.story}</p>

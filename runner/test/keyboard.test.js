@@ -82,6 +82,13 @@ test('how to check by hand: the presses are counted from the start of the page',
   const [hidden] = await run('focus-hidden', '../keyboard/focus-hidden.html')
   assert.equal(hidden.byHand,
     'press Tab 2 times, look at “Under promo” (button). Is it hidden behind “Special offer” (side panel)?')
+  // Long way: each row says where the content was taken to start.
+  const [main] = await run('long-way', '../keyboard/long-way.html')
+  assert.equal(main.byHand,
+    'press Tab 13 times, look at “First offer” (link). Is it the first stop inside the main landmark, with nothing before it that skips there?')
+  const [h1] = await run('long-way', '../keyboard/long-way-h1.html')
+  assert.equal(h1.byHand,
+    "press Tab 12 times, look at “See all hours” (link). Is it the first stop after the page's first heading, which is an h1, with nothing before it that skips there?")
 })
 
 const stop = (selector, kind = 'element') => ({ kind, selector })

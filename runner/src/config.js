@@ -46,5 +46,17 @@ export const config = {
     maxStops: 60,
     recordedPaceMs: 150 // slow enough that a person can follow the video
   },
+  task: {
+    stopsPerIntent: 40, // fewer than walk.maxStops: one goal should not use up the whole run
+    activationWaitMs: 1000 // after Enter, how long to watch for a new page before treating it as the same one
+  },
+  // The pre-check: one quick look at a page before anyone commits to a run.
+  // Its own queue, concurrency and context cap, so it neither waits behind a
+  // run nor takes a run's browser contexts.
+  precheck: {
+    deadlineMs: 6000, // the whole look, from the first request; a person is waiting for it
+    concurrency: parseInt(process.env.RUNNER_PRECHECK_CONCURRENCY || '2', 10),
+    contexts: parseInt(process.env.RUNNER_PRECHECK_CONTEXTS || '2', 10)
+  },
   maxRedirects: 5
 }

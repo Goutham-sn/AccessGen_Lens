@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
 import { LookedAt } from '../components/report/LookedAt.jsx'
+import { taskProgressLine } from '../utils/taskForm.js'
 import { api } from '../services/api.js'
 import { getSocket } from '../services/socket.js'
 import { useAuthStore } from '../store/authStore.js'
@@ -78,8 +79,18 @@ export default function Run() {
           <p className="mb-6 text-ink-700">
             Following {run.sessions.length === 1 ? 'one person' : `${run.sessions.length} people`} through{' '}
             <span className="break-all font-medium text-ink-900">{run.url}</span>.
-            {!allDone && ' This usually takes under a minute.'}
+            {!allDone && (run.task ? ' This takes longer when there is something to find.' : ' This usually takes under a minute.')}
           </p>
+
+          {run.task && (
+            <section aria-labelledby="run-task-heading" className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
+              <h2 id="run-task-heading" className="text-base font-semibold text-ink-900">What each person is looking for</h2>
+              <p className="mt-1 text-sm text-ink-700">Goal: {run.task.goal}</p>
+              <ol className="mt-2 list-decimal pl-5 text-sm text-ink-900">
+                {run.task.intents.map((text, i) => <li key={i}>{text}</li>)}
+              </ol>
+            </section>
+          )}
 
           <ul className="grid gap-4 sm:grid-cols-2">
             {run.sessions.map((s) => (
@@ -88,6 +99,9 @@ export default function Run() {
                 <p role="status" className="mt-1 text-sm text-ink-700">
                   {statusText(s, phases[s.id])}
                 </p>
+                {s.complete && taskProgressLine(s.personaName || 'Someone', s.taskProgress) && (
+                  <p className="mt-2 text-sm font-medium text-ink-900">{taskProgressLine(s.personaName || 'Someone', s.taskProgress)}</p>
+                )}
                 {s.complete && s.lookedAt && (
                   <div className="mt-4 space-y-3">
                     <LookedAt lookedAt={s.lookedAt} headingLevel={3} idPrefix={`looked-at-${s.id}`} />

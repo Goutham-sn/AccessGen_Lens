@@ -4,8 +4,9 @@ import { PageWrapper } from '../components/layout/PageWrapper.jsx'
 import { PersonaCard } from '../components/simulator/PersonaCard.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { Modal } from '../components/shared/Modal.jsx'
-import { BUILT_IN_PERSONAS } from '../data/personas.js'
 import { PROFILES, getProfile } from '../data/profiles.js'
+import { PERSONA_CARDS } from '../data/personaCards.js'
+import { inCardOrder } from '../utils/personaRecord.js'
 import { useProfileStore } from '../store/profileStore.js'
 import { api } from '../services/api.js'
 
@@ -105,16 +106,27 @@ function CreatePersonaModal({ open, onClose, onCreated }) {
 export default function Personas() {
   const navigate = useNavigate()
   const applyPersona = useProfileStore((s) => s.applyPersona)
-  const [custom, setCustom] = useState([])
+  const [people, setPeople] = useState(null) // every record from the server
+  const [loadFailed, setLoadFailed] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
 
   useEffect(() => {
     api.get('/personas')
-      .then((d) => setCustom(d.personas.filter((p) => !p.is_built_in)))
-      .catch(() => {})
+      .then((d) => setPeople(d.personas || []))
+      .catch(() => setLoadFailed(true))
   }, [])
 
-  function select(persona) {
+  const builtIn = inCardOrder((people || []).filter((p) => p.is_built_in), PERSONA_CARDS)
+  const custom = (people || []).filter((p) => !p.is_built_in)
+
+  // A built-in person is on /start with their full card: they are chosen there
+  // (or shown, if they can only be explored).
+  function selectBuiltIn(persona) {
+    navigate('/start', { state: { personaName: persona.name } })
+  }
+
+  // A custom person has no card on /start. Their conditions go to /configure.
+  function selectCustom(persona) {
     applyPersona({
       id: persona.id,
       name: persona.name,
@@ -129,7 +141,7 @@ export default function Personas() {
   async function removeCustom(id) {
     if (!window.confirm('Delete this persona?')) return
     await api.delete(`/personas/${id}`)
-    setCustom((c) => c.filter((p) => p.id !== id))
+    setPeople((all) => all.filter((p) => p.id !== id))
   }
 
   return (
@@ -138,15 +150,17 @@ export default function Personas() {
       actions={<Button onClick={() => setCreateOpen(true)}>Create persona</Button>}
     >
       <p className="text-ink-600 mb-8 max-w-2xl">
-        A persona is a person, not a setting. Selecting one loads their whole combination of
-        conditions so you experience a page the way they would.
+        A persona is a person, not a setting. Pick a built-in person to watch or explore a page as
+        them, or create your own and pick them to explore with their whole combination of conditions.
       </p>
 
       <section aria-labelledby="builtin-heading" className="mb-10">
         <h2 id="builtin-heading" className="text-lg font-medium text-ink-900 mb-4">Built-in</h2>
+        {loadFailed && <p role="alert" className="mb-4 text-sm font-medium text-red-800">We could not load the people right now. Please reload the page.</p>}
+        {!loadFailed && !people && <p className="mb-4 text-sm text-ink-600">Loading people…</p>}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {BUILT_IN_PERSONAS.map((p) => (
-            <PersonaCard key={p.id} persona={p} onSelect={select} />
+          {builtIn.map((p) => (
+            <PersonaCard key={p.id} persona={p} onSelect={selectBuiltIn} />
           ))}
         </div>
       </section>
@@ -161,7 +175,7 @@ export default function Personas() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {custom.map((p) => (
               <div key={p.id} className="relative">
-                <PersonaCard persona={p} onSelect={select} />
+                <PersonaCard persona={p} onSelect={selectCustom} />
                 <button
                   type="button"
                   onClick={() => removeCustom(p.id)}
@@ -179,7 +193,7 @@ export default function Personas() {
       <CreatePersonaModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={(p) => setCustom((c) => [p, ...c])}
+        onCreated={(p) => setPeople((all) => [p, ...(all || [])])}
       />
     </PageWrapper>
   )

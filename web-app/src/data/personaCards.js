@@ -8,6 +8,9 @@
 // draft:        true until the copy has been reviewed. Shown as a "Draft" tag
 //               in development builds only.
 // personaName:  links the card to a built-in persona (names are unique)
+// avatarColor:  the tint of the person's initial wherever it is shown (the
+//               Personas page, Configure, report covers, the landing page).
+//               Every card of one person has the same colour.
 // profiles:     exactly what this card runs (automated) or applies (extension)
 // looksAt:      { text, check }. Automated items show only when their check is
 //               live; the rest move to "Not looked at in this run".
@@ -35,6 +38,7 @@ export const PERSONA_CARDS = [
     name: 'David',
     age: 38,
     place: 'London, UK',
+    avatarColor: '#B7C9E8',
     experience: 'keyboard and colour',
     story: 'Software architect, born with deuteranopia. A fast keyboard user who rarely reaches for the mouse, and who has learned to work around sites that use colour alone.',
     howTheyUseTheWeb: 'David moves through every page with Tab and Shift+Tab. Reds and greens look like the same muddy brown to {them}.',
@@ -74,6 +78,7 @@ export const PERSONA_CARDS = [
     name: 'James',
     age: 32,
     place: 'New York, USA',
+    avatarColor: '#C9E8B7',
     experience: 'screen reader',
     story: 'Blind since birth. James uses the NVDA screen reader and the keyboard for everything, and moves quickly through pages that are built with care.',
     howTheyUseTheWeb: 'James listens to each page, jumping between headings, regions and links, and relies on every button and field having a name {they} can hear.',
@@ -107,10 +112,11 @@ export const PERSONA_CARDS = [
   lowVisionCard({
     id: 'meera-low-vision',
     personaName: 'Meera',
+    avatarColor: '#E8D5B7',
     age: 72,
     place: 'Chennai, India',
     severity: 1,
-    story: 'Retired schoolteacher who started using the internet to video call {their} grandchildren. Age has blurred {their} sight, and Meera reads with the screen close to {their} face.',
+    story: 'Retired schoolteacher who started using the internet to video call grandchildren. Age has blurred {their} sight, and Meera reads with the screen close to {their} face.',
     howTheyUseTheWeb: 'Meera makes text bigger and leans in. Thin, pale text and anything that jumps around while zooming slows {them} down.',
     notSimulated: [
       { text: '{Their} macular degeneration, which hides the centre of what Meera looks at.', profile: 'macular-degeneration' },
@@ -120,6 +126,7 @@ export const PERSONA_CARDS = [
   lowVisionCard({
     id: 'thomas-low-vision',
     personaName: 'Thomas',
+    avatarColor: '#B7E8C9',
     age: 51,
     place: 'Dublin, Ireland',
     severity: 1,
@@ -133,6 +140,7 @@ export const PERSONA_CARDS = [
   lowVisionCard({
     id: 'ravi-low-vision',
     personaName: 'Ravi',
+    avatarColor: '#E8D4B7',
     age: 65,
     place: 'Hyderabad, India',
     severity: 2,
@@ -153,6 +161,7 @@ export const PERSONA_CARDS = [
     name: 'Ravi',
     age: 65,
     place: 'Hyderabad, India',
+    avatarColor: '#E8D4B7',
     experience: 'tremor',
     story: "Retired bank manager with Parkinson's. Ravi's tremor has grown stronger over the last few years, and fine movements take real effort.",
     howTheyUseTheWeb: 'Ravi uses a mouse, but {their} hand shakes. Small buttons, links that sit close together and anything that needs dragging are hard to hit.',
@@ -185,6 +194,7 @@ export const PERSONA_CARDS = [
     name: 'Ananya',
     age: 19,
     place: 'Bengaluru, India',
+    avatarColor: '#D4B7E8',
     experience: 'ADHD and dyslexia',
     story: 'First year engineering student, bright and passionate about technology. Ananya was diagnosed with dyslexia and ADHD at twelve.',
     howTheyUseTheWeb: 'Ananya reads in short bursts. Dense text, moving content and anything that competes for {their} attention pulls {them} away from what Ananya came to do.',
@@ -215,6 +225,7 @@ export const PERSONA_CARDS = [
     name: 'Fatima',
     age: 29,
     place: 'Dubai, UAE',
+    avatarColor: '#E8B7C9',
     experience: 'deaf',
     story: 'Deaf community advocate and content creator. Fatima relies on captions, transcripts and text for all audio and video.',
     howTheyUseTheWeb: 'Fatima watches with the sound gone. A video without captions tells {them} nothing, however good it looks.',
@@ -323,7 +334,7 @@ export const PERSONA_CARDS = [
 ]
 
 // The three low vision cards share what the runner shows and looks at.
-function lowVisionCard({ id, personaName, age, place, severity, story, howTheyUseTheWeb, notSimulated }) {
+function lowVisionCard({ id, personaName, avatarColor, age, place, severity, story, howTheyUseTheWeb, notSimulated }) {
   return {
     id,
     mode: 'automated',
@@ -331,6 +342,7 @@ function lowVisionCard({ id, personaName, age, place, severity, story, howTheyUs
     draft: true,
     personaName,
     name: personaName,
+    avatarColor,
     age,
     place,
     experience: 'low vision',
@@ -370,6 +382,15 @@ export function cardTitle(card) {
 
 export function getCard(id) {
   return PERSONA_CARDS.find((c) => c.id === id)
+}
+
+// The first card of a built-in person, by name (their place and colour live on it).
+export function personCard(personaName) {
+  return PERSONA_CARDS.find((c) => c.personaName === personaName) || null
+}
+
+export function avatarColorFor(personaName) {
+  return personCard(personaName)?.avatarColor || null
 }
 
 const DEFAULT_PRONOUNS = { subject: 'they', object: 'them', possessive: 'their' }

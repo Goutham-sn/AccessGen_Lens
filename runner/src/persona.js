@@ -5,23 +5,27 @@ import { config } from './config.js'
 import { newSafeContext } from './browser.js'
 import { loadPage, STILL_CHANGING } from './load.js'
 import { tabWalk } from './walk.js'
+import { taskWalk, readTask } from './task.js'
 import { createTimings } from './timings.js'
 import { WALK_PROFILES } from './walkProfiles.js'
 import { detectorsFor } from './checks/index.js'
-import { createEvidenceEngine, groupFindings } from './evidence.js'
+import { createEvidenceEngine, groupFindings, makeFinding } from './evidence.js'
 import { measureCoverage } from './coverage.js'
 import { measurePass } from './measure.js'
 import { sampleBrowserMemory, hostSnapshot } from './memory.js'
 import { checkStatus } from '../../backend/src/config/runnerCapabilities.js'
 import { showSyncMark, readPageCorner, deliverVideo } from './videoSync.js'
-import { pauseNote, coverageLines } from './copy.js'
+import { pauseNote, coverageLines, taskNotFoundCopy } from './copy.js'
+import { stick } from './measuringStick.js'
+import { checkBotWall } from './botWall.js'
 import {
-  detectChallenge, detectModal, installOverlay, overlayKeyChip, overlayHideChip,
-  applyProfiles, scrollStep, settle
+  detectModal, installOverlay, overlayKeyChip, overlayHideChip,
+  applyProfiles, setConditionAnchor, scrollStep, settle
 } from './pageScripts.js'
 
 const STOPPED_CHALLENGE = 'This page asked to confirm that a person is visiting, so we stopped there. We never try to get past these checks.'
 const STOPPED_DIALOG = 'The page opened a browser message box as soon as it loaded, so we stopped there and left it untouched.'
+const STOPPED_DIALOG_TASK = 'The page opened a browser message box after we pressed Enter, so we stopped there and left it untouched.'
 const STOPPED_TIME = 'We reached the time limit for this run and kept what we had seen so far.'
 
 // Runs one persona: a hidden measure pass, then the recorded pass that
@@ -37,6 +41,16 @@ const STOPPED_TIME = 'We reached the time limit for this run and kept what we ha
 // re-check, all before anything is drawn) and only then handed to the
 // evidence engine. Candidates that do not reproduce go to the debug list.
 //
+// Task Mode (job.mode === 'task', job.task = { goal, intents }): the same two
+// passes, but the walk is taskWalk (task.js) and no detector runs. The measure
+// pass runs the task with nothing drawn and produces the structured failure
+// as a candidate. The recorded pass runs it again on camera; a failure is
+// confirmed only when it happens again at the same intent for the same reason
+// (otherwise it goes to debug.dropped), and then becomes a moment and, after
+// the moment is saved, a task_failures row linked to it. A failure that is the
+// run's own time limit gets the row but no moment. Enter is pressed in both
+// passes, so both stop at a bot wall or a browser message box first.
+//
 // deps: { browser, sem, blockedHosts, store, progress, profilesSource, extraRoute, detectors }
 // extraRoute(context) lets tests serve fixtures from a fake host, and
 // `detectors` lets tests supply their own instead of the live registry.
@@ -51,8 +65,11 @@ export async function runPersona(job, s, deps) {
   const hostAtStart = hostSnapshot()
   const deadline = Date.now() + config.personaCapMs
   const profileIds = s.profiles.map((p) => p.id)
-  const walks = profileIds.some((id) => WALK_PROFILES.has(id))
-  const detectors = deps.detectors ?? detectorsFor(profileIds)
+  const taskMode = job.mode === 'task'
+  // Task Mode walks with Tab whoever the persona is (tunnel vision has no
+  // walk of its own), and runs no detectors: there is nothing to audit.
+  const walks = taskMode || profileIds.some((id) => WALK_PROFILES.has(id))
+  const detectors = taskMode ? [] : (deps.detectors ?? detectorsFor(profileIds))
 
   const coverage = {
     viewport: `${config.viewport.width}x${config.viewport.height}`,
@@ -69,6 +86,11 @@ export async function runPersona(job, s, deps) {
   let recordingOffsetMs = null
   let syncTimings = null
   let moments = []
+  let task = null
+  let taskMeasured = null // taskWalk result of the measure pass
+  let taskFailure = null // the structured failure, once confirmed (or the time limit)
+  let taskFailureMoment = null // number of the moment made for it
+  const momentIds = new Map() // moment number -> row id
 
   const session = await store.getSession(s.sessionId)
   await store.markRunning(s.sessionId)
@@ -81,16 +103,35 @@ export async function runPersona(job, s, deps) {
       throw Object.assign(new Error('unsupported scheme'), { plain: 'We can only visit public web pages (http or https).' })
     }
 
+    if (taskMode) {
+      task = readTask(job.task)
+      coverage.task = { intents: task.intents.length, reached: 0, ended: null }
+    }
+
     // ---------------------------------------------------- measure pass
     let measured = null
     await sem.acquire(`${label} measure`)
     timings.skip()
     let mContext
+    let measureWatchdog
     try {
       mContext = await newSafeContext(browser, { blockedHosts })
       if (extraRoute) await extraRoute(mContext)
       const page = await mContext.newPage()
       timings.mark('measureLaunch')
+      // Task Mode presses Enter in this pass, so a message box that opens
+      // stops it, left untouched. Before the walk starts nothing is listening,
+      // as in every measure pass, and the browser dismisses it.
+      let measureArmed = false
+      let measureDialog = false
+      if (taskMode) {
+        page.on('dialog', (dialog) => {
+          if (!measureArmed) { dialog.dismiss().catch(() => {}); return }
+          measureDialog = true
+          mContext.close().catch(() => {})
+        })
+        measureWatchdog = setTimeout(() => mContext.close().catch(() => {}), Math.max(0, deadline - Date.now()) + 2000)
+      }
       progress.phase(s.sessionId, 'opening')
       const loaded = await loadPage(page, job.url, { deadline })
       timings.mark('measureLoad')
@@ -101,24 +142,54 @@ export async function runPersona(job, s, deps) {
         debug.loadFailure = loaded.detail || null
       } else {
         Object.assign(coverage, await measureCoverage(page))
-        const run = await measurePass(page, {
-          detectors, deadline, persona: s, profileIds, walks,
-          onWalked: () => timings.mark('measureWalk')
-        })
-        measured = run.walk?.stops ?? null
-        // A walk cut short by the time limit is never summarised as a normal result.
-        if (run.walk?.ended === 'time') coverage.walkIncomplete = true
-        candidates.push(...run.candidates)
-        debug.detectorProblems.push(...run.problems)
-        // What we could not look at, in plain words.
-        coverage.notes = [
-          ...(loaded.changing ? [STILL_CHANGING] : []),
-          ...(coverage.closedShadowRoots ? [coverageLines.closedSections(coverage.closedShadowRoots)] : []),
-          ...run.notes
-        ]
+        if (taskMode) {
+          // Never press anything on a page that is checking for a person.
+          const wall = await checkBotWall(page, loaded.status)
+          if (wall.evidence) debug.botWall = wall.evidence
+          if (wall.wall) {
+            coverage.stoppedReason = STOPPED_CHALLENGE
+          } else {
+            measureArmed = true
+            try {
+              taskMeasured = await taskWalk(page, { intents: task.intents, profileIds, deadline })
+            } catch (err) {
+              if (!measureDialog) throw err
+              coverage.stoppedReason = STOPPED_DIALOG_TASK
+            }
+          }
+          timings.mark('measureWalk')
+          measured = taskMeasured?.stops ?? null
+          coverage.notes = [
+            ...(loaded.changing ? [STILL_CHANGING] : []),
+            ...(coverage.closedShadowRoots ? [coverageLines.closedSections(coverage.closedShadowRoots)] : [])
+          ]
+          if (taskMeasured?.failure?.reason === 'budget-time') {
+            // Our limit, not the persona's: the row is kept, a moment is not made.
+            coverage.walkIncomplete = true
+            coverage.notes.push(coverageLines.taskOutOfTime(taskMeasured.failure.intent))
+            taskFailure = taskMeasured.failure
+          }
+        } else {
+          const run = await measurePass(page, {
+            detectors, deadline, persona: s, profileIds, walks,
+            onWalked: () => timings.mark('measureWalk')
+          })
+          measured = run.walk?.stops ?? null
+          // A walk cut short by the time limit is never summarised as a normal result.
+          if (run.walk?.ended === 'time') coverage.walkIncomplete = true
+          candidates.push(...run.candidates)
+          debug.detectorProblems.push(...run.problems)
+          // What we could not look at, in plain words.
+          coverage.notes = [
+            ...(loaded.changing ? [STILL_CHANGING] : []),
+            ...(coverage.closedShadowRoots ? [coverageLines.closedSections(coverage.closedShadowRoots)] : []),
+            ...run.notes
+          ]
+        }
         timings.mark('measureDetect')
       }
     } finally {
+      clearTimeout(measureWatchdog)
       await mContext?.close().catch(() => {})
       sem.release(`${label} measure`)
     }
@@ -159,19 +230,30 @@ export async function runPersona(job, s, deps) {
 
         // A native alert/confirm at load: never dismiss or accept it.
         let dialogSeen = false
-        page.on('dialog', () => { dialogSeen = true })
+        // In Task Mode a message box that opens while walking ends the walk
+        // (left untouched): the page cannot be read while it is open.
+        let taskWalking = false
+        page.on('dialog', () => {
+          dialogSeen = true
+          if (taskWalking) context.close().catch(() => {})
+        })
 
         progress.phase(s.sessionId, 'opening')
         const loaded = await loadPage(page, job.url, { deadline })
         timings.mark('load')
         readyAt = Date.now()
 
+        // A sign of a bot wall is kept with the run (debug.botWall), whether
+        // or not the page was a wall, so every stop can be checked later.
+        const botWall = loaded.ok && !dialogSeen ? await checkBotWall(page, loaded.status) : null
+        if (botWall?.evidence) debug.botWall = botWall.evidence
+
         if (!loaded.ok) {
           coverage.stoppedReason = loaded.reason
           debug.loadFailure = loaded.detail || null
         } else if (dialogSeen) {
           coverage.stoppedReason = STOPPED_DIALOG
-        } else if (await page.evaluate(detectChallenge).catch(() => null)) {
+        } else if (botWall.wall) {
           coverage.stoppedReason = STOPPED_CHALLENGE
         } else {
           coverage.modalOpenAtLoad = await page.evaluate(detectModal).catch(() => false)
@@ -231,7 +313,106 @@ export async function runPersona(job, s, deps) {
           }
 
           let stopsSeen = 0
-          if (walks) {
+          if (taskMode) {
+            progress.phase(s.sessionId, 'walking')
+            const measuredFailure = taskMeasured?.failure ?? null
+            let confirmed = false
+            let dropped = false
+            taskWalking = true
+            let walk = null
+            try {
+              walk = await taskWalk(page, {
+                intents: task.intents,
+                profileIds,
+                deadline,
+                paceMs: config.walk.recordedPaceMs,
+                onStop: async (stop, n) => {
+                  stopsSeen = n
+                  const expected = measured?.[n - 1]
+                  if (!expected || expected.selector !== stop.selector || expected.name !== stop.name) {
+                    debug.mismatches.push({ step: n, expected: expected?.selector ?? null, actual: stop.selector })
+                  }
+                  await page.evaluate(overlayKeyChip, { label: 'Tab', count: stop.press })
+                },
+                onActivate: async (stop, count) => {
+                  await page.evaluate(overlayKeyChip, { label: 'Enter', count })
+                },
+                // Conditions that follow where the person just was (tunnel
+                // vision) move on as each Tab is pressed.
+                onBeforePress: (previous) => page.evaluate(setConditionAnchor, previous),
+                // Enter loaded a new page: the persona's view and the overlay
+                // are put on it again, or the rest of the video would show a
+                // plain page and a failure there would have no ring.
+                onDocument: async () => {
+                  await page.evaluate(profilesSource)
+                  await page.evaluate(applyProfiles, s.profiles)
+                  await page.evaluate(installOverlay)
+                  await page.evaluate(settle)
+                },
+                onIntent: async (outcome) => {
+                  if (outcome.status !== 'failed' || outcome.reason === 'budget-time') return
+                  if (!measuredFailure || measuredFailure.intentIndex !== outcome.index || measuredFailure.reason !== outcome.reason) {
+                    dropped = true
+                    debug.dropped.push({ detector: 'task-find', selector: outcome.stop?.selector ?? null, step: null, reason: 'did not happen again' })
+                    return
+                  }
+                  confirmed = true
+                  taskFailure = measuredFailure
+                  const copy = taskNotFoundCopy({
+                    persona: s.persona.name,
+                    profile: measuredFailure.profile,
+                    intent: outcome.intent,
+                    intentNumber: outcome.index + 1,
+                    intentCount: task.intents.length,
+                    reason: outcome.reason,
+                    stopsAttempted: outcome.stopsAttempted,
+                    lastStop: measuredFailure.lastStop,
+                    missed: outcome.missed,
+                    radiusPx: stick('task', 'tunnelRadiusPx')
+                  })
+                  if (!copy) return
+                  // The walk has moved on by now. Show the page as it was when the
+                  // place that could not be made out was reached.
+                  if (outcome.missed) await page.evaluate(setConditionAnchor, outcome.missed.from)
+                  // The place to show: the one that was out of sight, else the last one reached.
+                  const selector = outcome.missed?.stop?.selector ?? outcome.stop?.selector ?? 'body'
+                  const moment = await engine.capture(makeFinding({
+                    detector: 'task-find',
+                    profile: measuredFailure.profile,
+                    selector,
+                    headline: copy.headline,
+                    fact: copy.fact,
+                    forTeam: copy.forTeam,
+                    evidence: { intentNumber: outcome.index + 1, intentCount: task.intents.length, stopsAttempted: outcome.stopsAttempted }
+                  }))
+                  if (moment) taskFailureMoment = moment.number
+                  else debug.dropped.push({ detector: 'task-find', selector, step: null, reason: 'element no longer on the page' })
+                }
+              })
+            } catch (err) {
+              if (!dialogSeen) throw err
+              coverage.stoppedReason = STOPPED_DIALOG_TASK
+            }
+            taskWalking = false
+            if (walk) {
+              recordedWalk = walk
+              coverage.stopsVisited = walk.stops.length
+              coverage.presses = walk.tabs
+              coverage.walkEnded = walk.ended
+              coverage.framesReached = walk.stops.filter((x) => x.kind === 'frame').length
+              if (walk.failure?.reason === 'budget-time') {
+                coverage.stoppedReason = STOPPED_TIME
+                coverage.walkIncomplete = true
+                const line = coverageLines.taskOutOfTime(walk.failure.intent)
+                if (!coverage.notes?.includes(line)) coverage.notes = [...(coverage.notes || []), line]
+              } else if (walk.failure && !measuredFailure) {
+                debug.mismatches.push({ step: null, expected: 'every intent reached', actual: `intent ${walk.failure.intentIndex + 1} not reached` })
+              } else if (measuredFailure && measuredFailure.reason !== 'budget-time' && !confirmed && !dropped) {
+                debug.dropped.push({ detector: 'task-find', selector: measuredFailure.lastStop?.selector ?? null, step: null, reason: 'did not happen again' })
+              }
+            }
+            timings.mark('walk')
+          } else if (walks) {
             progress.phase(s.sessionId, 'walking')
             const walk = await tabWalk(page, {
               deadline,
@@ -283,7 +464,7 @@ export async function runPersona(job, s, deps) {
           if (moments.length) timings.mark('evidence')
 
           await page.evaluate(overlayHideChip).catch(() => {})
-          await page.waitForTimeout(500) // a short still at the end of the video
+          await page.waitForTimeout(500).catch(() => {}) // a short still at the end of the video
         }
       } finally {
         clearTimeout(watchdog)
@@ -335,14 +516,31 @@ export async function runPersona(job, s, deps) {
         }
         const wall = readyAt + m.videoMs
         const videoMs = toVideoMs ? Math.max(0, Math.round(toVideoMs(wall))) : m.videoMs
-        await store.saveMoment(s.sessionId, { ...m, videoMs }, {
+        const momentId = await store.saveMoment(s.sessionId, { ...m, videoMs }, {
           // Session time, so timestamp_ms - recording_offset_ms is the video position.
           timestampMs: recordingOffsetMs !== null ? recordingOffsetMs + videoMs : Math.max(0, wall - sessionStart),
           shotKeys,
           profiles: s.profiles
         })
+        momentIds.set(m.number, momentId ?? null)
       }
       timings.mark('upload')
+    }
+
+    // Task Mode: what the run found, and the structured failure, written
+    // after the moment it belongs to so the row can link to it.
+    if (taskMode && taskMeasured) {
+      const reached = taskMeasured.outcomes.filter((o) => o.status === 'reached')
+      coverage.task = { intents: task.intents.length, reached: reached.length, ended: taskMeasured.ended }
+      // A found place that was not pressed is the runner's limit; say so, and
+      // never read a run like that as a normal end.
+      if (taskMeasured.ended === 'stopped' && !coverage.stoppedReason) {
+        coverage.stoppedReason = coverageLines.taskNotFollowed(reached[reached.length - 1].intent, taskMeasured.stoppedBecause)
+      }
+    }
+    if (taskFailure) {
+      const momentId = taskFailureMoment != null ? (momentIds.get(taskFailureMoment) ?? null) : null
+      await store.saveTaskFailure(s.sessionId, taskFailure, { momentId })
     }
   } catch (err) {
     console.error(`[runner] ${label} failed:`, err)

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Where the page lands</title>
+<style>
+  body { margin: 0; font: 16px/1.4 sans-serif; position: relative; }
+</style>
+</head>
+<body>
+<!-- 0: top corner. 1: wholly on screen near the bottom (no scroll). 2: partly below the screen (nudged to the edge, not centred). 3: wholly off screen (centred). The page lands differently for each, which decides what is in sight. -->
+<a href="/g0.html" style="position:absolute;left:100px;top:20px;display:block;width:90px;height:30px;background:#ddd">stop 0</a>
+<a href="/g1.html" style="position:absolute;left:1100px;top:650px;display:block;width:90px;height:30px;background:#ddd">stop 1</a>
+<a href="/g2.html" style="position:absolute;left:620px;top:700px;display:block;width:90px;height:30px;background:#ddd">stop 2</a>
+<a href="/g3.html" style="position:absolute;left:620px;top:1500px;display:block;width:90px;height:30px;background:#ddd">stop 3</a>
+<div style="height:3000px"></div>
+</body>
+</html>

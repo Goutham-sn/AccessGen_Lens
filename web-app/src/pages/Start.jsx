@@ -1,16 +1,24 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
 import { Button } from '../components/shared/Button.jsx'
-import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
+import { StartIntro } from '../components/start/StartIntro.jsx'
 import { PersonaCardFull } from '../components/start/PersonaCardFull.jsx'
+import { TaskForm } from '../components/start/TaskForm.jsx'
+import { landingFor } from '../utils/personaLanding.js'
+import { usePrecheck } from '../hooks/usePrecheck.js'
+import { precheckNotes, precheckStatusLine } from '../utils/precheckNotes.js'
+import { emptyTask, loadTask, checkTaskForm, canFindThings, taskCardLines } from '../utils/taskForm.js'
 import { PERSONA_CARDS, CARD_SECTIONS, cardTitle, getCard } from '../data/personaCards.js'
-import { BUILT_IN_PERSONAS } from '../data/personas.js'
 import { api } from '../services/api.js'
 import { useExtension } from '../hooks/useExtension.js'
 import { useExploreStart, normalizeUrl } from '../hooks/useExploreStart.js'
 
 const MAX_WATCH = 4
+
+function isWebUrl(raw) {
+  try { return /^https?:$/.test(new URL(raw).protocol) } catch { return false }
+}
 
 // How each condition reads in "Explore applies Ravi's tremor only".
 const CONDITION_WORDS = { tremor: 'tremor', dyslexia: 'dyslexia', adhd: 'ADHD', deaf: 'hearing loss' }
@@ -25,15 +33,17 @@ function loadSaved() {
     return {
       url: typeof saved.url === 'string' ? saved.url : '',
       chosen: Array.isArray(saved.chosen) ? saved.chosen.filter((id) => automated.has(id)).slice(0, MAX_WATCH) : [],
-      open: Array.isArray(saved.open) ? saved.open.filter((id) => getCard(id)) : []
+      open: Array.isArray(saved.open) ? saved.open.filter((id) => getCard(id)) : [],
+      task: loadTask(saved.task)
     }
   } catch {
-    return { url: '', chosen: [], open: [] }
+    return { url: '', chosen: [], open: [], task: emptyTask() }
   }
 }
 
 export default function Start() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { installed } = useExtension()
   const explore = useExploreStart()
 
@@ -41,6 +51,9 @@ export default function Start() {
   const [url, setUrl] = useState(initial.url)
   const [chosen, setChosen] = useState(initial.chosen)
   const [open, setOpen] = useState(initial.open)
+  const [task, setTask] = useState(initial.task)
+  const [taskError, setTaskError] = useState(null)
+  const [taskNotice, setTaskNotice] = useState(null)
   const [allowed, setAllowed] = useState(false)
   const [caps, setCaps] = useState(null)
   const [dbPersonas, setDbPersonas] = useState(null)
@@ -48,10 +61,14 @@ export default function Start() {
   const [watchMessage, setWatchMessage] = useState(null)
   const [exploreMessage, setExploreMessage] = useState(null)
   const [starting, setStarting] = useState(false)
+  const precheck = usePrecheck()
+  // A built-in person picked on the Personas page (read once, then cleared).
+  const landingName = useRef(location.state?.personaName ?? null)
+  const [landed, setLanded] = useState(null) // { cardId, action } once applied, for moving focus
 
   useEffect(() => {
-    try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ url, chosen, open })) } catch { /* storage unavailable */ }
-  }, [url, chosen, open])
+    try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ url, chosen, open, task })) } catch { /* storage unavailable */ }
+  }, [url, chosen, open, task])
 
   useEffect(() => {
     let cancelled = false
@@ -75,10 +92,39 @@ export default function Start() {
     return dbPersonas?.find((p) => p.is_built_in && p.name === card.personaName)?.pronouns || null
   }
 
+  // The profile ids of the persona behind a card, as the server has them.
+  function profileIdsFor(card) {
+    const persona = dbPersonas?.find((p) => p.is_built_in && p.name === card.personaName)
+    return persona ? (persona.profiles || []).map((p) => p.id) : card.profiles.map((p) => p.id)
+  }
+
+  // With something to find, a person needs a profile that decides how the page
+  // is reached (the server says which).
+  function cannotFindThings(card) {
+    return task.on && Boolean(caps) && Boolean(dbPersonas) && !canFindThings(profileIdsFor(card), caps.task?.profiles)
+  }
+
   function unavailableReason(card) {
     if (!caps) return 'Checking what can run…'
     const missing = card.profiles.filter((p) => !caps.capabilities?.[p.id])
-    return missing.length ? 'Not available right now.' : null
+    if (missing.length) return 'Not available right now.'
+    if (cannotFindThings(card)) return `${card.name}'s experience is not covered yet when there is something to find.`
+    return null
+  }
+
+  function toggleTask(on) {
+    setTask((t) => ({ ...t, on }))
+    setTaskError(null)
+    setTaskNotice(null)
+    setWatchMessage(null)
+    if (!on) return
+    // Anyone already chosen who cannot take part is taken off, and it is said.
+    const dropped = chosen.filter((id) => !canFindThings(profileIdsFor(getCard(id)), caps?.task?.profiles))
+    if (dropped.length === 0) return
+    setChosen((c) => c.filter((id) => !dropped.includes(id)))
+    const names = dropped.map((id) => getCard(id).name)
+    const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0]
+    setTaskNotice(`${list} cannot take part when there is something to find, so ${names.length > 1 ? 'they are' : 'this person is'} no longer chosen.`)
   }
 
   function toggleChosen(id) {
@@ -97,10 +143,54 @@ export default function Start() {
     setOpen((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]))
   }
 
+  // The quick look at the page starts when the confirmation is given, never
+  // from typing. Changing the address or taking the confirmation back retires it.
+  useEffect(() => {
+    if (!allowed || (precheck.state.url && precheck.state.url !== normalizeUrl(url))) precheck.reset()
+  }, [allowed, url]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (allowed && isWebUrl(normalizeUrl(url))) precheck.check(normalizeUrl(url))
+  }, [allowed]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Arriving from the Personas page: choose the person, or show their card.
+  useEffect(() => {
+    const name = landingName.current
+    if (!name || !caps || !dbPersonas) return
+    landingName.current = null
+    navigate(location.pathname, { replace: true, state: null }) // a reload or back does not repeat it
+    const found = landingFor(name, PERSONA_CARDS, (card) => !unavailableReason(card))
+    if (!found) return
+    let { action } = found
+    if (action === 'choose' && !chosen.includes(found.cardId) && chosen.length >= MAX_WATCH) {
+      setWatchMessage(`You can watch up to ${MAX_WATCH} people at once. Take someone off to choose ${name}.`)
+      action = 'show'
+    }
+    if (action === 'choose') setChosen((c) => (c.includes(found.cardId) ? c : [...c, found.cardId]))
+    else setOpen((o) => (o.includes(found.cardId) ? o : [...o, found.cardId]))
+    setLanded({ cardId: found.cardId, action })
+  }, [caps, dbPersonas]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Bring the card into view and put focus on what was just done: the choice,
+  // or the Details button that was opened.
+  useEffect(() => {
+    if (!landed) return
+    const card = document.getElementById(`card-${landed.cardId}`)
+    const target = card?.querySelector(landed.action === 'choose' ? 'input[type="checkbox"]' : 'button[aria-expanded]')
+    card?.scrollIntoView({ block: 'center' })
+    target?.focus({ preventScroll: true })
+  }, [landed])
+
   async function startWatching() {
     setWatchMessage(null)
+    setTaskError(null)
     const target = normalizeUrl(url)
     if (!target) return setWatchMessage('Enter the address of the page you want to watch.')
+    let taskBody = null
+    if (task.on) {
+      const checked = checkTaskForm(task, caps?.task?.limits)
+      if (checked.error) return setTaskError({ message: checked.error, field: checked.field, at: Date.now() })
+      taskBody = checked.task
+    }
     if (chosen.length === 0) return setWatchMessage('Choose at least one person to watch.')
     if (!allowed) return setWatchMessage('Please confirm you are allowed to test this site.')
     const ids = chosen.map((id) => dbPersonas?.find((p) => p.is_built_in && p.name === getCard(id).personaName)?.id)
@@ -108,7 +198,7 @@ export default function Start() {
 
     setStarting(true)
     try {
-      const run = await api.post('/runs', { url: target, personaIds: ids })
+      const run = await api.post('/runs', { url: target, personaIds: ids, ...(taskBody ? { task: taskBody } : {}) })
       navigate(`/run/${run.runId}`)
     } catch (err) {
       setWatchMessage(err.message)
@@ -122,11 +212,19 @@ export default function Start() {
       setExploreMessage('The Chrome extension is not detected, so exploring cannot start yet.')
       return
     }
-    const persona = BUILT_IN_PERSONAS.find((p) => p.name === card.personaName) || null
+    const persona = dbPersonas?.find((p) => p.is_built_in && p.name === card.personaName)
+    if (!persona) {
+      setExploreMessage('We could not find this person yet. Please reload the page.')
+      return
+    }
     const message = await explore.start({ url, profiles: card.profiles, persona })
     if (message) setExploreMessage(message)
   }
 
+  const target = normalizeUrl(url)
+  const looked = precheck.state.url === target ? precheck.state : null // the look is for the address in the field
+  const lookedLine = precheckStatusLine(looked)
+  const canLookAgain = allowed && isWebUrl(target) && (!looked || (looked.status === 'done' && !looked.result?.ok))
   const bySection = Object.fromEntries(CARD_SECTIONS.map((s) => [s.mode, PERSONA_CARDS.filter((c) => c.mode === s.mode)]))
   const summary = chosen.length === 0
     ? 'No one chosen to watch yet.'
@@ -137,21 +235,8 @@ export default function Start() {
       <a href="#choices" className="skip-link">Skip to the choices</a>
 
       <div className="space-y-6">
-        <SimulationBanner text={caps?.intro} />
+        <StartIntro text={caps?.intro} />
         {loadMessage && <p role="alert" className="text-sm font-medium text-red-800">{loadMessage}</p>}
-
-        <nav aria-label="Sections on this page">
-          <h2 className="text-sm font-semibold text-ink-900">On this page</h2>
-          <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            {CARD_SECTIONS.map((s) => (
-              <li key={s.id}>
-                <a href={`#${s.id}`} className="inline-block min-h-[24px] text-brand-700 underline">
-                  {s.title}, {bySection[s.mode].length} cards
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
 
         <div>
           <label htmlFor="start-url" className="block text-sm font-medium text-ink-900">Page address</label>
@@ -167,8 +252,28 @@ export default function Start() {
             className="mt-1 w-full max-w-xl rounded-lg border border-gray-400 px-3 py-2 text-sm"
           />
           <p id="start-url-hint" className="mt-1 text-sm text-ink-600">
-            Public pages only. We never sign in, click, type or submit anything.
+            {task.on
+              ? 'Public pages only. We press Tab, and Enter on a link to a page on the same site or on a button that does not send a form. We never sign in, type or send a form.'
+              : 'Public pages only. We never sign in, click, type or submit anything.'}
           </p>
+          <label className="mt-2 flex min-h-[44px] items-center gap-3 text-sm text-ink-900">
+            <input
+              type="checkbox"
+              id="start-allowed"
+              className="h-5 w-5"
+              checked={allowed}
+              onChange={(e) => setAllowed(e.target.checked)}
+            />
+            <span>I'm allowed to test this site.</span>
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            {canLookAgain && (
+              <Button variant="secondary" size="sm" onClick={() => precheck.check(target)}>
+                {looked ? 'Check this page again' : 'Check this page ahead of time'}
+              </Button>
+            )}
+            {lookedLine && <p id="precheck-status" role="status" className="text-sm text-ink-800">{lookedLine}</p>}
+          </div>
         </div>
 
         <p role="status" className="text-sm text-ink-900">{summary}</p>
@@ -177,32 +282,66 @@ export default function Start() {
           {/* Automated */}
           <section id="section-automated" aria-labelledby="section-automated-heading">
             <h2 id="section-automated-heading" className="text-xl font-semibold text-ink-900">
-              {CARD_SECTIONS[0].title}, {bySection.automated.length} cards
+              {CARD_SECTIONS[0].title}
             </h2>
             <p className="mt-1 text-sm text-ink-700">
               A browser on our side moves through the page as each person you choose, and records it. Choose up to {MAX_WATCH}.
             </p>
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+
+            <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-ink-900">
+                <input
+                  type="checkbox"
+                  id="task-on"
+                  className="h-5 w-5"
+                  checked={task.on}
+                  onChange={(e) => toggleTask(e.target.checked)}
+                  aria-describedby="task-on-hint"
+                />
+                <span>Give them something to find</span>
+              </label>
+              <p id="task-on-hint" className="text-sm text-ink-700">
+                Instead of going through every stop, each person looks for the things you list, in order. This does not
+                apply to "Explore it myself".
+              </p>
+              {taskNotice && <p role="status" className="mt-2 text-sm font-medium text-ink-900">{taskNotice}</p>}
+              {task.on && <TaskForm value={task} onChange={(next) => setTask((t) => ({ ...t, ...next }))} limits={caps?.task?.limits} error={taskError} />}
+            </div>
+            <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
               {bySection.automated.map((card) => {
                 const reason = unavailableReason(card)
+                // A run with something to find simulates the person's whole combination
+                // (tunnel vision included); a regular run, only what the card runs.
+                const notes = looked?.status === 'done' && !reason
+                  ? precheckNotes(card.name, task.on ? profileIdsFor(card) : card.profiles.map((p) => p.id), caps?.precheck?.signals, looked.result)
+                  : []
+                const describedBy = [reason && `${card.id}-unavailable`, ...notes.map((n) => `${card.id}-precheck-${n.signal}`)].filter(Boolean).join(' ') || undefined
                 return (
                   <PersonaCardFull
                     key={card.id}
                     card={card}
                     pronouns={pronounsFor(card)}
+                    precheckNotes={notes}
                     isLive={isLiveFor(card)}
                     detailsOpen={open.includes(card.id)}
                     onToggleDetails={() => toggleDetails(card.id)}
                     unavailableReason={reason}
+                    taskLines={task.on ? taskCardLines(card.name, profileIdsFor(card)) : null}
                   >
-                    <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-ink-900 hover:border-brand-500">
+                    <label
+                      className={`flex min-h-[44px] items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium ${
+                        reason
+                          ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-ink-600 opacity-60'
+                          : 'cursor-pointer border-gray-300 text-ink-900 hover:border-brand-500'
+                      }`}
+                    >
                       <input
                         type="checkbox"
-                        className="h-5 w-5"
+                        className="h-5 w-5 disabled:cursor-not-allowed"
                         checked={chosen.includes(card.id)}
                         onChange={() => toggleChosen(card.id)}
                         disabled={Boolean(reason)}
-                        aria-describedby={reason ? `${card.id}-unavailable` : undefined}
+                        aria-describedby={describedBy}
                       />
                       <span>Watch {cardTitle(card)}</span>
                       {chosen.includes(card.id) && <span className="ml-auto text-xs text-ink-700">Chosen</span>}
@@ -214,15 +353,6 @@ export default function Start() {
 
             <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-white p-4">
               <p className="text-sm text-ink-900">{summary}</p>
-              <label className="flex min-h-[44px] items-center gap-3 text-sm text-ink-900">
-                <input
-                  type="checkbox"
-                  className="h-5 w-5"
-                  checked={allowed}
-                  onChange={(e) => setAllowed(e.target.checked)}
-                />
-                <span>I'm allowed to test this site.</span>
-              </label>
               {watchMessage && <p role="alert" className="text-sm font-medium text-red-800">{watchMessage}</p>}
               <Button onClick={startWatching} disabled={starting}>
                 {starting ? 'Starting…' : 'Start watching'}
@@ -233,7 +363,7 @@ export default function Start() {
           {/* Extension */}
           <section id="section-extension" aria-labelledby="section-extension-heading">
             <h2 id="section-extension-heading" className="text-xl font-semibold text-ink-900">
-              {CARD_SECTIONS[1].title}, {bySection.extension.length} cards
+              {CARD_SECTIONS[1].title}
             </h2>
             <p className="mt-1 text-sm text-ink-700">
               You move through the page yourself with the Chrome extension, and we record it.
@@ -244,7 +374,7 @@ export default function Start() {
               </p>
             )}
             {exploreMessage && <p role="alert" className="mt-2 text-sm font-medium text-red-800">{exploreMessage}</p>}
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
               {bySection.extension.map((card) => {
                 const appliesId = `${card.id}-applies`
                 const names = card.profiles.map((p) => CONDITION_WORDS[p.id] || p.id.replace(/-/g, ' '))
@@ -279,14 +409,21 @@ export default function Start() {
           {/* Later */}
           <section id="section-later" aria-labelledby="section-later-heading">
             <h2 id="section-later-heading" className="text-xl font-semibold text-ink-900">
-              {CARD_SECTIONS[2].title}, {bySection.later.length} cards
+              {CARD_SECTIONS[2].title}
             </h2>
             <p className="mt-1 text-sm text-ink-700">
               Experiences we cannot simulate yet. They are here so you can keep them in mind.
             </p>
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
               {bySection.later.map((card) => (
-                <PersonaCardFull key={card.id} card={card} isLive={() => false} pronouns={pronounsFor(card)} />
+                <PersonaCardFull
+                  key={card.id}
+                  card={card}
+                  isLive={() => false}
+                  pronouns={pronounsFor(card)}
+                  detailsOpen={open.includes(card.id)}
+                  onToggleDetails={() => toggleDetails(card.id)}
+                />
               ))}
             </div>
           </section>

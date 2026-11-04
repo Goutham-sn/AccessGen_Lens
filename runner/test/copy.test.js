@@ -1,7 +1,7 @@
 // Page-derived text handling (no browser needed).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cleanPageText, pageName, groupedNames, focusLostToPageCopy } from '../src/copy.js'
+import { cleanPageText, pageName, groupedNames, focusLostToPageCopy, byHand } from '../src/copy.js'
 
 test('markup in a name stays as text, untouched apart from length', () => {
   assert.equal(cleanPageText('<img src=x onerror=alert(1)>'), '<img src=x onerror=alert(1)>')
@@ -72,4 +72,13 @@ test('the fact lists up to 10 names and then says how many more', () => {
   const { fact } = focusLostToPageCopy({ persona: 'David', prevStep: 1, presses: 14, prev: named('Home'), next: named('End'), flashed })
   assert.ok(fact.includes('\u201CLink 10\u201D and 4 more received focus and then lost it.'), fact)
   assert.ok(!fact.includes('Link 11'))
+})
+
+test('long way by hand: the row names the anchor used, and an unknown anchor fails loudly', () => {
+  const ask = (anchor) => byHand.longWay({ press: 54, name: 'A Light in the Attic', role: 'link', anchor })
+  assert.equal(ask('main'),
+    'press Tab 54 times, look at “A Light in the Attic” (link). Is it the first stop inside the main landmark, with nothing before it that skips there?')
+  assert.equal(ask('h1'),
+    "press Tab 54 times, look at “A Light in the Attic” (link). Is it the first stop after the page's first heading, which is an h1, with nothing before it that skips there?")
+  assert.throws(() => ask(undefined), /unknown long-way anchor/)
 })

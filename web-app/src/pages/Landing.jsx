@@ -2,12 +2,14 @@ import { Link, Navigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useAuthStore } from '../store/authStore.js'
 import { Navbar } from '../components/layout/Navbar.jsx'
-import { BUILT_IN_PERSONAS } from '../data/personas.js'
+import { PERSONA_CARDS } from '../data/personaCards.js'
+import { teaserPeople, teaserLine } from '../utils/landingTeaser.js'
 
 export default function Landing() {
   const user = useAuthStore((s) => s.user)
   const reduceMotion = useReducedMotion()
   if (user) return <Navigate to="/dashboard" replace />
+  const teaser = teaserPeople(PERSONA_CARDS)
 
   const fadeUp = reduceMotion
     ? {}
@@ -72,20 +74,21 @@ export default function Landing() {
               Walk in their shoes
             </h2>
             <p className="mt-3 text-center text-ink-600 max-w-xl mx-auto">
-              Seven people, seven very different ways of experiencing the same page.
+              {teaserLine(PERSONA_CARDS, teaser.length)}
             </p>
             <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {BUILT_IN_PERSONAS.slice(0, 4).map((p) => (
-                <li key={p.id} className="rounded-2xl border border-gray-200 p-5">
+              {teaser.map((p) => (
+                <li key={p.name} className="rounded-2xl border border-gray-200 p-5">
                   <span
                     aria-hidden="true"
                     className="flex h-11 w-11 items-center justify-center rounded-full font-semibold text-ink-900"
-                    style={{ backgroundColor: p.illustrationColor }}
+                    style={{ backgroundColor: p.color }}
                   >
                     {p.name.charAt(0)}
                   </span>
                   <h3 className="mt-3 font-medium text-ink-900">{p.name}, {p.age}</h3>
-                  <p className="mt-1 text-sm text-ink-600 line-clamp-4">{p.story}</p>
+                  <p className="text-xs text-ink-500">{p.place}</p>
+                  <p className="mt-1 text-sm text-ink-600">{p.bio}</p>
                 </li>
               ))}
             </ul>

@@ -62,3 +62,11 @@ export const nothingMeasuredLine = (name) =>
 // An extension session (the person explores and marks moments) with none.
 export const EXTENSION_NO_MOMENTS =
   'You did not mark any moments in this session. Press I Felt This when something feels wrong.'
+
+// A task run ("find these things in order"): what the report says it looked at,
+// and the line shown when nothing went wrong.
+export const taskLookedAt = (name, count) =>
+  `Whether ${name} can reach ${count === 1 ? 'the thing' : `each of the ${count} things`} on the list, using only Tab and, on a link or button, Enter`
+
+export const taskAllReachedLine = (name, count) =>
+  count === 1 ? `${name} reached the thing on the list.` : `${name} reached all ${count} things on the list, in order.`

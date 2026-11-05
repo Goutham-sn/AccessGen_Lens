@@ -26,7 +26,7 @@
   "commands": {
     "start-recording": {
       "suggested_key": { "default": "Alt+Shift+R" },
-      "description": "Start recording the simulated tab"
+      "description": "Turn on smooth video for the simulated tab"
     }
   },
   "action": {

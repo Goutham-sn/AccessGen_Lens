@@ -44,31 +44,33 @@ async function renderRecording(state) {
     ? `Shortcut: ${state.recordShortcut} (change it at chrome://extensions/shortcuts)`
     : 'No shortcut set. Assign one at chrome://extensions/shortcuts'
 
+  // The screen is always recorded (frame by frame). This turns on the
+  // smoother tab video, which Chrome only allows from here or the shortcut.
   if (state.isRecording) {
-    recordingStatus.textContent = 'Recording'
+    recordingStatus.textContent = 'Recording the screen. Smooth video is on.'
     recordBtn.hidden = true
   } else if (onTarget) {
-    recordingStatus.textContent = 'Not recording yet.'
+    recordingStatus.textContent = 'Recording the screen. For a smoother video:'
     recordBtn.hidden = false
   } else {
-    recordingStatus.textContent = 'Not recording yet. Switch to the simulated tab, then open this again.'
+    recordingStatus.textContent = 'Recording the screen. For a smoother video, switch to the simulated tab and open this again.'
     recordBtn.hidden = true
   }
 }
 
 recordBtn.addEventListener('click', async () => {
   recordBtn.disabled = true
-  recordingStatus.textContent = 'Starting recording…'
+  recordingStatus.textContent = 'Turning on smooth video…'
   try {
     const result = await chrome.runtime.sendMessage({
       type: 'ACCESSGEN_START_RECORDING',
       payload: { tabId: activeTabId }
     })
     if (result?.ok) {
-      recordingStatus.textContent = 'Recording'
+      recordingStatus.textContent = 'Recording the screen. Smooth video is on.'
       recordBtn.hidden = true
     } else {
-      recordingStatus.textContent = `Could not start recording: ${result?.error || 'unknown error'}`
+      recordingStatus.textContent = `Smooth video could not start: ${result?.error || 'unknown error'}. The screen is still recorded.`
     }
   } catch {
     // Popup closed mid-await; the background still handles the request.

@@ -6,6 +6,7 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { useSessionStore } from '../store/sessionStore.js'
 import { useAuthStore } from '../store/authStore.js'
 import { getProfile } from '../data/profiles.js'
+import { formatDuration } from '../utils/moments.js'
 import { mediaUrl } from '../services/api.js'
 
 function SessionCard({ session, onDelete }) {
@@ -20,7 +21,7 @@ function SessionCard({ session, onDelete }) {
   return (
     <article className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
       {session.page_thumbnail ? (
-        <img src={mediaUrl(session.page_thumbnail)} alt="" className="h-32 w-full object-cover" loading="lazy" />
+        <img src={mediaUrl(session.page_thumbnail)} alt="" className="h-32 w-full object-cover object-top" loading="lazy" />
       ) : (
         <div aria-hidden="true" className="h-32 bg-gray-100" />
       )}
@@ -33,8 +34,8 @@ function SessionCard({ session, onDelete }) {
           {session.page_title || session.url}
         </h3>
         <p className="text-sm text-ink-600">
-          {persona ? `As ${persona.name}` : `${(session.active_profiles || []).length} profile(s)`}
-          {' · '}{Math.round((session.duration_seconds || 0) / 60)} min
+          {persona ? `As ${persona.name}` : `${(session.active_profiles || []).length} condition${(session.active_profiles || []).length === 1 ? '' : 's'}`}
+          {' · '}{formatDuration(session.duration_seconds)}
           {' · '}{session.empathy_moment_count} moment{session.empathy_moment_count === 1 ? '' : 's'}
         </p>
         <ul className="mt-2 flex flex-wrap gap-1.5">

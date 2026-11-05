@@ -93,13 +93,26 @@ Go to [http://localhost:5173](http://localhost:5173), create an account, and sta
 
 ## How a session works
 
-1. In the web app, pick disability profiles (or a persona like *Meera, 72*) on the **Configure** page.
-2. Click **Start Simulation** and enter the URL to test.
-3. The extension opens the page and applies the simulation: SVG color matrices, canvas vision overlays, event interception for motor profiles, Web Speech announcements for the screen reader.
-4. Everything you do is recorded: frames every 500 ms, every interaction, every **"I Felt This"** empathy moment you log.
-5. When you stop, the backend compiles the frames into a smooth MP4 video, and you get a **Playback** page and a shareable **Empathy Report**.
+There are two ways to experience a page, chosen at the top of the start page.
 
-A persona run started from the start page ("Watch it happen") does not need the extension: the runner container walks the page in its own Chromium and records it. Its browser reaches the internet only through the runner's egress proxy, which refuses private and internal addresses.
+### Automated: watch it happen
+
+Pick up to four people (David, James, Meera, Thomas, Ravi). The runner container opens the page in its own Chromium as each of them, moves through it the way they would (Tab by Tab, or looking for things you list), records it, and reports what stopped them. No extension is needed. Its browser reaches the internet only through the runner's egress proxy, which refuses private and internal addresses.
+
+### Manual: explore it yourself
+
+1. Pick a person on the start page (Ravi's tremor, Ananya's ADHD and dyslexia, Fatima's deafness, Sofia's switch access, Margaret's cataracts, Kenji's protanopia), or choose and combine conditions on the **Configure** page.
+2. The extension opens the page in your Chrome with the simulation on: colour matrices, blur and haze, a tunnel or a blind spot that follows your mouse and your keyboard focus, a shaking cursor whose clicks land where the shake puts them, the mouse taken away, one-switch scanning, letters that shift as you read, distractions, silence, or a screen reader that speaks each place (Tab, the Down arrow to read, H for headings).
+3. The screen is recorded from the first second, with nothing to switch on: the extension captures the tab's real pixels, simulation included, and the backend joins them into a video when you end the session. For a smoother video, choose **Turn on smooth video** from the extension icon (or the shortcut) on the simulated tab.
+4. While you explore, the simulation notices struggles on its own and adds them to the report as automatic moments, with a picture. For example: a tremor click that hit the wrong thing, a button a screen reader announces with no name, a press of Tab that lost your place, something only a mouse can use, a long wait for the switch, a video with no captions. Press **I felt this** on the page (with a note, if you like) whenever the page pushes back.
+5. Typed text is never stored: key presses in fields are recorded as "character".
+6. When you press **End session and see the report**, you get a **Playback** page (the video, with every moment on the timeline) and an **Empathy Report** you can share or download as a PDF. The report separates what the tester felt from what the simulation noticed, and groups the noticed struggles under **What made it hard**.
+
+Known gaps in the Manual mode:
+
+- The automatic moments are what the simulation could see from the page (an outline that is not drawn, a control with no name, a click that missed). They are never a full audit and never an all-clear.
+- The frame-by-frame video is about one picture every 0.7 seconds, and only while the simulated tab is the visible tab.
+- Embedded players (YouTube, Vimeo) cannot be inspected, so they are named as something to check, not as missing captions.
 
 ## Task Mode: giving the people something to find
 
@@ -145,7 +158,7 @@ Every threshold, with its reason, is in `runner/src/measuringStick.js`. Each num
 | `web-app/src/` | Nothing: Vite reloads the page. |
 | `extension/` | The watch build rewrites `dist/`. In `chrome://extensions`, click the refresh icon on **AccessGen Lens**, then reload any page you were simulating on. |
 | `runner/` or `extension/profiles/` | Rebuild the runner (repo root): `docker compose up -d --build runner`. Its code and the extension's profiles are copied into the image when it is built, not mounted. |
-| `backend/package.json` | `docker compose up -d --build backend` |
+| `backend/package.json` or `backend/Dockerfile` | `docker compose up -d --build backend` (the image includes ffmpeg, which builds Manual-mode videos) |
 
 ## Tests
 

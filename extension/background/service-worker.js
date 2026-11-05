@@ -664,7 +664,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true }
     },
     ACCESSGEN_UPDATE_PROFILES: () => updateProfiles(payload.profiles),
-    // Sent by the popup's "Start recording" button. Opening the popup on
+    // Sent by the popup's "Turn on smooth video" button. Opening the popup on
     // the simulated tab is the invocation tabCapture needs.
     ACCESSGEN_START_RECORDING: () => beginRecording(payload?.tabId),
     ACCESSGEN_STOP_RECORDING: async () => {

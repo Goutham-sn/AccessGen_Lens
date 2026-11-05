@@ -39,7 +39,7 @@ export function SessionControls({
         {recordShortcut
           ? <>press <kbd className="rounded border border-gray-300 bg-gray-50 px-1 font-mono text-xs">{recordShortcut}</kbd> or </>
           : null}
-        click the AccessGen Lens icon and choose Start recording.
+        click the AccessGen Lens icon and choose Turn on smooth video.
       </>
     )
   }

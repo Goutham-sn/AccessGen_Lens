@@ -89,10 +89,13 @@ export const Session = {
            WHEN video_url IS NOT NULL THEN FALSE
            WHEN source = 'runner' THEN NOT COALESCE(processing_complete, FALSE)
            WHEN COALESCE(uploads_closed_at, end_time) IS NULL THEN TRUE
+           -- No tab recording is coming: wait only while the frames are
+           -- being turned into a video.
+           WHEN recording_expected = FALSE THEN NOT COALESCE(processing_complete, FALSE)
            ELSE NOW() < COALESCE(uploads_closed_at, end_time) + make_interval(mins => $2)
          END AS recording_window_open,
          CASE
-           WHEN source = 'runner' OR COALESCE(uploads_closed_at, end_time) IS NULL THEN NULL
+           WHEN source = 'runner' OR COALESCE(uploads_closed_at, end_time) IS NULL OR recording_expected = FALSE THEN NULL
            ELSE COALESCE(uploads_closed_at, end_time) + make_interval(mins => $2)
          END AS wait_until
          FROM sessions WHERE id = $1`,

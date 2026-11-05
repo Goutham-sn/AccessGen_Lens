@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
 import { Badge } from '../components/shared/Badge.jsx'
@@ -7,9 +7,10 @@ import { useSessionStore } from '../store/sessionStore.js'
 import { useAuthStore } from '../store/authStore.js'
 import { getProfile } from '../data/profiles.js'
 import { formatDuration } from '../utils/moments.js'
-import { mediaUrl } from '../services/api.js'
+import { mediaUrl, api } from '../services/api.js'
+import { getExtensionStatus } from '../services/extension-bridge.js'
 
-function SessionCard({ session, onDelete }) {
+function SessionCard({ session, onDelete, liveId, onFinish }) {
   const persona = session.persona_snapshot
   const statusTone = session.status === 'complete' ? 'success'
     : session.status === 'recording' ? 'danger'
@@ -30,6 +31,14 @@ function SessionCard({ session, onDelete }) {
           <Badge tone={statusTone}>{statusLabel}</Badge>
           <span className="text-xs text-ink-500">{new Date(session.created_at).toLocaleDateString()}</span>
         </div>
+        {session.status === 'recording' && liveId !== undefined && liveId !== session.id && (
+          <div className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
+            This session was never ended (the tab or browser may have closed).{' '}
+            <button type="button" onClick={() => onFinish(session.id)} className="font-semibold underline">
+              Finish it now
+            </button>
+          </div>
+        )}
         <h3 className="mt-2 font-medium text-ink-900 truncate" title={session.url}>
           {session.page_title || session.url}
         </h3>
@@ -75,7 +84,22 @@ export default function Dashboard() {
   const user = useAuthStore((s) => s.user)
   const { sessions, sessionsLoading, fetchSessions, deleteSession } = useSessionStore()
 
+  // The session the extension is running right now, if any (undefined
+  // until asked, null when none), so a live session is never offered to be
+  // finished from here.
+  const [liveId, setLiveId] = useState(undefined)
+
   useEffect(() => { fetchSessions() }, [fetchSessions])
+  useEffect(() => {
+    getExtensionStatus()
+      .then((s) => setLiveId(s?.isActive ? s.sessionId : null))
+      .catch(() => setLiveId(null))
+  }, [])
+
+  async function handleFinish(id) {
+    try { await api.post(`/sessions/${id}/end`, { recordingExpected: false }) } catch { /* shown by the refresh */ }
+    fetchSessions()
+  }
 
   async function handleDelete(id) {
     if (window.confirm('Delete this session and its recording permanently?')) {
@@ -112,7 +136,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sessions.map((s) => (
-              <SessionCard key={s.id} session={s} onDelete={handleDelete} />
+              <SessionCard key={s.id} session={s} onDelete={handleDelete} liveId={liveId} onFinish={handleFinish} />
             ))}
           </div>
         )}

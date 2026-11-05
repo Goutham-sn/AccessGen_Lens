@@ -103,6 +103,7 @@ export default function Playback() {
             videoUrl={pb.videoUrl}
             processing={processing}
             session={session}
+            frames={pb.data.frames}
             onTimeUpdate={pb.onTimeUpdate}
             onLoadedMetadata={pb.onLoadedMetadata}
             onEnded={() => pb.setPlaying(false)}

@@ -18,11 +18,18 @@ export async function processSession(sessionId, { recordingExpected = true } = {
   }
 
   if (!recordingExpected) {
+    let outcome = null
     try {
-      await videoFromFrames(sessionId, io)
+      outcome = await videoFromFrames(sessionId, io)
     } catch (err) {
-      console.error(`[video] session ${sessionId}: could not build the video from frames:`, err.message)
+      console.error(`[video] session ${sessionId}: processing failed:`, err.message)
     }
+    if (!outcome) {
+      // Nothing was captured at all: say so now instead of in 90 seconds.
+      await Session.update(sessionId, { status: 'no_video', processing_complete: true })
+      io?.to(`session:${sessionId}`).emit('session-processed', { sessionId, videoUrl: null })
+    }
+    return
   }
   await enqueueFinalizeCheck(sessionId)
 }

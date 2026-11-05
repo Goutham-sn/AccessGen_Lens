@@ -18,6 +18,7 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { api, mediaUrl, API_URL } from '../services/api.js'
 import { useAuthStore } from '../store/authStore.js'
 import { getVideoFilter } from '../data/simulationFilters.jsx'
+import { FramePlayer, playableFrames } from '../components/playback/FramePlayer.jsx'
 
 export default function Report() {
   const { id } = useParams()
@@ -125,11 +126,14 @@ export default function Report() {
         )}
 
         {/* Watch the session */}
-        {session.video_url && (
+        {(session.video_url || playableFrames(frames).length >= 2) && (
           <section aria-labelledby="watch-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
             <h2 id="watch-heading" className="text-xl font-semibold text-ink-900 mb-4">
               Watch the session
             </h2>
+            {!session.video_url ? (
+              <FramePlayer frames={frames} controls label={`Recording of ${persona?.name || 'the visitor'}'s session`} />
+            ) : (
             <video
               src={mediaUrl(session.video_url)}
               poster={session.page_thumbnail ? mediaUrl(session.page_thumbnail) : undefined}
@@ -140,6 +144,7 @@ export default function Report() {
               style={{ filter: getVideoFilter() }}
               aria-label={`Full recording of ${persona?.name || 'the visitor'}'s session`}
             />
+            )}
           </section>
         )}
 

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { useAuthStore } from './store/authStore.js'
 import { useSessionStore } from './store/sessionStore.js'
 import { listenFromExtension } from './services/extension-bridge.js'
+import { api } from './services/api.js'
 import { LoadingSpinner } from './components/shared/LoadingSpinner.jsx'
 
 const Landing = lazy(() => import('./pages/Landing.jsx'))
@@ -36,6 +37,11 @@ function useExtensionSessionEndedListener() {
   useEffect(() => {
     return listenFromExtension((msg) => {
       if (msg?.event === 'session-ended' && msg.sessionId) {
+        // The extension has already ended it on the backend. If that request
+        // was lost (the worker was stopped by Chrome, the backend was busy),
+        // this ends it now, so it never stays "Recording". A session that
+        // has ended already is left exactly as it is.
+        api.post(`/sessions/${msg.sessionId}/end`, {}).catch(() => {})
         clearLiveSession()
         navigate(`/playback/${msg.sessionId}`)
       }

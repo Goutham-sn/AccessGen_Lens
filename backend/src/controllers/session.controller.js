@@ -67,7 +67,9 @@ export async function endSession(req, res, next) {
       session = await Session.end(session.id)
       // The extension says whether a tab recording is still on its way.
       // Without one, the video is built from the captured frames at once.
-      await enqueueSessionProcessing(session.id, { recordingExpected: req.body?.recordingExpected !== false })
+      const recordingExpected = req.body?.recordingExpected !== false
+      session = await Session.update(session.id, { recording_expected: recordingExpected })
+      await enqueueSessionProcessing(session.id, { recordingExpected })
     }
     res.json({ session })
   } catch (err) { next(err) }

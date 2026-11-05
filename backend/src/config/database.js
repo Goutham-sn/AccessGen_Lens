@@ -192,6 +192,10 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS upload_token_hash TEXT;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS upload_token_expires_at TIMESTAMP;
 -- Set by /end: frames and moments stop, the recording gets a grace period.
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS uploads_closed_at TIMESTAMP;
+-- Set at /end by the extension: whether a tab recording (tabCapture) is
+-- still on its way. FALSE means the captured frames are the whole video,
+-- so Playback has nothing to wait for once processing is done.
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS recording_expected BOOLEAN;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS recording_token_used BOOLEAN DEFAULT FALSE;
 
 -- Task Mode: the goal a persona was given, as { goal, intents: [text, ...] }.

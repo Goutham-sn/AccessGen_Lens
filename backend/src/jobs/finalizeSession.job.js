@@ -13,7 +13,7 @@ export async function finalizeIfStillPending(sessionId, io) {
   try {
     if (await videoFromFrames(sessionId, io)) return
   } catch (err) {
-    console.error(`[video] session ${sessionId}: could not build the video from frames:`, err.message)
+    console.error(`[video] session ${sessionId}: processing failed:`, err.message)
   }
 
   await Session.update(sessionId, { status: 'no_video', processing_complete: true })

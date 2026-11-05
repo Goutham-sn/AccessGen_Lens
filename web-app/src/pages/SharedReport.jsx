@@ -11,6 +11,7 @@ import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { mediaUrl, API_URL } from '../services/api.js'
 import { getVideoFilter } from '../data/simulationFilters.jsx'
+import { FramePlayer, playableFrames } from '../components/playback/FramePlayer.jsx'
 
 // Public, no-auth view of a shared empathy report.
 export default function SharedReport() {
@@ -89,9 +90,12 @@ export default function SharedReport() {
             <LookedAt lookedAt={data.lookedAt} idPrefix="shared-looked-at" />
             <NoticedSummary empathyMoments={data.empathyMoments} onJump />
             <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.noMomentsText} />
-            {data.session.video_url && (
+            {(data.session.video_url || playableFrames(data.frames).length >= 2) && (
               <section aria-labelledby="shared-watch-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
                 <h2 id="shared-watch-heading" className="text-xl font-semibold text-ink-900 mb-4">Watch the session</h2>
+                {!data.session.video_url ? (
+                  <FramePlayer frames={data.frames} controls label="Full session recording" />
+                ) : (
                 <video
                   src={mediaUrl(data.session.video_url)}
                   controls playsInline preload="metadata"
@@ -99,6 +103,7 @@ export default function SharedReport() {
                   style={{ filter: getVideoFilter() }}
                   aria-label="Full session recording"
                 />
+                )}
               </section>
             )}
           </div>

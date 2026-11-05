@@ -9,6 +9,7 @@ import { ensureBucket } from './config/storage.js'
 import { attachSessionSocket } from './socket/session.socket.js'
 import { startWorkers } from './jobs/queue.js'
 import { seedBuiltInPersonas } from './config/seed.js'
+import { ffmpegAvailable } from './utils/frameVideo.js'
 
 const PORT = process.env.PORT || 3001
 
@@ -19,6 +20,10 @@ async function main() {
   await migrate()
   await ensureBucket()
   await seedBuiltInPersonas()
+  if (!(await ffmpegAvailable())) {
+    console.warn('[video] ffmpeg was not found. Manual sessions will play back as a sequence of pictures instead of a video. ' +
+      'Rebuild the backend image to add it: docker compose up -d --build backend')
+  }
 
   const app = createApp()
   const server = http.createServer(app)

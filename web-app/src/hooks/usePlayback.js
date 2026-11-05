@@ -71,6 +71,7 @@ export function usePlayback(sessionId) {
     const v = videoRef.current
     if (!v) return
     const s = data?.session
+    if (!s?.video_url && Number.isFinite(v.duration)) { setDuration(v.duration); return }
     const fallback = s?.source === 'runner'
       ? (s.duration_seconds || 0)
       : Math.max(0, (s?.duration_seconds || 0) - (s?.recording_offset_ms || 0) / 1000)
@@ -102,7 +103,11 @@ export function usePlayback(sessionId) {
   // video. Returns null for moments logged before the recording started:
   // they have no video position.
   const sessionMsToVideoSeconds = useCallback((ms) => {
-    const offset = data?.session?.recording_offset_ms
+    // Played from the frames (no video file): time starts at the first frame.
+    const firstFrame = !data?.session?.video_url
+      ? (data?.frames || []).filter((f) => f.frame_index > 0).reduce((min, f) => Math.min(min, f.timestamp_ms), Infinity)
+      : Infinity
+    const offset = Number.isFinite(firstFrame) ? firstFrame : data?.session?.recording_offset_ms
     if (offset != null) {
       const sec = (ms - offset) / 1000
       return sec < 0 ? null : sec

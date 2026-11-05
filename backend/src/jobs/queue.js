@@ -4,7 +4,13 @@ import { processSession } from './sessionProcessing.job.js'
 import { finalizeIfStillPending } from './finalizeSession.job.js'
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'
-const opts = { redis: REDIS_URL, defaultJobOptions: { attempts: 2, removeOnComplete: 100, removeOnFail: 100 } }
+// Building a long session's video can take more than Bull's default 30 s
+// lock, and a job that outlives its lock is run a second time alongside.
+const opts = {
+  redis: REDIS_URL,
+  defaultJobOptions: { attempts: 2, removeOnComplete: 100, removeOnFail: 100 },
+  settings: { lockDuration: 5 * 60 * 1000 }
+}
 
 export const reportQueue = new Bull('report-generation', opts)
 export const sessionQueue = new Bull('session-processing', opts)

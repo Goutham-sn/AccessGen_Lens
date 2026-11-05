@@ -430,7 +430,7 @@ function startFrameCapture() {
 async function stopFrameCapture() {
   clearInterval(frames.timer)
   frames.timer = null
-  await flushFrames()
+  await withTimeout(flushFrames(), 10000)
 }
 
 // ------------------------------------------------------------- lifecycle
@@ -547,6 +547,13 @@ async function endSessionOnBackend(sessionId, token, apiUrl, uploadToken, record
   }
 }
 
+// Resolves when the promise does or after ms, whichever is first, so one
+// slow step (a big frame upload, a tab that does not answer) can never stop
+// the session from being ended on the backend.
+function withTimeout(promise, ms) {
+  return Promise.race([Promise.resolve(promise).catch(() => {}), new Promise((r) => setTimeout(r, ms))])
+}
+
 async function stopSimulation() {
   const sessionId = state.sessionId
   const tabId = state.targetTabId
@@ -558,10 +565,10 @@ async function stopSimulation() {
   if (tabId != null) {
     // Tell the content scripts to flush their last batch of events and
     // wait for that to actually happen before we touch the tab.
-    await destroySimulation(tabId)
+    await withTimeout(destroySimulation(tabId), 3000)
   }
   // The last frames go up before /end closes uploads.
-  await stopFrameCapture()
+  await withTimeout(stopFrameCapture(), 10000)
 
   // /end first (sets end_time/duration, status: processing), THEN stop and
   // upload the recording (which sets video_url and status: complete).

@@ -51,3 +51,6 @@ Thumbs.db
 
 # Local working notes, kept on disk only
 DEBUG_DIAGNOSIS.md
+
+# Redis snapshot written when redis-server runs from the repo folder
+dump.rdb

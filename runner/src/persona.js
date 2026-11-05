@@ -28,6 +28,29 @@ const STOPPED_DIALOG = 'The page opened a browser message box as soon as it load
 const STOPPED_DIALOG_TASK = 'The page opened a browser message box after we pressed Enter, so we stopped there and left it untouched.'
 const STOPPED_TIME = 'We reached the time limit for this run and kept what we had seen so far.'
 
+// Streams a picture of the page to the Run page about once a second, so
+// people watch their own site being used instead of a status line.
+function startFrames(page, sessionId, progress, pass) {
+  let busy = false
+  let stopped = false
+  const timer = setInterval(async () => {
+    if (busy || stopped || page.isClosed()) return
+    busy = true
+    try {
+      const buf = await page.screenshot({ type: 'jpeg', quality: 45, timeout: 2000 })
+      if (!stopped) progress.frame?.(sessionId, buf.toString('base64'), pass)
+    } catch { /* page navigating or closing */ } finally { busy = false }
+  }, 1200)
+  return () => { stopped = true; clearInterval(timer) }
+}
+
+// "link 'Pricing'", "button with no name", for the live log.
+function describeStop(stop) {
+  if (!stop || stop.kind === 'body') return 'the page itself (nothing has focus)'
+  const what = stop.role || stop.tag || 'element'
+  return stop.name ? `${what} "${String(stop.name).slice(0, 60)}"` : `${what} with no name`
+}
+
 // Runs one persona: a hidden measure pass, then the recorded pass that
 // produces the video. Every exit path finalizes the session.
 //
@@ -119,6 +142,8 @@ export async function runPersona(job, s, deps) {
       if (extraRoute) await extraRoute(mContext)
       const page = await mContext.newPage()
       timings.mark('measureLaunch')
+      const stopMeasureFrames = startFrames(page, s.sessionId, progress, 'measure')
+      mContext.on('close', stopMeasureFrames)
       // Task Mode presses Enter in this pass, so a message box that opens
       // stops it, left untouched. Before the walk starts nothing is listening,
       // as in every measure pass, and the browser dismisses it.
@@ -133,8 +158,10 @@ export async function runPersona(job, s, deps) {
         measureWatchdog = setTimeout(() => mContext.close().catch(() => {}), Math.max(0, deadline - Date.now()) + 2000)
       }
       progress.phase(s.sessionId, 'opening')
+      progress.log?.(s.sessionId, `Opening ${job.url} as ${s.persona.name}`)
       const loaded = await loadPage(page, job.url, { deadline })
       timings.mark('measureLoad')
+      if (loaded.ok) progress.log?.(s.sessionId, 'The page loaded. Reading it the way the person would.')
       if (!loaded.ok) {
         // If the page cannot be opened once, do not pay for a second try
         // in the recorded pass: finalize now with the plain reason.
@@ -170,14 +197,29 @@ export async function runPersona(job, s, deps) {
             taskFailure = taskMeasured.failure
           }
         } else {
+          progress.log?.(s.sessionId, walks
+            ? 'First pass: pressing Tab through every place on the page and measuring each one'
+            : 'First pass: looking through the page')
           const run = await measurePass(page, {
             detectors, deadline, persona: s, profileIds, walks,
-            onWalked: () => timings.mark('measureWalk')
+            onWalked: () => {
+              timings.mark('measureWalk')
+              progress.log?.(s.sessionId, 'Checking the whole page against every rule of the accessibility rules engine')
+            },
+            onStop: (stop, n) => progress.log?.(s.sessionId, `Tab ${n}: ${describeStop(stop)}`, { kind: 'step', step: n, pass: 'measure' })
           })
           measured = run.walk?.stops ?? null
           // A walk cut short by the time limit is never summarised as a normal result.
           if (run.walk?.ended === 'time') coverage.walkIncomplete = true
           candidates.push(...run.candidates)
+          {
+            const audit = run.candidates.filter((c) => c.detector === 'page-audit')
+            const elements = audit.reduce((n, c) => n + (c.evidence?.count || 1), 0)
+            const other = run.candidates.length - audit.length
+            progress.log?.(s.sessionId, `Found ${audit.length} accessibility rule${audit.length === 1 ? '' : 's'} broken on ${elements} element${elements === 1 ? '' : 's'}` +
+              (walks ? `, and ${other} keyboard problem${other === 1 ? '' : 's'} along the way` : ''), { kind: 'summary' })
+            progress.log?.(s.sessionId, 'Second pass: doing it again on camera, with the person\'s view, and showing each problem as it is confirmed')
+          }
           debug.detectorProblems.push(...run.problems)
           // What we could not look at, in plain words.
           coverage.notes = [
@@ -221,6 +263,8 @@ export async function runPersona(job, s, deps) {
         videoStart = Date.now()
         page = await context.newPage()
         timings.mark('launch')
+        const stopRecordFrames = startFrames(page, s.sessionId, progress, 'record')
+        context.on('close', stopRecordFrames)
 
         // Hard stop: close the context if anything below hangs past the cap.
         watchdog = setTimeout(() => {
@@ -419,6 +463,7 @@ export async function runPersona(job, s, deps) {
               paceMs: config.walk.recordedPaceMs,
               onStop: async (stop, n) => {
                 stopsSeen = n
+                progress.log?.(s.sessionId, `Tab ${n}: ${describeStop(stop)}`, { kind: 'step', step: n, pass: 'record' })
                 // Confirm against the measure pass at the same position.
                 const expected = measured?.[n - 1]
                 if (!expected || expected.selector !== stop.selector || expected.name !== stop.name) {

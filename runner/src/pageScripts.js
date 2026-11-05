@@ -172,16 +172,18 @@ export function installOverlay() {
       .label { position: fixed; display: none; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 17px;
         background: #ff00ff; color: #ffffff; border: 2px solid #ffffff;
         font: 700 20px/30px system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center; }
-      .caption { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); display: none;
-        max-width: 80vw; padding: 14px 22px; border-radius: 12px; background: #111827; color: #ffffff;
-        border: 2px solid #ffffff; font: 600 28px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .caption { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); display: none;
+        width: min(900px, 86vw); padding: 16px 22px; border-radius: 6px; background: #111111; color: #ffffff;
+        border: 2px solid #ffffff; border-left: 8px solid #ff00ff; font: 600 26px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .caption .el { display: block; margin-top: 8px; font: 500 18px/1.3 ui-monospace, Menlo, monospace; color: #f5d0fe; }
+      .caption .fact { display: block; margin-top: 6px; font-size: 19px; font-weight: 400; color: #e5e7eb; }
       .sync { position: fixed; left: 0; top: 0; width: 48px; height: 48px; display: none; }
       .caption .note { display: block; margin-top: 6px; font-size: 20px; font-weight: 500; color: #ffffff; }
       .caption .time { display: block; font-size: 18px; font-weight: 500; color: #e5e7eb; margin-bottom: 4px;
         font-variant-numeric: tabular-nums; }
     </style>
     <div class="sync"></div><div class="ring"></div><div class="label"></div>
-    <div class="caption"><span class="time"></span><span class="text"></span><span class="note"></span></div>
+    <div class="caption"><span class="time"></span><span class="text"></span><span class="el"></span><span class="fact"></span><span class="note"></span></div>
     <div class="chip"><span class="key"></span><span class="count"></span></div>`
   document.documentElement.appendChild(host)
   const chip = root.querySelector('.chip')
@@ -237,9 +239,17 @@ export function installOverlay() {
       return { ring: { x, y, width: w, height: h }, label: { x: lx, y: ly, width: lw, height: lh } }
     },
     // note: shown under the sentence while the persona's filter is paused.
-    caption(text, time, note) {
+    // detail: { element, fact }, written under the sentence so the moment
+    // can be understood from the video alone.
+    caption(text, time, note, detail) {
       caption.querySelector('.time').textContent = time
       caption.querySelector('.text').textContent = text
+      const el = caption.querySelector('.el')
+      el.textContent = detail?.element ? `On: ${detail.element}` : ''
+      el.style.display = detail?.element ? 'block' : 'none'
+      const fact = caption.querySelector('.fact')
+      fact.textContent = detail?.fact ? String(detail.fact).slice(0, 220) : ''
+      fact.style.display = detail?.fact ? 'block' : 'none'
       const n = caption.querySelector('.note')
       n.textContent = note || ''
       n.style.display = note ? 'block' : 'none'

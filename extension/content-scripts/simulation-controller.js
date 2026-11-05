@@ -6,6 +6,8 @@
 import { setSession, send } from './communicator.js'
 import { mountControlPanel, KEYBOARD_HINTS } from '../overlay/ControlPanel.js'
 import { showIntro } from '../overlay/Intro.js'
+import { startAuditor } from './auditor.js'
+import { scanForKeyboard } from '../profiles/motor/keyboardScan.js'
 
 import { Deuteranopia } from '../profiles/visual/Deuteranopia.js'
 import { Achromatopsia } from '../profiles/visual/Achromatopsia.js'
@@ -109,7 +111,11 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
   const onFriction = (e) => panel?.noteFriction(e.detail.headline)
   window.addEventListener('accessgen-friction', onFriction)
 
+  let stopAuditor = null
+
   function destroyAll() {
+    stopAuditor?.()
+    stopAuditor = null
     window.removeEventListener('accessgen-friction', onFriction)
     for (const instance of active.values()) {
       try { instance.destroy() } catch { /* keep tearing down */ }
@@ -158,6 +164,19 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
       requestAnimationFrame(() => requestAnimationFrame(() => console.timeEnd('[timing] profiles applied to first filtered frame'))) // [timing]
       panel?.setRecording(payload.videoRecording === true)
       panel?.setMission(payload.mission, { baseline: payload.baseline, startedAt: payload.missionStartedAt })
+      // Every page is checked against every rule, whatever the conditions:
+      // nothing the rules engine can find is left out. Not in the "as
+      // yourself" first run of a mission, which is only the baseline.
+      if (!payload.baseline && !stopAuditor) {
+        stopAuditor = startAuditor({ profileIds: (payload.profiles || []).map((p) => p.id) })
+        // Things only a mouse can use, hover-only menus, a forced Tab order
+        // and no skip link hurt keyboard, switch and screen reader users
+        // whatever conditions this session simulates, so they are always
+        // looked for (the rules engine cannot see click handlers).
+        const scans = [setTimeout(() => scanForKeyboard('keyboard-only'), 1300), setTimeout(() => scanForKeyboard('keyboard-only'), 6500)]
+        const stop = stopAuditor
+        stopAuditor = () => { scans.forEach(clearTimeout); stop() }
+      }
       if (payload.showIntro) {
         const profiles = payload.profiles || []
         const hints = profiles.map((p) => KEYBOARD_HINTS[p.id]).filter(Boolean)

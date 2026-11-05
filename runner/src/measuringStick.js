@@ -4,12 +4,12 @@
 export const MEASURING_STICK = {
   evidence: {
     holdMs: {
-      value: 1200,
-      reason: 'Each moment stays on screen for about a second, long enough to read the caption without slowing the video down.'
+      value: 5000,
+      reason: 'Each moment stays on screen for five seconds, with the element and the problem written out, long enough to read it all.'
     },
     maxHolds: {
-      value: 8,
-      reason: 'Only the first eight moments pause the video. Later ones are kept as pictures, so a long page still makes a short video.'
+      value: 60,
+      reason: 'Every moment pauses the video (up to sixty), so none flashes past unread.'
     },
     closeupPaddingPx: {
       value: 40,

@@ -103,7 +103,7 @@ services:
       MINIO_BUCKET: accessgen-lens
       MINIO_USE_SSL: "false"
       RUNNER_MAX_CONTEXTS: 4
-      RUNNER_PERSONA_CAP_MS: 90000
+      RUNNER_PERSONA_CAP_MS: 360000
       RUNNER_INTERNAL_SERVICES: postgres,redis,minio,backend,runner
       # Dev only. Checks that are built but not yet verified by hand produce
       # moments (labelled "Unverified, for testing") only when UNVERIFIED_CHECKS=1

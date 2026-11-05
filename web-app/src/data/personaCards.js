@@ -54,7 +54,8 @@ export const PERSONA_CARDS = [
       { text: 'How many presses it takes David to reach the main content', check: 'long-way' },
       { text: "Places where David's place on the page disappears", check: 'focus-lost' },
       { text: 'Places where something covers the part of the page David is on', check: 'focus-hidden' },
-      { text: 'Places where Tab keeps David going round in a loop', check: 'trap' }
+      { text: 'Places where Tab keeps David going round in a loop', check: 'trap' },
+      { text: 'Anything marked only by colour, and every other rule of the accessibility rules engine', check: 'page-audit' }
     ],
     notSimulated: [ONLY_OBSERVES],
     estimatedSeconds: 30,
@@ -88,11 +89,10 @@ export const PERSONA_CARDS = [
     ],
     looksAt: [
       { text: 'Where each press of Tab lands, and how many presses it takes', check: 'tab-walk' },
-      { text: 'Buttons and links with no name James could hear', check: 'unnamed-controls' },
-      { text: 'Images with no description', check: 'image-alt' },
-      { text: 'Form fields with no name', check: 'unnamed-fields' },
-      { text: 'Whether the page has a title, headings and a main area to jump to', check: 'structure' },
-      { text: 'What James would hear for the first 40 things on the page', check: 'narration' }
+      { text: 'Buttons and links with no name James could hear', check: 'page-audit' },
+      { text: 'Images with no description, and form fields with no label', check: 'page-audit' },
+      { text: 'Whether the page has a title, a language, headings and a main area to jump to', check: 'page-audit' },
+      { text: 'Every other rule of the accessibility rules engine, with each element that fails it', check: 'page-audit' }
     ],
     notSimulated: [
       { text: 'The voice and shortcut keys of a real screen reader. This run reads the page structure the browser exposes.' },
@@ -413,8 +413,8 @@ function lowVisionCard({ id, personaName, avatarColor, age, place, severity, sto
     ],
     looksAt: [
       { text: 'The page blurred and dimmed to {their} level of sight', check: 'filter-video' },
-      { text: 'Whether the page still fits when text is made four times larger', check: 'reflow-320' },
-      { text: 'Bars or banners that cover much of the screen when zoomed in', check: 'covering' }
+      { text: 'Text too faint to read against its background', check: 'page-audit' },
+      { text: 'Whether zoom is switched off, and every other rule of the accessibility rules engine', check: 'page-audit' }
     ],
     notSimulated: [...notSimulated, ONLY_OBSERVES],
     estimatedSeconds: 35,

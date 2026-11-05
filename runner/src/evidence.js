@@ -122,7 +122,9 @@ export function createEvidenceEngine({ page, readyAt, captionZeroAt = readyAt, n
     const held = holds < stick('evidence', 'maxHolds')
     if (held) {
       holds++
-      await call(page, 'caption', finding.headline, formatVideoTime(now() - captionZeroAt), filtered ? pauseNote : null)
+      const what = [element.role, element.name ? `"${String(element.name).slice(0, 80)}"` : null].filter(Boolean).join(' ')
+      await call(page, 'caption', finding.headline, formatVideoTime(now() - captionZeroAt), filtered ? pauseNote : null,
+        { element: what || element.selector, fact: finding.fact })
       await page.waitForTimeout(stick('evidence', 'holdMs'))
     }
 

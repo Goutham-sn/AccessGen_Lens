@@ -105,7 +105,7 @@ export async function logEmpathyMoment(req, res, next) {
     const session = await Session.findById(req.params.id)
     if (!session) return res.status(404).json({ error: 'Session not found' })
 
-    const { timestampMs, frameIndex, label, note, screenshot, activeProfiles, detector, profileId, rect } = req.body
+    const { timestampMs, frameIndex, label, note, screenshot, activeProfiles, detector, profileId, rect, evidence } = req.body
     if (!label || typeof label !== 'string') return res.status(400).json({ error: 'A label is required' })
     // 'extension-auto': noticed by the simulation itself (friction.js), not
     // logged by the tester. Nothing else may be claimed from here.
@@ -135,7 +135,10 @@ export async function logEmpathyMoment(req, res, next) {
       source,
       detector: source === 'extension-auto' && typeof detector === 'string' ? detector.slice(0, 64) : null,
       profileId: typeof profileId === 'string' ? profileId.slice(0, 64) : null,
-      rect: cleanRect
+      rect: cleanRect,
+      // The page audit's findings: every element, kept as data only (never
+      // rendered as markup). Capped so one moment cannot be huge.
+      evidence: source === 'extension-auto' && evidence && typeof evidence === 'object' && JSON.stringify(evidence).length < 200000 ? evidence : null
     })
     await Session.incrementCounts(session.id, { moments: 1 })
 

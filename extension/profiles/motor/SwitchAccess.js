@@ -1,7 +1,6 @@
 import { BaseProfile } from '../BaseProfile.js'
 import { send } from '../../content-scripts/communicator.js'
 import { reportFriction, describeElement } from '../../content-scripts/friction.js'
-import { scanForKeyboard } from './keyboardScan.js'
 
 const SCAN_INTERVAL = { 1: 3000, 2: 2000, 3: 1500 }
 const FOCUSABLE = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex]:not([tabindex="-1"]), [role="button"], [role="link"]'
@@ -57,8 +56,6 @@ export class SwitchAccess extends BaseProfile {
     this.addObserver(observer, document.body, { childList: true, subtree: true })
 
     this.startScanning()
-    // Anything a mouse can use but the scan never stops on is out of reach.
-    this.scanTimer = setTimeout(() => scanForKeyboard('switch-access', { only: ['mouse-only', 'hover-menu'] }), 1200)
   }
 
   collect() {

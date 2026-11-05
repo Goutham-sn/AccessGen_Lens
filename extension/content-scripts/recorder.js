@@ -150,7 +150,7 @@
   // Struggles the profiles noticed themselves: uploaded as automatic moments.
   window.addEventListener('accessgen-friction', async (e) => {
     if (!sessionId || !recording) return
-    const { kind, profileId, headline, detail, rect } = e.detail
+    const { kind, profileId, headline, detail, rect, evidence } = e.detail
     const timestampMs = Date.now() - sessionStartTime
     const screenshot = await captureScreenshot()
     await upload('moment', {
@@ -161,7 +161,8 @@
       source: 'extension-auto',
       detector: kind,
       profileId,
-      rect
+      rect,
+      evidence
     })
   })
 

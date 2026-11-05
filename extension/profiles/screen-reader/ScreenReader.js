@@ -8,7 +8,6 @@ import { styleHost, mountTopLayer, keepOnTop } from '../../overlay/topLayer.js'
 // reads one at a time.
 const READABLE = 'h1,h2,h3,h4,h5,h6,p,li,a[href],button,input:not([type="hidden"]),select,textarea,img,[role="button"],[role="link"],[role="heading"],[role="img"],blockquote,figcaption,td,th,label,summary'
 const HEADINGS = 'h1,h2,h3,h4,h5,h6,[role="heading"]'
-const CONTROLS = 'a[href],button,input:not([type="hidden"]),select,textarea,[role="button"],[role="link"]'
 
 const IMPLICIT_ROLES = {
   A: 'link', BUTTON: 'button', INPUT: 'text field', SELECT: 'combo box',
@@ -101,55 +100,6 @@ export class ScreenReader extends BaseProfile {
     this.announce(
       `${title}. Page loaded. ${headings} headings, ${links} links, ${landmarks} landmarks. Press Tab to move, the Down arrow to read, H for the next heading.`
     )
-    if (!document.title) {
-      reportFriction({
-        kind: 'sr-no-title',
-        profileId: 'screen-reader',
-        headline: 'The page has no title, so it was announced as "Untitled page"',
-        detail: 'The title is the first thing a screen reader says. Without it, nobody can tell which page or tab this is.'
-      })
-    }
-    if (headings === 0) {
-      reportFriction({
-        kind: 'sr-no-headings',
-        profileId: 'screen-reader',
-        headline: 'There are no headings to jump between',
-        detail: 'Screen reader users skim a page by its headings. Here they have to listen to everything, in order.'
-      })
-    }
-    setTimeout(() => this.scanUnnamed(), 800)
-  }
-
-  // Unnamed controls and pictures, found once per page.
-  scanUnnamed() {
-    let controls = 0
-    let images = 0
-    let first = null
-    for (const el of document.querySelectorAll(CONTROLS)) {
-      if (el.closest('[data-accessgen]') || el.getBoundingClientRect().width === 0) continue
-      if (!this.getLabel(el)) { controls += 1; first = first || el }
-    }
-    for (const img of document.querySelectorAll('img')) {
-      if (img.closest('[data-accessgen]') || img.getBoundingClientRect().width < 24) continue
-      if (!img.hasAttribute('alt') && !img.getAttribute('aria-label') && img.getAttribute('role') !== 'presentation') images += 1
-    }
-    if (controls > 0) {
-      reportFriction({
-        kind: 'sr-unnamed-controls',
-        profileId: 'screen-reader',
-        target: first,
-        headline: `${controls} button${controls === 1 ? '' : 's'} or link${controls === 1 ? '' : 's'} would be read out with no name`,
-        detail: 'All a screen reader user hears is "button" or "link". They have to press it to find out what it does.'
-      })
-    }
-    if (images > 0) {
-      reportFriction({
-        kind: 'sr-unnamed-images',
-        profileId: 'screen-reader',
-        headline: `${images} picture${images === 1 ? ' has' : 's have'} no description`,
-        detail: 'A screen reader either skips them or reads out the file name. Whatever they show is lost.'
-      })
-    }
   }
 
   noticeUnnamed(el) {

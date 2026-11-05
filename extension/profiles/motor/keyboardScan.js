@@ -147,7 +147,8 @@ export function mouseOnlyTarget(target) {
 
 // only: which findings to look for (Switch Access has no Tab key, so the
 // Tab order and skip link findings are for Keyboard Only).
-export function scanForKeyboard(profileId, { only = ['mouse-only', 'hover-menu', 'tab-order', 'no-skip'] } = {}) {
+export function scanForKeyboard(profileId, { only = ['mouse-only', 'hover-menu', 'no-skip'] } = {}) {
+  // A forced Tab order is the rules engine's "tabindex" rule (auditor.js), so it is not repeated here.
   const mouseOnly = only.includes('mouse-only') ? findMouseOnly() : []
   if (mouseOnly.length) {
     reportFriction({

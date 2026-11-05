@@ -2,7 +2,7 @@ import { BaseProfile } from '../BaseProfile.js'
 import { FocusOrderVisualiser } from '../../overlay/FocusVisualiser.js'
 import { send } from '../../content-scripts/communicator.js'
 import { reportFriction, describeElement } from '../../content-scripts/friction.js'
-import { scanForKeyboard, watchDeadKeys, checkCovered, mouseOnlyTarget, TrapWatch } from './keyboardScan.js'
+import { watchDeadKeys, checkCovered, mouseOnlyTarget, TrapWatch } from './keyboardScan.js'
 
 const BLOCKED_EVENTS = [
   'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick',
@@ -61,10 +61,8 @@ export class KeyboardOnly extends BaseProfile {
 
     // Look at the whole page once it has settled, and again a little later
     // for content that arrives after load. Each finding is reported once.
-    this.scanTimers = [
-      setTimeout(() => scanForKeyboard('keyboard-only'), 1200),
-      setTimeout(() => scanForKeyboard('keyboard-only'), 6000)
-    ]
+    // The page scan itself runs for every session (simulation-controller).
+    this.scanTimers = []
     watchDeadKeys('keyboard-only', (...args) => this.addListener(...args))
     this.trap = new TrapWatch('keyboard-only')
 

@@ -22,7 +22,7 @@ export const config = {
     bucket: process.env.MINIO_BUCKET || 'accessgen-lens'
   },
   // Hard cap per persona, from first context to finalized session.
-  personaCapMs: parseInt(process.env.RUNNER_PERSONA_CAP_MS || '90000', 10),
+  personaCapMs: parseInt(process.env.RUNNER_PERSONA_CAP_MS || '360000', 10),
   // Live browser contexts per worker. Each persona holds at most one.
   maxContexts: parseInt(process.env.RUNNER_MAX_CONTEXTS || '4', 10),
   // Runs a worker takes from the queue at once.

@@ -528,7 +528,7 @@ async function startSimulation({ profiles, sessionId, url, token, apiUrl, upload
 // this worker's state, and only the expected fields are forwarded.
 const UPLOAD_KINDS = {
   frames: { path: 'frames', fields: ['frames', 'events'] },
-  moment: { path: 'empathy-moments', fields: ['label', 'note', 'screenshot', 'timestampMs', 'activeProfiles', 'source', 'detector', 'profileId', 'rect'] }
+  moment: { path: 'empathy-moments', fields: ['label', 'note', 'screenshot', 'timestampMs', 'activeProfiles', 'source', 'detector', 'profileId', 'rect', 'evidence'] }
 }
 
 async function uploadFromTab(sender, payload) {

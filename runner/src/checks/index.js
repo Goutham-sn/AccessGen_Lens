@@ -8,6 +8,7 @@ import longWay from './longWay.js'
 import focusLost from './focusLost.js'
 import focusHidden from './focusHidden.js'
 import trap from './trap.js'
+import pageAudit from './pageAudit.js'
 
 // The keyboard detectors, in the order they run at each stop. Trap is last
 // because it ends the measure pass with one press of Escape.
@@ -19,6 +20,7 @@ export const KEYBOARD_CHECKS = [focusVisible, longWay, focusLost, focusHidden, t
 export const CHECKS = {
   [tabWalk.id]: tabWalk,
   [filterVideo.id]: filterVideo,
+  [pageAudit.id]: pageAudit,
   ...Object.fromEntries(KEYBOARD_CHECKS.map((c) => [c.id, c]))
 }
 

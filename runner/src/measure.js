@@ -16,7 +16,7 @@ import { checkStatus } from '../../backend/src/config/runnerCapabilities.js'
 // "what we could not look at"; the same line is kept once.
 //
 // Findings are candidates only; the recorded pass confirms them.
-export async function measurePass(page, { detectors, deadline, persona, profileIds = [], walks = true, onWalked } = {}) {
+export async function measurePass(page, { detectors, deadline, persona, profileIds = [], walks = true, onWalked, onStop: onStopSeen } = {}) {
   const notes = []
   const problems = []
   const candidates = []
@@ -46,6 +46,7 @@ export async function measurePass(page, { detectors, deadline, persona, profileI
         beforePress: () => page.evaluate(clearFocusRecord).catch(() => {}),
         afterPress: async (stop) => (stop.kind === 'body' ? { flashed: await readFlashed(page) } : null),
         onStop: async (stop, step) => {
+          onStopSeen?.(stop, step)
           for (const d of detectors) {
             if (!d.onStop) continue
             try {

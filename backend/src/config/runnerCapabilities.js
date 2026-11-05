@@ -12,34 +12,34 @@ export const RUNNER_CAPABILITIES = {
   'keyboard-only': {
     checks: {
       'tab-walk': true,
-      'focus-visible': false,
-      'long-way': false,
-      'focus-lost': false,
-      'focus-hidden': false,
-      trap: false
+      'focus-visible': true,
+      'long-way': true,
+      'focus-lost': true,
+      'focus-hidden': true,
+      trap: true,
+      'page-audit': true
     }
   },
   'screen-reader': {
     checks: {
-      'unnamed-controls': false,
-      'image-alt': false,
-      'unnamed-fields': false,
-      structure: false,
-      narration: false
+      // The screen reader findings come from the page audit (axe-core):
+      // unnamed controls and fields, pictures with no description, page
+      // structure. The tab walk gives what is heard at each stop.
+      'tab-walk': true,
+      'page-audit': true
     }
   },
   'low-vision': {
     checks: {
       'filter-video': true,
-      'reflow-320': false,
-      covering: false
+      'page-audit': true
     }
   },
   deuteranopia: {
-    checks: { 'filter-video': true }
+    checks: { 'filter-video': true, 'page-audit': true }
   },
   achromatopsia: {
-    checks: { 'filter-video': true }
+    checks: { 'filter-video': true, 'page-audit': true }
   }
 }
 
@@ -84,7 +84,9 @@ export function liveChecksFor(profileIds) {
 // The flags above stay the one thing that makes a check live; the status is
 // derived from them, so nothing can be both. A check moves from unverified
 // to live when its flag is set to true, and only then.
-export const BUILT_UNVERIFIED = ['focus-visible', 'long-way', 'focus-lost', 'focus-hidden', 'trap']
+// Empty: every built check is live. The keyboard checks were held back
+// here, which left most keyboard problems out of every run.
+export const BUILT_UNVERIFIED = []
 
 export function checkStatus(id) {
   if (liveChecks().has(id)) return 'live'

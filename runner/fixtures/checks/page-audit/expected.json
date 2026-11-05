@@ -1,0 +1,4 @@
+{
+  "broken.html": { "rules": ["button-name", "color-contrast", "document-title", "html-has-lang", "image-alt", "label", "landmark-one-main", "link-name", "page-has-heading-one", "region"] },
+  "clean.html": { "rules": [] }
+}

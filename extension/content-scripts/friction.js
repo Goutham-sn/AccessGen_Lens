@@ -51,7 +51,7 @@ function targetKey(el) {
 // headline:  one short sentence in plain words ("Your click landed on ...")
 // detail:    optional longer text, what a person living with it would feel
 // target:    optional element, used for de-duplication and the highlight box
-export function reportFriction({ kind, profileId, headline, detail = null, target = null }) {
+export function reportFriction({ kind, profileId, headline, detail = null, target = null, evidence = null }) {
   const state = getState()
   const count = state.perKind.get(kind) || 0
   if (count >= (KIND_LIMITS[kind] ?? PER_KIND_LIMIT)) return false
@@ -70,7 +70,7 @@ export function reportFriction({ kind, profileId, headline, detail = null, targe
     }
   }
   window.dispatchEvent(new CustomEvent('accessgen-friction', {
-    detail: { kind, profileId, headline, detail, rect, url: location.href }
+    detail: { kind, profileId, headline, detail, rect, evidence, url: location.href }
   }))
   return true
 }

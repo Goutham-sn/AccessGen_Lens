@@ -7,6 +7,9 @@ import { useSessionStore } from '../store/sessionStore.js'
 import { useAuthStore } from '../store/authStore.js'
 import { getProfile } from '../data/profiles.js'
 import { formatDuration } from '../utils/moments.js'
+import { formatMs } from '../utils/missionChain.js'
+import { Icon } from '../components/brand/Icon.jsx'
+import { avatarColorFor } from '../data/personaCards.js'
 import { mediaUrl, api } from '../services/api.js'
 import { getExtensionStatus } from '../services/extension-bridge.js'
 
@@ -20,7 +23,7 @@ function SessionCard({ session, onDelete, liveId, onFinish }) {
       : session.status === 'no_video' ? 'No recording' : 'Processing'
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
+    <article className="card overflow-hidden flex flex-col transition hover:shadow-lift">
       {session.page_thumbnail ? (
         <img src={mediaUrl(session.page_thumbnail)} alt="" className="h-32 w-full object-cover object-top" loading="lazy" />
       ) : (
@@ -42,8 +45,19 @@ function SessionCard({ session, onDelete, liveId, onFinish }) {
         <h3 className="mt-2 font-medium text-ink-900 truncate" title={session.url}>
           {session.page_title || session.url}
         </h3>
+        {session.mission?.goal && (
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-700">
+            <Icon name="target" size={15} className="shrink-0 text-ember-600" />
+            <span className="truncate">“{session.mission.goal}”</span>
+            {session.mission.outcome && (
+              <span className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${session.mission.outcome === 'done' ? 'bg-emerald-50 text-emerald-800' : 'bg-ember-50 text-ember-800'}`}>
+                {session.mission.outcome === 'done' ? `Did it · ${formatMs(session.mission.durationMs)}` : 'Gave up'}
+              </span>
+            )}
+          </p>
+        )}
         <p className="text-sm text-ink-600">
-          {persona ? `As ${persona.name}` : `${(session.active_profiles || []).length} condition${(session.active_profiles || []).length === 1 ? '' : 's'}`}
+          {persona ? `As ${persona.name}` : (session.active_profiles || []).length === 0 ? 'As yourself' : `${(session.active_profiles || []).length} condition${(session.active_profiles || []).length === 1 ? '' : 's'}`}
           {' · '}{formatDuration(session.duration_seconds)}
           {' · '}{session.empathy_moment_count} moment{session.empathy_moment_count === 1 ? '' : 's'}
         </p>
@@ -110,27 +124,31 @@ export default function Dashboard() {
   return (
     <PageWrapper
       title={`Welcome${user?.name ? `, ${user.name}` : ''}`}
-      actions={
-        <Link to="/start" className="inline-flex min-h-[48px] items-center justify-center rounded-lg bg-brand-700 px-6 py-3 text-base font-medium text-white hover:bg-brand-800">
-          New session
-        </Link>
-      }
+      actions={null}
     >
       <section aria-labelledby="sessions-heading">
         <h2 id="sessions-heading" className="text-lg font-medium text-ink-900 mb-4">Your sessions</h2>
         {sessionsLoading ? (
           <LoadingSpinner label="Loading your sessions" />
         ) : sessions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 p-12 text-center">
-            <p className="text-ink-600">You haven't experienced anything yet.</p>
-            <p className="mt-1 text-sm text-ink-500">
-              Start your first session and feel what your visitors feel.
-            </p>
-            <Link
-              to="/start"
-              className="mt-6 inline-flex min-h-[40px] items-center rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
-            >
-              Choose your first experience
+          <div className="relative overflow-hidden rounded-3xl bg-ink-950 p-8 text-white sm:p-12">
+            <div aria-hidden="true" className="grain pointer-events-none absolute inset-0" />
+            <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-brand-600/30 blur-[100px]" />
+            <p className="relative text-xs font-semibold uppercase tracking-[0.16em] text-ember-300">Your first ten minutes</p>
+            <h3 className="relative mt-3 max-w-xl font-display text-4xl font-semibold leading-tight">Pick one page you own, and one person.</h3>
+            <p className="relative mt-3 max-w-xl text-white/65">Give yourself a mission, do it as yourself, then as them. You will come back with a number and a picture of the exact spot it broke.</p>
+            <ul className="relative mt-8 grid gap-3 sm:grid-cols-3">
+              {[['Ravi', 65, "Parkinson's tremor"], ['Meera', 72, 'Macular degeneration'], ['Ananya', 19, 'Dyslexia and ADHD']].map(([n, a, l]) => (
+                <li key={n}>
+                  <Link to="/start#manual" className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 hover:border-white/25 hover:bg-white/10">
+                    <span aria-hidden="true" className="flex h-11 w-11 items-center justify-center rounded-full font-semibold text-ink-900" style={{ background: avatarColorFor(n) || '#d1ccff' }}>{n.charAt(0)}</span>
+                    <span><span className="block font-semibold">{n}, {a}</span><span className="block text-sm text-white/55">{l}</span></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link to="/start" className="relative mt-8 inline-flex min-h-[48px] items-center gap-2 rounded-full bg-white px-6 font-semibold text-ink-900 hover:bg-brand-50">
+              Start an experience <Icon name="arrow" size={18} />
             </Link>
           </div>
         ) : (

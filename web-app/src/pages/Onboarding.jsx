@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore.js'
-import { Navbar } from '../components/layout/Navbar.jsx'
+import { Link } from 'react-router-dom'
+import { Logo } from '../components/brand/Logo.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { useExtension } from '../hooks/useExtension.js'
 
@@ -25,11 +26,23 @@ export default function Onboarding() {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
   return (
-    <div className="min-h-screen">
+    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <Navbar />
-      <main id="main-content" className="mx-auto max-w-md px-4 py-16">
-        <h1 className="text-2xl font-semibold text-ink-900">
+      <aside className="relative hidden overflow-hidden bg-ink-950 p-12 text-white lg:flex lg:flex-col">
+        <div aria-hidden="true" className="grain pointer-events-none absolute inset-0" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full bg-brand-600/30 blur-[110px]" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-10 h-96 w-96 rounded-full bg-ember-500/20 blur-[110px]" />
+        <Link to="/" className="relative"><Logo dark /></Link>
+        <div className="relative mt-auto max-w-md">
+          <p className="font-display text-4xl font-semibold leading-tight">
+            You know the button is small. You do not know it takes eleven tries.
+          </p>
+          <p className="mt-4 text-white/60">Not until you have used your own page as someone whose hand shakes. That is the ten minutes this is for.</p>
+        </div>
+      </aside>
+      <main id="main-content" className="mx-auto w-full max-w-md px-5 py-16 lg:py-24">
+        <Link to="/" className="mb-10 inline-block lg:hidden"><Logo /></Link>
+        <h1 className="font-display text-4xl font-semibold text-ink-900">
           {mode === 'register' ? 'Create your account' : 'Welcome back'}
         </h1>
         <p className="mt-2 text-sm text-ink-600">
@@ -45,7 +58,7 @@ export default function Onboarding() {
               <input
                 id="name" type="text" value={form.name} onChange={set('name')}
                 autoComplete="name"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                className="w-full rounded-xl border border-black/15 bg-white px-3 py-2"
               />
             </div>
           )}
@@ -54,7 +67,7 @@ export default function Onboarding() {
             <input
               id="email" type="email" required value={form.email} onChange={set('email')}
               autoComplete="email"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              className="w-full rounded-xl border border-black/15 bg-white px-3 py-2"
             />
           </div>
           <div>
@@ -64,7 +77,7 @@ export default function Onboarding() {
             <input
               id="password" type="password" required minLength={8} value={form.password} onChange={set('password')}
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              className="w-full rounded-xl border border-black/15 bg-white px-3 py-2"
             />
           </div>
 

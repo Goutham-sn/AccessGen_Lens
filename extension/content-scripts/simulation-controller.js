@@ -4,7 +4,8 @@
 // teardown.
 
 import { setSession, send } from './communicator.js'
-import { mountControlPanel } from '../overlay/ControlPanel.js'
+import { mountControlPanel, KEYBOARD_HINTS } from '../overlay/ControlPanel.js'
+import { showIntro } from '../overlay/Intro.js'
 
 import { Deuteranopia } from '../profiles/visual/Deuteranopia.js'
 import { Achromatopsia } from '../profiles/visual/Achromatopsia.js'
@@ -130,6 +131,12 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
       }))
     })
 
+    panel.addEventListener('mission-outcome', (e) => {
+      chrome.runtime.sendMessage({ type: 'ACCESSGEN_MISSION_OUTCOME', payload: { outcome: e.detail.outcome } }).catch(() => {
+        panel?.setStopping(false)
+      })
+    })
+
     panel.addEventListener('stop-simulation', () => {
       chrome.runtime.sendMessage({ type: 'ACCESSGEN_STOP_SIMULATION' }).catch(() => {
         // Background worker unreachable: let the user try again rather
@@ -150,6 +157,19 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
       applyProfiles(payload.profiles || [])
       requestAnimationFrame(() => requestAnimationFrame(() => console.timeEnd('[timing] profiles applied to first filtered frame'))) // [timing]
       panel?.setRecording(payload.videoRecording === true)
+      panel?.setMission(payload.mission, { baseline: payload.baseline, startedAt: payload.missionStartedAt })
+      if (payload.showIntro) {
+        const profiles = payload.profiles || []
+        const hints = profiles.map((p) => KEYBOARD_HINTS[p.id]).filter(Boolean)
+        panel?.host.style.setProperty('visibility', 'hidden', 'important')
+        showIntro({ persona: payload.persona, profiles, hints, mission: payload.mission, baseline: payload.baseline })
+          .then(() => {
+            panel?.host.style.setProperty('visibility', 'visible', 'important')
+            return chrome.runtime.sendMessage({ type: 'ACCESSGEN_MISSION_START' })
+          })
+          .then((reply) => panel?.startMission(reply?.missionStartedAt))
+          .catch(() => panel?.startMission(Date.now()))
+      }
       send('session-event', { event: { type: 'simulation-started', url: location.href } })
       sendResponse({ ok: true })
     }

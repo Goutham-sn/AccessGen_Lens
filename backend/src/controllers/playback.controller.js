@@ -1,4 +1,5 @@
 import { Session } from '../models/Session.js'
+import { missionComparison } from '../utils/mission.js'
 import { noMomentsText } from '../utils/lookedAt.js'
 import { Frame } from '../models/Frame.js'
 import { Event } from '../models/Event.js'
@@ -21,6 +22,7 @@ export async function getPlayback(req, res, next) {
 
     // uploadWindow: { open, waitUntil }. Playback keeps waiting for a video
     // only while open is true, as decided by the database clock.
-    res.json({ session, frames, events, empathyMoments, uploadWindow, noMomentsText: noMomentsText(session, empathyMoments.length) })
+    const baseline = session.baseline_session_id ? await Session.findById(session.baseline_session_id) : null
+    res.json({ mission: missionComparison(session, baseline?.user_id === session.user_id ? baseline : null), session, frames, events, empathyMoments, uploadWindow, noMomentsText: noMomentsText(session, empathyMoments.length) })
   } catch (err) { next(err) }
 }

@@ -1,4 +1,5 @@
 import { Session } from '../models/Session.js'
+import { missionComparison } from '../utils/mission.js'
 import { SIMULATION_INTRO, SNAPSHOT_NOTE } from '../config/copy.js'
 import { Frame } from '../models/Frame.js'
 import { Event } from '../models/Event.js'
@@ -72,7 +73,9 @@ export async function getReport(req, res, next) {
       EmpathyMoment.findBySession(session.id)
     ])
 
+    const baseline = session.baseline_session_id ? await Session.findById(session.baseline_session_id) : null
     res.json({
+      mission: missionComparison(session, baseline?.user_id === session.user_id ? baseline : null),
       session,
       frames,
       events,

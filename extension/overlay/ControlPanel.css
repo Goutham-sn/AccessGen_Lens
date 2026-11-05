@@ -151,3 +151,20 @@
 .stop-btn:hover:not(:disabled) { background: #1c2438; color: #fff; }
 .stop-btn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
 .stop-btn:disabled { opacity: 0.6; cursor: wait; }
+
+.mission { margin: 12px 14px 0; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, #1f1b3d, #2a1a1f); border: 1px solid #3b3366; }
+.mission[hidden] { display: none; }
+.mission.baseline { background: #18202e; border-color: #2c3652; }
+.mission-top { display: flex; justify-content: space-between; align-items: baseline; }
+.mission-label { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #ffad93; font-weight: 700; }
+.mission.baseline .mission-label { color: #93b4fd; }
+.mission-clock { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: #fff; }
+.mission-goal { margin: 6px 0 10px; font: 600 15px/1.35 Georgia, 'Times New Roman', serif; color: #fff; }
+.mission-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mission-actions button { padding: 8px; border-radius: 8px; border: 0; font-size: 12.5px; font-weight: 650; }
+.done-btn { background: #10b981; color: #052e1f; }
+.done-btn:hover { background: #34d399; }
+.giveup-btn { background: #3a2230; color: #ffd4c4; border: 1px solid #6b2f3f !important; }
+.giveup-btn:hover { background: #4a2a3a; }
+.mission-actions button:focus-visible { outline: 2px solid #b0a7ff; outline-offset: 2px; }
+.mission-actions button:disabled { opacity: .6; cursor: wait; }

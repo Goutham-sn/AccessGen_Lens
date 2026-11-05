@@ -63,7 +63,9 @@ export function keepOnTop(el) {
     } catch { /* ignore */ }
   }
   const onToggle = (e) => {
-    if (e.target !== el && e.newState === 'open') raise()
+    // Only the page's own popovers: AccessGen's step-in screen is meant to
+    // cover the panel.
+    if (e.target !== el && e.newState === 'open' && !e.target?.dataset?.accessgen) raise()
   }
   document.addEventListener('toggle', onToggle, true)
   return () => document.removeEventListener('toggle', onToggle, true)

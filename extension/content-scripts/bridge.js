@@ -16,7 +16,7 @@ const MAX_TYPE_LEN = 64
 const ALLOWED_FIELDS = {
   ACCESSGEN_PING: [],
   ACCESSGEN_GET_STATUS: [],
-  ACCESSGEN_START_SIMULATION: ['sessionId', 'url', 'profiles', 'token', 'apiUrl', 'uploadToken',
+  ACCESSGEN_START_SIMULATION: ['sessionId', 'url', 'profiles', 'token', 'apiUrl', 'uploadToken', 'mission', 'persona', 'baseline',
     'clickedAt'], // [timing]
   ACCESSGEN_STOP_SIMULATION: [],
   ACCESSGEN_UPDATE_PROFILES: ['profiles'],

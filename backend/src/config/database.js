@@ -196,6 +196,10 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS uploads_closed_at TIMESTAMP;
 -- still on its way. FALSE means the captured frames are the whole video,
 -- so Playback has nothing to wait for once processing is done.
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS recording_expected BOOLEAN;
+-- Missions (Manual sessions): { goal, outcome, durationMs }, and the
+-- session the tester ran as themselves first, for the comparison.
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS mission JSONB;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS baseline_session_id UUID REFERENCES sessions(id) ON DELETE SET NULL;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS recording_token_used BOOLEAN DEFAULT FALSE;
 
 -- Task Mode: the goal a persona was given, as { goal, intents: [text, ...] }.

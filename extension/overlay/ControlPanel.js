@@ -2,7 +2,7 @@ import panelCss from './ControlPanel.css?inline'
 import { EmpathyButtonView } from './EmpathyButton.js'
 import { styleHost, mountTopLayer, keepOnTop } from './topLayer.js'
 
-const KEYBOARD_HINTS = {
+export const KEYBOARD_HINTS = {
   'keyboard-only': 'No mouse: Tab and Shift+Tab move, Enter activates.',
   'switch-access': 'One switch: press Space when the highlight reaches what you want.',
   'screen-reader': 'Listen: press Tab and hear each place announced.',
@@ -48,6 +48,14 @@ export class ControlPanel extends EventTarget {
           <button class="collapse-btn" type="button" aria-expanded="true" aria-label="Minimise panel">–</button>
         </div>
         <div class="body">
+          <div class="mission" hidden>
+            <div class="mission-top"><span class="mission-label">Your mission</span><span class="mission-clock">0:00</span></div>
+            <p class="mission-goal"></p>
+            <div class="mission-actions">
+              <button type="button" class="done-btn">I did it</button>
+              <button type="button" class="giveup-btn">I give up</button>
+            </div>
+          </div>
           <div class="active-profiles"></div>
           <p class="hint"></p>
           <div class="friction" hidden>
@@ -76,6 +84,15 @@ export class ControlPanel extends EventTarget {
       collapse.setAttribute('aria-label', collapsed ? 'Expand panel' : 'Minimise panel')
       collapse.textContent = collapsed ? '+' : '–'
     })
+
+    const outcome = (value) => {
+      this.shadow.querySelectorAll('.mission-actions button').forEach((b) => { b.disabled = true })
+      this.shadow.querySelector('.mission-label').textContent = value === 'done' ? 'Done. Saving…' : 'Gave up. Saving…'
+      this.setStopping(true)
+      this.dispatchEvent(new CustomEvent('mission-outcome', { detail: { outcome: value } }))
+    }
+    this.shadow.querySelector('.done-btn').addEventListener('click', () => outcome('done'))
+    this.shadow.querySelector('.giveup-btn').addEventListener('click', () => outcome('gave-up'))
 
     this.shadow.querySelector('.stop-btn').addEventListener('click', () => {
       this.setStopping(true)
@@ -110,6 +127,25 @@ export class ControlPanel extends EventTarget {
   tick() {
     const el = this.shadow.querySelector('.elapsed')
     if (el) el.textContent = formatElapsed(Date.now() - this.startedAt)
+    const clock = this.shadow.querySelector('.mission-clock')
+    if (clock) clock.textContent = this.missionStartedAt ? formatElapsed(Date.now() - this.missionStartedAt) : '0:00'
+  }
+
+  // mission: { goal } or null. baseline: the "as yourself" run.
+  setMission(mission, { baseline = false, startedAt = null } = {}) {
+    const box = this.shadow.querySelector('.mission')
+    if (!mission?.goal) { box.hidden = true; return }
+    box.hidden = false
+    box.classList.toggle('baseline', baseline)
+    this.shadow.querySelector('.mission-label').textContent = baseline ? 'Your mission, as yourself' : 'Your mission'
+    this.shadow.querySelector('.mission-goal').textContent = mission.goal
+    this.missionStartedAt = startedAt
+    this.tick()
+  }
+
+  startMission(ts) {
+    this.missionStartedAt = ts || Date.now()
+    this.tick()
   }
 
   setStopping(isStopping) {

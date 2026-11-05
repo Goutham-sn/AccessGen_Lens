@@ -32,7 +32,15 @@ const state = {
   // every timer, observer and rAF loop the moment a session starts. This
   // flag tells onCommitted to stand down until the initial injection is
   // done and only handle *later* (real) navigations.
-  pendingInitialLoad: false
+  pendingInitialLoad: false,
+  // Missions: { goal } or null; who the tester is being (for the step-in
+  // screen); whether this is the "as yourself" first run; when the mission
+  // clock started (after the step-in screen); whether that screen was shown.
+  mission: null,
+  persona: null,
+  baseline: false,
+  missionStartedAt: null,
+  introShown: false
 }
 
 async function persistState() {
@@ -111,7 +119,13 @@ async function injectSimulation(tabId) {
         // independent of whether the tab video is being recorded yet.
         isRecording: true,
         // Drives the overlay's recording dot: the real video state.
-        videoRecording: state.isRecording
+        videoRecording: state.isRecording,
+        mission: state.mission,
+        persona: state.persona,
+        baseline: state.baseline,
+        missionStartedAt: state.missionStartedAt,
+        // The step-in screen opens the session once, not on every page.
+        showIntro: !state.introShown
       }
     })
   } catch {
@@ -435,7 +449,11 @@ async function stopFrameCapture() {
 
 // ------------------------------------------------------------- lifecycle
 
-async function startSimulation({ profiles, sessionId, url, token, apiUrl, uploadToken, clickedAt }, senderTabId) {
+function cleanText(v, max) {
+  return typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : ''
+}
+
+async function startSimulation({ profiles, sessionId, url, token, apiUrl, uploadToken, clickedAt, mission, persona, baseline }, senderTabId) {
   timing(clickedAt, 'state ready, starting') // [timing]
   state.isActive = true
   state.sessionId = sessionId
@@ -450,6 +468,14 @@ async function startSimulation({ profiles, sessionId, url, token, apiUrl, upload
   if (apiUrl) state.apiUrl = apiUrl
   state.webAppTabId = senderTabId ?? state.webAppTabId
   state.pendingInitialLoad = true
+  const goal = cleanText(mission?.goal, 200)
+  state.mission = goal ? { goal } : null
+  state.persona = persona && typeof persona === 'object'
+    ? { name: cleanText(persona.name, 60), age: Number.isFinite(persona.age) ? persona.age : null, line: cleanText(persona.line, 120), story: cleanText(persona.story, 400) }
+    : null
+  state.baseline = baseline === true
+  state.missionStartedAt = null
+  state.introShown = false
 
   // Reuse a tab already showing the target URL, otherwise open a new one.
   const existing = (await chrome.tabs.query({})).find((t) => t.url === url)
@@ -555,6 +581,7 @@ function withTimeout(promise, ms) {
 }
 
 async function stopSimulation() {
+  const wasBaseline = state.baseline
   const sessionId = state.sessionId
   const tabId = state.targetTabId
   const token = state.token
@@ -590,6 +617,11 @@ async function stopSimulation() {
   state.targetTabId = null
   state.startedAt = null
   state.pendingInitialLoad = false
+  state.mission = null
+  state.persona = null
+  state.baseline = false
+  state.missionStartedAt = null
+  state.introShown = false
   await persistState()
 
   if (tabId != null) {
@@ -597,7 +629,7 @@ async function stopSimulation() {
   }
 
   // Tell the web app it can stop waiting: the recording is settled.
-  if (sessionId) forwardToWebApp({ event: 'session-ended', sessionId })
+  if (sessionId) forwardToWebApp({ event: 'session-ended', sessionId, baseline: wasBaseline })
 
   return { ok: true, sessionId }
 }
@@ -691,6 +723,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true }
     },
     ACCESSGEN_UPLOAD: () => uploadFromTab(sender, payload),
+    // The step-in screen was closed: the mission clock starts now.
+    ACCESSGEN_MISSION_START: async () => {
+      if (!state.isActive || sender?.tab?.id !== state.targetTabId) return { ok: false }
+      state.introShown = true
+      if (!state.missionStartedAt) state.missionStartedAt = Date.now()
+      await persistState()
+      return { ok: true, missionStartedAt: state.missionStartedAt }
+    },
+    // "I did it" / "I give up": record it, then end the session.
+    ACCESSGEN_MISSION_OUTCOME: async () => {
+      if (!state.isActive || sender?.tab?.id !== state.targetTabId) return { ok: false }
+      const outcome = payload?.outcome === 'done' ? 'done' : 'gave-up'
+      const durationMs = Date.now() - (state.missionStartedAt || state.startedAt || Date.now())
+      const sessionId = state.sessionId
+      if (state.mission) {
+        await postToSession('mission', { outcome, durationMs })
+        forwardToWebApp({ event: 'mission-outcome', sessionId, outcome, durationMs, baseline: state.baseline })
+      }
+      stopSimulation().catch((err) => console.error('[accessgen] stop failed:', err))
+      return { ok: true }
+    },
     // A picture of the simulated tab for a moment: real pixels, filters on.
     ACCESSGEN_SCREENSHOT: async () => {
       if (!state.isActive || sender?.tab?.id == null || sender.tab.id !== state.targetTabId) return { ok: false }

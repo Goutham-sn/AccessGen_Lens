@@ -22,12 +22,14 @@ export const useSessionStore = create((set, get) => ({
   sessions: [],
   sessionsLoading: false,
 
-  async createSession({ url, activeProfiles, persona }) {
+  async createSession({ url, activeProfiles, persona, mission, baselineSessionId }) {
     const data = await api.post('/sessions', {
       url,
       activeProfiles,
       personaId: personaIdOf(persona),
-      personaSnapshot: snapshotOf(persona)
+      personaSnapshot: snapshotOf(persona),
+      ...(mission?.goal ? { mission: { goal: mission.goal } } : {}),
+      ...(baselineSessionId ? { baselineSessionId } : {})
     })
     set({
       currentSession: data.session,

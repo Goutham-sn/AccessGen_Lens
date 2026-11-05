@@ -5,6 +5,7 @@ import { Button } from '../components/shared/Button.jsx'
 import { StartIntro } from '../components/start/StartIntro.jsx'
 import { PersonaCardFull } from '../components/start/PersonaCardFull.jsx'
 import { TaskForm } from '../components/start/TaskForm.jsx'
+import { MissionField } from '../components/start/MissionField.jsx'
 import { landingFor } from '../utils/personaLanding.js'
 import { usePrecheck } from '../hooks/usePrecheck.js'
 import { precheckNotes, precheckStatusLine } from '../utils/precheckNotes.js'
@@ -70,6 +71,7 @@ export default function Start() {
   const [landed, setLanded] = useState(null) // { cardId, action } once applied, for moving focus
   // Which of the two ways to experience a page is shown: 'automated' (we
   // walk the page as the person) or 'extension' (you drive it yourself).
+  const [mission, setMission] = useState({ goal: '', firstAsMyself: true })
   const [mode, setMode] = useState(() => (location.hash === '#manual' ? 'extension' : 'automated'))
 
   useEffect(() => {
@@ -225,7 +227,7 @@ export default function Start() {
       setExploreMessage('We could not find this person yet. Please reload the page.')
       return
     }
-    const message = await explore.start({ url, profiles: card.profiles, persona })
+    const message = await explore.start({ url, profiles: card.profiles, persona, mission, firstAsMyself: mission.firstAsMyself })
     if (message) setExploreMessage(message)
   }
 
@@ -424,6 +426,7 @@ export default function Start() {
               </p>
             )}
             {exploreMessage && <p role="alert" className="mt-2 text-sm font-medium text-red-800">{exploreMessage}</p>}
+            <div className="mt-4"><MissionField value={mission} onChange={setMission} idPrefix="start-mission" /></div>
             <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
               {bySection.extension.map((card) => {
                 const appliesId = `${card.id}-applies`

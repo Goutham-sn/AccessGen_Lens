@@ -4,6 +4,7 @@ import { enqueueSessionProcessing } from '../jobs/queue.js'
 import { putDataUrl } from '../utils/storage.js'
 import { newUploadToken, UPLOAD_TOKEN_TTL_HOURS } from '../utils/uploadToken.js'
 import { deleteSessionAndMedia } from '../utils/deleteSession.js'
+import { cleanGoal, cleanOutcome } from '../utils/mission.js'
 
 function assertOwner(session, req, res) {
   if (!session) {
@@ -24,10 +25,20 @@ function assertOwner(session, req, res) {
 
 export async function createSession(req, res, next) {
   try {
-    const { url, pageTitle, activeProfiles, personaId, personaSnapshot } = req.body
+    const { url, pageTitle, activeProfiles, personaId, personaSnapshot, baselineSessionId } = req.body
     if (!url) return res.status(400).json({ error: 'A URL is required' })
+    const goal = cleanGoal(req.body.mission?.goal)
+    // A baseline is only ever one of this user's own sessions.
+    let baselineId = null
+    if (typeof baselineSessionId === 'string' && baselineSessionId) {
+      const baseline = await Session.findById(baselineSessionId).catch(() => null)
+      if (!baseline || baseline.user_id !== req.user.id) return res.status(400).json({ error: 'That first run is not one of yours' })
+      baselineId = baseline.id
+    }
     const session = await Session.create({
-      userId: req.user.id, url, pageTitle, activeProfiles, personaId, personaSnapshot
+      userId: req.user.id, url, pageTitle, activeProfiles, personaId, personaSnapshot,
+      mission: goal ? { goal } : null,
+      baselineSessionId: baselineId
     })
     // Returned once, here, to the signed-in owner, who hands it to the
     // extension. Only its hash is stored. Never log it.
@@ -72,6 +83,19 @@ export async function endSession(req, res, next) {
       await enqueueSessionProcessing(session.id, { recordingExpected })
     }
     res.json({ session })
+  } catch (err) { next(err) }
+}
+
+// The mission's outcome ("I did it" / "I give up"), from the extension.
+// Owner or upload token, checked by sessionWriter('moments') in the route.
+export async function setMissionOutcome(req, res, next) {
+  try {
+    const result = cleanOutcome(req.body)
+    if (!result) return res.status(400).json({ error: 'outcome must be done or gave-up' })
+    const session = await Session.setMissionOutcome(req.params.id, result)
+    if (!session) return res.status(409).json({ error: 'No mission waiting for an outcome on this session' })
+    req.app.get('io')?.to(`session:${session.id}`).emit('mission-outcome', { sessionId: session.id, ...result })
+    res.json({ mission: session.mission })
   } catch (err) { next(err) }
 }
 

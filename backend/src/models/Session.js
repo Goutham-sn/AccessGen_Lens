@@ -14,13 +14,15 @@ function clean(row) {
 }
 
 export const Session = {
-  async create({ userId, url, pageTitle, activeProfiles, personaId, personaSnapshot }) {
+  async create({ userId, url, pageTitle, activeProfiles, personaId, personaSnapshot, mission = null, baselineSessionId = null }) {
     const { rows } = await query(
-      `INSERT INTO sessions (user_id, url, page_title, active_profiles, persona_id, persona_snapshot, start_time, status)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'recording')
+      `INSERT INTO sessions (user_id, url, page_title, active_profiles, persona_id, persona_snapshot, start_time, status,
+                             mission, baseline_session_id)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'recording', $7, $8)
        RETURNING *`,
       [userId, url, pageTitle || null, JSON.stringify(activeProfiles || []), personaId || null,
-       personaSnapshot ? JSON.stringify(personaSnapshot) : null]
+       personaSnapshot ? JSON.stringify(personaSnapshot) : null,
+       mission ? JSON.stringify(mission) : null, baselineSessionId]
     )
     return clean(rows[0])
   },
@@ -131,6 +133,17 @@ export const Session = {
     const { rows } = await query(
       `UPDATE sessions SET ${sets} WHERE id = $1 RETURNING *`,
       [id, ...keys.map((k) => fields[k])]
+    )
+    return clean(rows[0])
+  },
+
+  // The mission's result, recorded once: the first outcome is the one kept.
+  async setMissionOutcome(id, { outcome, durationMs }) {
+    const { rows } = await query(
+      `UPDATE sessions SET mission = mission || jsonb_build_object('outcome', $2::text, 'durationMs', $3::int)
+        WHERE id = $1 AND mission IS NOT NULL AND (mission->>'outcome') IS NULL
+        RETURNING *`,
+      [id, outcome, durationMs]
     )
     return clean(rows[0])
   },

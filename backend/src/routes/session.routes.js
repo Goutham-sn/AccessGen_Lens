@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import {
-  createSession, listSessions, getSession, endSession, logEmpathyMoment, deleteSession
+  createSession, listSessions, getSession, endSession, logEmpathyMoment, deleteSession, setMissionOutcome
 } from '../controllers/session.controller.js'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { sessionWriter } from '../middleware/sessionWriter.js'
@@ -11,6 +11,7 @@ const router = Router()
 // (which outlives the 15 minute access token).
 router.post('/:id/end', sessionWriter('end'), endSession)
 router.post('/:id/empathy-moments', sessionWriter('moments'), logEmpathyMoment)
+router.post('/:id/mission', sessionWriter('moments'), setMissionOutcome)
 
 // Everything else needs a signed-in user. An expired token gets a 401,
 // which is what makes the web app refresh it and retry. Attached per route,

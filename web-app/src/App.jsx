@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore.js'
 import { useSessionStore } from './store/sessionStore.js'
 import { listenFromExtension } from './services/extension-bridge.js'
 import { api } from './services/api.js'
+import { loadChain } from './utils/missionChain.js'
 import { LoadingSpinner } from './components/shared/LoadingSpinner.jsx'
 
 const Landing = lazy(() => import('./pages/Landing.jsx'))
@@ -18,6 +19,7 @@ const Start = lazy(() => import('./pages/Start.jsx'))
 const Personas = lazy(() => import('./pages/Personas.jsx'))
 const Team = lazy(() => import('./pages/Team.jsx'))
 const SharedReport = lazy(() => import('./pages/SharedReport.jsx'))
+const StepIn = lazy(() => import('./pages/StepIn.jsx'))
 
 function RequireAuth({ children }) {
   const user = useAuthStore((s) => s.user)
@@ -43,7 +45,11 @@ function useExtensionSessionEndedListener() {
         // has ended already is left exactly as it is.
         api.post(`/sessions/${msg.sessionId}/end`, {}).catch(() => {})
         clearLiveSession()
-        navigate(`/playback/${msg.sessionId}`)
+        // The first run of a two-run mission goes to the step-in page,
+        // which starts the run as the person.
+        const chain = loadChain()
+        if (chain?.baselineSessionId === msg.sessionId) navigate(`/next/${msg.sessionId}`)
+        else navigate(`/playback/${msg.sessionId}`)
       }
     })
   }, [navigate, clearLiveSession])
@@ -71,6 +77,7 @@ export default function App() {
         <Route path="/report/:id" element={<RequireAuth><Report /></RequireAuth>} />
         <Route path="/run/:runId" element={<RequireAuth><Run /></RequireAuth>} />
         <Route path="/start" element={<RequireAuth><Start /></RequireAuth>} />
+        <Route path="/next/:id" element={<RequireAuth><StepIn /></RequireAuth>} />
         <Route path="/personas" element={<RequireAuth><Personas /></RequireAuth>} />
         <Route path="/team" element={<RequireAuth><Team /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />

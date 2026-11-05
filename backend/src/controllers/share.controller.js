@@ -3,6 +3,7 @@ import { SIMULATION_INTRO, SNAPSHOT_NOTE } from '../config/copy.js'
 import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
 import { nanoid } from 'nanoid'
 import { Session } from '../models/Session.js'
+import { missionComparison } from '../utils/mission.js'
 import { SharedReport } from '../models/SharedReport.js'
 import { Frame } from '../models/Frame.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
@@ -58,7 +59,8 @@ export async function viewShared(req, res, next) {
       Frame.findBySession(session.id),
       EmpathyMoment.findBySession(session.id)
     ])
-    res.json({ session, frames, empathyMoments, lookedAt: lookedAt(session, empathyMoments.length),
+    const baseline = session.baseline_session_id ? await Session.findById(session.baseline_session_id) : null
+    res.json({ mission: missionComparison(session, baseline?.user_id === session.user_id ? baseline : null), session, frames, empathyMoments, lookedAt: lookedAt(session, empathyMoments.length),
       noMomentsText: noMomentsText(session, empathyMoments.length), intro: SIMULATION_INTRO, snapshotNote: SNAPSHOT_NOTE })
   } catch (err) { next(err) }
 }

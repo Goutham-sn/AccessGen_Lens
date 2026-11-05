@@ -5,6 +5,7 @@ import { Button } from '../shared/Button.jsx'
 import { useProfileStore } from '../../store/profileStore.js'
 import { useExtensionStore } from '../../store/extensionStore.js'
 import { useExploreStart } from '../../hooks/useExploreStart.js'
+import { MissionField } from '../start/MissionField.jsx'
 
 // Configure page: explore a page with the conditions chosen here, using the
 // extension. Every other way to start (people, watching it happen) is on
@@ -17,13 +18,14 @@ export function StartSession() {
   const [modalOpen, setModalOpen] = useState(false)
   const [url, setUrl] = useState(lastUrl || '')
   const [message, setMessage] = useState(null)
+  const [mission, setMission] = useState({ goal: '', firstAsMyself: true })
 
   const noProfiles = activeProfiles.length === 0
 
   async function handleStart(e) {
     e.preventDefault()
     setMessage(null)
-    const result = await explore.start({ url, profiles: activeProfiles, persona })
+    const result = await explore.start({ url, profiles: activeProfiles, persona, mission, firstAsMyself: mission.firstAsMyself })
     if (result) setMessage(result)
   }
 
@@ -60,6 +62,7 @@ export function StartSession() {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
+          <MissionField value={mission} onChange={setMission} idPrefix="configure-mission" />
           {noProfiles && (
             <p className="text-sm text-ink-700">Choose at least one condition on this page first.</p>
           )}

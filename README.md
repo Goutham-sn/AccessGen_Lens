@@ -102,7 +102,14 @@ Pick up to four people (David, James, Meera, Thomas, Ravi). The runner container
 ### Manual: explore it yourself
 
 1. Pick a person on the start page (Ravi's tremor, Ananya's ADHD and dyslexia, Fatima's deafness, Sofia's switch access, Margaret's cataracts, Kenji's protanopia), or choose and combine conditions on the **Configure** page.
-2. The extension opens the page in your Chrome with the simulation on: colour matrices, blur and haze, a tunnel or a blind spot that follows your mouse and your keyboard focus, a shaking cursor whose clicks land where the shake puts them, the mouse taken away, one-switch scanning, letters that shift as you read, distractions, silence, or a screen reader that speaks each place (Tab, the Down arrow to read, H for headings).
+2. The extension opens the page in your Chrome with the simulation on, modelled on how each condition is actually experienced:
+   - **Low vision and cataracts:** contrast-sensitivity loss measured element by element (faint text, pale borders and placeholders fade into the page while strong contrast stays readable), a mild blur that hurts small text far more than large, and haze or glare.
+   - **Tunnel vision:** the periphery blurs, loses colour and dims, never black. **Macular degeneration:** a grey, blurred smudge where you look. Both follow the pointer or keyboard focus with the eye's small lag.
+   - **Colour blindness:** Machado (2009) matrices, with weaker forms at lower severities.
+   - **Tremor:** a ~5 Hz rest tremor along a slowly turning axis, worse when the hand is still; clicks that slide off between press and release are lost, and a press can be felt twice.
+   - **Keyboard only and switch access:** the mouse is gone (and with one switch, every key but Space).
+   - **Screen reader:** for a blind user a dark screen and only what is spoken (Tab, the Down arrow to read, H for headings), shown in a speech viewer.
+   - **Dyslexia:** the words where you are reading waver and settle when you stay on them. **ADHD:** thoughts that break in, losing your place, motion pulling harder. **Deaf:** all sound off.
 3. The screen is recorded from the first second, with nothing to switch on: the extension captures the tab's real pixels, simulation included, and the backend joins them into a video when you end the session. For a smoother video, choose **Turn on smooth video** from the extension icon (or the shortcut) on the simulated tab.
 4. While you explore, the simulation notices struggles on its own and adds them to the report as automatic moments, with a picture. For example: a tremor click that hit the wrong thing, a button a screen reader announces with no name, a press of Tab that lost your place, something only a mouse can use, a long wait for the switch, a video with no captions. Press **I felt this** on the page (with a note, if you like) whenever the page pushes back.
 5. Typed text is never stored: key presses in fields are recorded as "character".

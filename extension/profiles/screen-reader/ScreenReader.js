@@ -1,6 +1,14 @@
 import { BaseProfile } from '../BaseProfile.js'
 import { setPageFilter, clearPageFilter } from '../pageFilter.js'
 import { send } from '../../content-scripts/communicator.js'
+import { reportFriction, describeElement } from '../../content-scripts/friction.js'
+import { styleHost, mountTopLayer, keepOnTop } from '../../overlay/topLayer.js'
+
+// What the reading keys stop on: the things a screen reader's browse mode
+// reads one at a time.
+const READABLE = 'h1,h2,h3,h4,h5,h6,p,li,a[href],button,input:not([type="hidden"]),select,textarea,img,[role="button"],[role="link"],[role="heading"],[role="img"],blockquote,figcaption,td,th,label,summary'
+const HEADINGS = 'h1,h2,h3,h4,h5,h6,[role="heading"]'
+const CONTROLS = 'a[href],button,input:not([type="hidden"]),select,textarea,[role="button"],[role="link"]'
 
 const IMPLICIT_ROLES = {
   A: 'link', BUTTON: 'button', INPUT: 'text field', SELECT: 'combo box',
@@ -27,11 +35,47 @@ export class ScreenReader extends BaseProfile {
 
     this.mountBanner()
 
+    // Speech needs a user gesture first (Chrome's autoplay rule). Hold the
+    // latest announcement and speak it on the first key press or click.
+    this.pendingSpeech = null
+    this.speechUnlocked = false
+    const unlock = () => {
+      if (this.speechUnlocked) return
+      this.speechUnlocked = true
+      if (this.pendingSpeech) this.speak(this.pendingSpeech)
+      this.pendingSpeech = null
+    }
+    this.addListener(window, 'keydown', unlock, { capture: true })
+    this.addListener(window, 'pointerdown', unlock, { capture: true })
+
     // Announce on every focus change.
     this.addListener(document, 'focusin', (e) => {
       const el = e.target
-      if (!el || el.dataset?.accessgenPanel) return
+      if (!el || el.dataset?.accessgenPanel || el.closest?.('[data-accessgen]')) return
+      this.readIndex = -1
+      const label = this.getLabel(el)
       this.announce(this.getAnnouncement(el))
+      if (!label) this.noticeUnnamed(el)
+    }, { capture: true })
+
+    // Browse mode: Down and Up arrows read the next and previous thing on
+    // the page, H jumps to the next heading (Shift+H the previous one), the
+    // way a screen reader user skims. Off inside fields, where keys type.
+    this.readIndex = -1
+    this.addListener(window, 'keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      const t = e.target
+      if (t?.dataset?.accessgenPanel) return
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+      let step = 0
+      let selector = READABLE
+      if (e.key === 'ArrowDown') step = 1
+      else if (e.key === 'ArrowUp') step = -1
+      else if (e.key === 'h' || e.key === 'H') { step = e.shiftKey ? -1 : 1; selector = HEADINGS }
+      else return
+      e.preventDefault()
+      e.stopPropagation()
+      this.readNext(step, selector)
     }, { capture: true })
 
     // Monitor aria-live regions.
@@ -55,8 +99,97 @@ export class ScreenReader extends BaseProfile {
     const headings = document.querySelectorAll('h1,h2,h3,h4,h5,h6').length
     const links = document.querySelectorAll('a[href]').length
     this.announce(
-      `${title}. Page loaded. ${headings} headings, ${links} links, ${landmarks} landmarks. Use Tab to move through the page.`
+      `${title}. Page loaded. ${headings} headings, ${links} links, ${landmarks} landmarks. Press Tab to move, the Down arrow to read, H for the next heading.`
     )
+    if (!document.title) {
+      reportFriction({
+        kind: 'sr-no-title',
+        profileId: 'screen-reader',
+        headline: 'The page has no title, so it was announced as "Untitled page"',
+        detail: 'The title is the first thing a screen reader says. Without it, nobody can tell which page or tab this is.'
+      })
+    }
+    if (headings === 0) {
+      reportFriction({
+        kind: 'sr-no-headings',
+        profileId: 'screen-reader',
+        headline: 'There are no headings to jump between',
+        detail: 'Screen reader users skim a page by its headings. Here they have to listen to everything, in order.'
+      })
+    }
+    setTimeout(() => this.scanUnnamed(), 800)
+  }
+
+  // Unnamed controls and pictures, found once per page.
+  scanUnnamed() {
+    let controls = 0
+    let images = 0
+    let first = null
+    for (const el of document.querySelectorAll(CONTROLS)) {
+      if (el.closest('[data-accessgen]') || el.getBoundingClientRect().width === 0) continue
+      if (!this.getLabel(el)) { controls += 1; first = first || el }
+    }
+    for (const img of document.querySelectorAll('img')) {
+      if (img.closest('[data-accessgen]') || img.getBoundingClientRect().width < 24) continue
+      if (!img.hasAttribute('alt') && !img.getAttribute('aria-label') && img.getAttribute('role') !== 'presentation') images += 1
+    }
+    if (controls > 0) {
+      reportFriction({
+        kind: 'sr-unnamed-controls',
+        profileId: 'screen-reader',
+        target: first,
+        headline: `${controls} button${controls === 1 ? '' : 's'} or link${controls === 1 ? '' : 's'} would be read out with no name`,
+        detail: 'All a screen reader user hears is "button" or "link". They have to press it to find out what it does.'
+      })
+    }
+    if (images > 0) {
+      reportFriction({
+        kind: 'sr-unnamed-images',
+        profileId: 'screen-reader',
+        headline: `${images} picture${images === 1 ? ' has' : 's have'} no description`,
+        detail: 'A screen reader either skips them or reads out the file name. Whatever they show is lost.'
+      })
+    }
+  }
+
+  noticeUnnamed(el) {
+    reportFriction({
+      kind: 'sr-unnamed-focus',
+      profileId: 'screen-reader',
+      target: el,
+      headline: `You heard only "${this.getAnnouncement(el)}"`,
+      detail: `Sighted users see ${describeElement(el)}. A screen reader user hears nothing that says what it is for.`
+    })
+  }
+
+  readNext(step, selector) {
+    const items = Array.from(document.querySelectorAll(selector)).filter((el) => {
+      if (el.closest('[data-accessgen]') || el.closest('[aria-hidden="true"]')) return false
+      const r = el.getBoundingClientRect()
+      return r.width > 0 && r.height > 0
+    })
+    if (items.length === 0) {
+      this.announce(selector === HEADINGS ? 'No headings on this page' : 'Nothing to read')
+      return
+    }
+    if (this.readIndex < 0 && document.activeElement && document.activeElement !== document.body) {
+      const from = items.indexOf(document.activeElement)
+      if (from >= 0) this.readIndex = from
+    }
+    const next = this.readIndex + step
+    if (next < 0 || next >= items.length) {
+      this.announce(step > 0 ? 'End of page' : 'Top of page')
+      return
+    }
+    this.readIndex = next
+    const el = items[next]
+    el.scrollIntoView({ block: 'center' })
+    const isText = /^(P|LI|TD|TH|BLOCKQUOTE|FIGCAPTION|LABEL)$/.test(el.tagName)
+    const text = isText ? el.textContent.replace(/\s+/g, ' ').trim().slice(0, 300) : this.getAnnouncement(el)
+    this.announce(text)
+    if (el.tagName === 'IMG' && !el.hasAttribute('alt')) {
+      this.announce(`image, ${el.getAttribute('src')?.split('/').pop()?.split('?')[0] || 'unlabelled'}`)
+    }
   }
 
   // ---- announcement construction -------------------------------------
@@ -142,8 +275,7 @@ export class ScreenReader extends BaseProfile {
 
   // ---- output ---------------------------------------------------------
 
-  announce(text) {
-    if (!text) return
+  speak(text) {
     try {
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
@@ -153,28 +285,43 @@ export class ScreenReader extends BaseProfile {
     } catch {
       // Speech unavailable: banner and log still work.
     }
+  }
 
-    this.banner.textContent = text
+  announce(text) {
+    if (!text) return
+    if (this.speechUnlocked) this.speak(text)
+    else this.pendingSpeech = text
+
+    this.bannerText.textContent = text
     send('sr-announcement', { text })
   }
 
+  // The caption bar: what the screen reader just said. It sits in the top
+  // layer, so the page blur does not reach it (it used to be blurred too).
   mountBanner() {
     this.banner = document.createElement('div')
     this.banner.setAttribute('aria-hidden', 'true')
     this.banner.dataset.accessgen = 'true'
-    this.banner.style.cssText = `
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: #0b0f19; color: #7ee787;
-      font: 500 15px/1.5 ui-monospace, 'Cascadia Code', monospace;
-      padding: 14px 20px; z-index: 2147483644;
-      border-top: 2px solid #1f6feb;
-      filter: none;
-    `
-    this.banner.textContent = '♪ Screen reader active'
-    this.addElement(this.banner)
+    styleHost(this.banner, { left: '0', right: '0', bottom: '0', width: '100%', 'z-index': '2147483646', 'pointer-events': 'none' })
+    const shadow = this.banner.attachShadow({ mode: 'open' })
+    shadow.innerHTML = `
+      <style>
+        .bar { background: #0b0f19; color: #7ee787; border-top: 2px solid #1f6feb;
+               font: 500 16px/1.5 ui-monospace, 'Cascadia Code', Menlo, monospace;
+               padding: 12px 340px 12px 20px; display: flex; gap: 12px; align-items: baseline; }
+        .tag { color: #8b949e; font-size: 12px; white-space: nowrap; }
+        .text { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      </style>
+      <div class="bar"><span class="tag">Screen reader says</span><span class="text"></span></div>`
+    this.bannerText = shadow.querySelector('.text')
+    this.bannerText.textContent = 'Screen reader active. Press any key to turn on speech.'
+    this.elements.push(this.banner)
+    mountTopLayer(this.banner)
+    this.unkeep = keepOnTop(this.banner)
   }
 
   destroy() {
+    this.unkeep?.()
     try { window.speechSynthesis.cancel() } catch { /* no speech */ }
     clearPageFilter(this)
     super.destroy()

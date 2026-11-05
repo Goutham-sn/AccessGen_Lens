@@ -15,6 +15,19 @@ export class TunnelVision extends BaseProfile {
       this.y = e.clientY
     }, { capture: true, passive: true })
 
+    // Keyboard users look where focus is, not where a mouse pointer is.
+    this.addListener(document, 'focusin', (e) => {
+      const el = e.target
+      if (!el?.getBoundingClientRect || el.closest?.('[data-accessgen]')) return
+      // After the browser has scrolled the element into view.
+      requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 && r.height === 0) return
+        this.x = r.left + r.width / 2
+        this.y = r.top + r.height / 2
+      })
+    }, { capture: true })
+
     const loop = () => {
       this.redraw()
       this.rafs[0] = requestAnimationFrame(loop)

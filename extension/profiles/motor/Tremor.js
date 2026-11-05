@@ -1,4 +1,7 @@
 import { BaseProfile } from '../BaseProfile.js'
+import { reportFriction, describeElement } from '../../content-scripts/friction.js'
+
+const INTERACTIVE = 'a[href], button, input, select, textarea, summary, label, [role="button"], [role="link"], [role="checkbox"], [role="tab"], [onclick]'
 
 const TREMOR_FREQUENCY_1 = 0.08
 const TREMOR_FREQUENCY_2 = 0.13
@@ -51,6 +54,7 @@ export class Tremor extends BaseProfile {
       e.stopPropagation()
       e.stopImmediatePropagation()
       const target = document.elementFromPoint(this.shakenX, this.shakenY)
+      this.noticeMisclick(e.target, target)
       if (target) {
         const clone = new MouseEvent('click', {
           bubbles: true, cancelable: true,
@@ -87,6 +91,27 @@ export class Tremor extends BaseProfile {
       this.rafs[0] = requestAnimationFrame(loop)
     }
     this.rafs.push(requestAnimationFrame(loop))
+  }
+
+  // The click the hand aimed at is not the click the page received.
+  noticeMisclick(aimedAt, landedOn) {
+    const intended = aimedAt?.closest?.(INTERACTIVE)
+    if (!intended || intended.closest('[data-accessgen]')) return
+    const actual = landedOn?.closest?.(INTERACTIVE)
+    if (actual === intended) return
+    const r = intended.getBoundingClientRect()
+    const small = r.width < 44 || r.height < 44
+    reportFriction({
+      kind: actual ? 'tremor-wrong-target' : 'tremor-missed',
+      profileId: 'tremor',
+      target: intended,
+      headline: actual
+        ? `You aimed at ${describeElement(intended)}, the shake clicked ${describeElement(actual)}`
+        : `The shake made you miss ${describeElement(intended)}`,
+      detail: small
+        ? `It is only ${Math.round(r.width)} by ${Math.round(r.height)} pixels: too small to hit with a shaking hand.`
+        : 'Things close together leave no room for a hand that shakes.'
+    })
   }
 
   queueMark() {

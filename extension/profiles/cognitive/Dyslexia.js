@@ -1,79 +1,98 @@
 import { BaseProfile } from '../BaseProfile.js'
 
-const SPACING = {
-  1: { letter: '0.06em', word: '0.12em', line: '1.7' },
-  2: { letter: '0.1em', word: '0.2em', line: '1.9' },
-  3: { letter: '0.15em', word: '0.3em', line: '2.1' }
+// What reading can feel like with dyslexia: letters inside words shift
+// places, look-alike letters flip (b/d, p/q), and the words you just read
+// rearrange themselves when you look back.
+//
+// The previous version applied dyslexia-friendly typography (OpenDyslexic,
+// wide spacing, a reading guide). That is an assistive tool: it made the
+// page easier to read, the opposite of what a simulation is for.
+//
+// Every change is undone on destroy, and only text nodes still holding the
+// value this profile wrote are touched, so page scripts that rewrite text
+// keep their own content.
+
+const SETTINGS = {
+  1: { intervalMs: 1400, share: 0.08 },
+  2: { intervalMs: 900, share: 0.16 },
+  3: { intervalMs: 550, share: 0.28 }
+}
+const MIRROR = { b: 'd', d: 'b', p: 'q', q: 'p', m: 'w', w: 'm', n: 'u', u: 'n' }
+const SKIP = /^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA|INPUT|SELECT|OPTION|CODE|PRE|SVG|CANVAS|IFRAME)$/
+const MAX_NODES_PER_TICK = 120
+
+function scrambleWord(word, share) {
+  if (word.length < 4 || Math.random() > share * 2.2) return word
+  const chars = word.split('')
+  // Swap two neighbouring letters inside the word (keep first and last).
+  const i = 1 + Math.floor(Math.random() * (chars.length - 3))
+  ;[chars[i], chars[i + 1]] = [chars[i + 1], chars[i]]
+  // Sometimes a look-alike letter flips.
+  if (Math.random() < 0.35) {
+    const j = Math.floor(Math.random() * chars.length)
+    const m = MIRROR[chars[j]]
+    if (m) chars[j] = m
+  }
+  return chars.join('')
 }
 
-// OpenDyslexic-style adjustments plus a reading guide band that follows
-// the eye down the page.
 export class Dyslexia extends BaseProfile {
   init() {
-    this.applyTypography()
-
-    // Reading guide: a soft horizontal band tracking the mouse Y.
-    this.guide = document.createElement('div')
-    this.guide.setAttribute('aria-hidden', 'true')
-    this.guide.dataset.accessgen = 'true'
-    this.guide.style.cssText = `
-      position: fixed; left: 0; right: 0; height: 42px;
-      background: rgba(255, 235, 130, 0.22);
-      border-top: 1px solid rgba(200, 170, 40, 0.35);
-      border-bottom: 1px solid rgba(200, 170, 40, 0.35);
-      pointer-events: none; z-index: 2147483638;
-      transform: translateY(-50%);
-      top: 50%;
-    `
-    this.addElement(this.guide)
-
-    // Store the latest Y and let a single rAF tick apply it, instead of
-    // writing to style on every native mousemove event (which can fire
-    // far faster than the display refreshes), the same pattern Tremor and
-    // the vision-field profiles use, and why mouse movement felt laggy
-    // here specifically while those stayed smooth.
-    this.pendingY = null
-    this.addListener(window, 'mousemove', (e) => {
-      this.pendingY = e.clientY
-    }, { passive: true, capture: true })
-
-    const loop = () => {
-      if (this.pendingY !== null) {
-        this.guide.style.top = `${this.pendingY}px`
-        this.pendingY = null
-      }
-      this.rafs[0] = requestAnimationFrame(loop)
-    }
-    this.rafs.push(requestAnimationFrame(loop))
+    this.originals = new Map() // text node -> { original, written }
+    this.restart()
   }
 
-  applyTypography() {
-    const s = SPACING[this.severity]
-    // OpenDyslexic loaded from its CDN-free fallback stack; heavy-bottom
-    // letterforms when available, otherwise Comic Sans (closest system match).
-    this.styleEl?.remove()
-    this.styleEl = this.injectStyle(`
-      @font-face {
-        font-family: 'OpenDyslexic';
-        src: local('OpenDyslexic'), local('OpenDyslexic-Regular');
-        font-display: swap;
+  restart() {
+    for (const id of this.intervals) clearInterval(id)
+    this.intervals = []
+    this.addInterval(() => this.tick(), SETTINGS[this.severity].intervalMs)
+  }
+
+  visibleTextNodes() {
+    const nodes = []
+    const walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue || node.nodeValue.trim().length < 4) return NodeFilter.FILTER_REJECT
+        const parent = node.parentElement
+        if (!parent || SKIP.test(parent.tagName) || parent.isContentEditable ||
+            parent.closest('[data-accessgen]')) return NodeFilter.FILTER_REJECT
+        return NodeFilter.FILTER_ACCEPT
       }
-      body, body * :not([data-accessgen]) {
-        font-family: 'OpenDyslexic', 'Comic Sans MS', Verdana, sans-serif !important;
-        letter-spacing: ${s.letter} !important;
-        word-spacing: ${s.word} !important;
-        line-height: ${s.line} !important;
-      }
-      /* Justified text creates rivers of whitespace: never allow it. */
-      [style*="text-align: justify"], [style*="text-align:justify"], p, li, div {
-        text-align: left !important;
-      }
-    `, 'accessgen-dyslexia-css')
-    if (!this.elements.includes(this.styleEl)) this.elements.push(this.styleEl)
+    })
+    const vh = window.innerHeight
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const r = node.parentElement.getBoundingClientRect()
+      if (r.bottom < 0 || r.top > vh || r.width === 0) continue
+      nodes.push(node)
+      if (nodes.length >= MAX_NODES_PER_TICK) break
+    }
+    return nodes
+  }
+
+  tick() {
+    const { share } = SETTINGS[this.severity]
+    for (const node of this.visibleTextNodes()) {
+      let entry = this.originals.get(node)
+      // The page changed this text itself: adopt its new value as the original.
+      if (entry && node.nodeValue !== entry.written) entry = null
+      if (!entry) entry = { original: node.nodeValue, written: node.nodeValue }
+      const next = entry.original.replace(/[A-Za-z]{4,}/g, (w) => scrambleWord(w, share))
+      if (next !== node.nodeValue) node.nodeValue = next
+      entry.written = next
+      this.originals.set(node, entry)
+    }
   }
 
   update(severity) {
     super.update(severity)
-    this.applyTypography()
+    this.restart()
+  }
+
+  destroy() {
+    for (const [node, entry] of this.originals) {
+      if (node.isConnected && node.nodeValue === entry.written) node.nodeValue = entry.original
+    }
+    this.originals.clear()
+    super.destroy()
   }
 }

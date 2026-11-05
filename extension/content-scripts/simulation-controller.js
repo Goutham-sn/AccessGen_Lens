@@ -97,7 +97,13 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
     panel?.setProfiles(profiles)
   }
 
+  // Struggles the profiles notice on their own (see friction.js): shown on
+  // the panel and logged as automatic moments by the recorder.
+  const onFriction = (e) => panel?.noteFriction(e.detail.headline)
+  window.addEventListener('accessgen-friction', onFriction)
+
   function destroyAll() {
+    window.removeEventListener('accessgen-friction', onFriction)
     for (const instance of active.values()) {
       try { instance.destroy() } catch { /* keep tearing down */ }
     }
@@ -114,7 +120,7 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
     panel.addEventListener('empathy-moment', (e) => {
       // Ask the recorder to capture screenshot + timestamp for this moment.
       window.dispatchEvent(new CustomEvent('accessgen-empathy', {
-        detail: { label: e.detail.label, note: null, activeProfiles: profileConfig }
+        detail: { label: e.detail.label, note: e.detail.note || null, activeProfiles: profileConfig }
       }))
     })
 
@@ -133,6 +139,7 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
     if (type === 'ACCESSGEN_INIT') {
       setSession(payload.sessionId)
       if (!panel) initPanel()
+      panel?.setStartedAt(payload.startedAt)
       console.time('[timing] profiles applied to first filtered frame') // [timing]
       applyProfiles(payload.profiles || [])
       requestAnimationFrame(() => requestAnimationFrame(() => console.timeEnd('[timing] profiles applied to first filtered frame'))) // [timing]

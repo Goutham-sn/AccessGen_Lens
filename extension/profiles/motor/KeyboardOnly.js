@@ -133,6 +133,9 @@ export class KeyboardOnly extends BaseProfile {
   }
 
   checkWhereFocusWent() {
+    // Tab past the last stop moves focus into the browser's own toolbar:
+    // that is the page ending, not the page losing the person's place.
+    if (!document.hasFocus()) return
     const el = document.activeElement
     if (!el || el === document.body || el === document.documentElement) {
       reportFriction({

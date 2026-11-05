@@ -51,7 +51,7 @@ Replace every `CHANGE_ME` value in `.env`. Generate each secret with:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Required: `POSTGRES_PASSWORD`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `JWT_SECRET`, `JWT_REFRESH_SECRET`. There are no defaults; compose stops with a message naming any that are missing.
+Required: `POSTGRES_PASSWORD`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `JWT_SECRET`, `JWT_REFRESH_SECRET` (the JWT secrets still sign share links and older tokens). There are no defaults; compose stops with a message naming any that are missing.
 
 ### 2. Backend, runner and data services (repo root)
 
@@ -89,7 +89,7 @@ npm run build:watch  # rebuilds extension/dist on every change
 
 ### 6. Open the app
 
-Go to [http://localhost:5173](http://localhost:5173), create an account, and start a session.
+Go to [http://localhost:5173](http://localhost:5173) and start a session. There is no sign-in: AccessGen Lens runs on your own machine, and everything you make belongs to one local user (sessions made under older accounts are moved to it the first time the backend starts).
 
 ## How a session works
 
@@ -113,6 +113,19 @@ Known gaps in the Manual mode:
 - The automatic moments are what the simulation could see from the page (an outline that is not drawn, a control with no name, a click that missed). They are never a full audit and never an all-clear.
 - The frame-by-frame video is about one picture every 0.7 seconds, and only while the simulated tab is the visible tab.
 - Embedded players (YouTube, Vimeo) cannot be inspected, so they are named as something to check, not as missing captions.
+
+## How issues are found
+
+Both modes look for problems in two ways, and the results page lists all of them with every affected element.
+
+- **The rules engine.** Every page is checked against axe-core, the open-source accessibility rules engine (every rule, WCAG A to AAA and best practice). Each broken rule is one finding listing every element that fails it, with its selector, its HTML and why it fails. What axe cannot decide on its own (for example contrast over a picture) is listed as "check by hand", never dropped. In Manual sessions the audit runs on every page you visit, again a few seconds after big changes (a dialog opening, a menu expanding, new content), and after every navigation. `extension/issues/rules.js` says what each rule means for people and whose experience it breaks.
+- **What the simulation sees as the page is used.** Keyboard: focus with no visible sign, focus lost, focus hidden or covered, keyboard traps, the long way to the content, no skip link, things only a mouse can use, menus that open only on hover, Enter that does nothing. Tremor: clicks that missed. Screen reader: controls announced with no name. Switch access: long waits. Deaf: video with no captions. In Automated runs the five keyboard checks run on every stop of a Tab walk, measured once and confirmed again on camera.
+
+Each moment in an Automated video stays on screen for five seconds, with the element and the problem written out. While a run is going, its page shows the runner's own browser on your page, a line for every step, and each problem as it is confirmed. When a person is done, their full results appear on the same page.
+
+## One page per session
+
+Everything about a session is on one page (`/results/:id`): what happened, the mission result, the video with every moment on its timeline, every issue with every element, the journey, what was looked at, and share, PDF, try again and delete. The old Playback and Report addresses lead there.
 
 ## Task Mode: giving the people something to find
 

@@ -78,6 +78,7 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
   const momentCards = moments.map((m) => {
     const img = images[m.id] && String(images[m.id]).startsWith('data:image/') ? images[m.id] : null
     const t = Math.floor(m.timestamp_ms / 1000)
+    const audit = m.evidence?.audit ? m.evidence : m.evidence?.measured?.audit ? m.evidence.measured : null
     return `
       <div class="moment">
         ${img ? `<img src="${img}" alt="" />` : ''}
@@ -85,28 +86,34 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
           <p class="moment-time">${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} into the session</p>
           ${m.unverified ? `<p><span class="unverified">${esc(UNVERIFIED_LABEL)}</span></p>` : ''}
           ${isAutoMoment(m) ? '<p><span class="auto">Noticed by the simulation</span></p>' : ''}
-          <h3>${isAutoMoment(m) ? esc(m.label) : `"${esc(m.label)}"`}</h3>
-          ${m.note ? `<p class="${isAutoMoment(m) ? 'detail' : 'note'}">${esc(m.note)}</p>` : ''}
+          ${audit ? `<p><span class="impact">${esc(audit.impact)}</span> <span class="mono" style="font-size:11px;color:#6b6b6b">${esc(audit.rule)}${audit.review ? ' · check by hand' : ''}</span></p>` : ''}
+          <h3>${isAutoMoment(m) || m.source === 'runner' ? esc(m.headline || m.label) : `"${esc(m.label)}"`}</h3>
+          ${m.fact || m.note ? `<p class="${isAutoMoment(m) || m.source === 'runner' ? 'detail' : 'note'}">${esc(m.fact || m.note)}</p>` : ''}
+          ${audit?.nodes?.length ? `<ol class="els">${audit.nodes.slice(0, 12).map((n) => `<li><code>${esc(n.selector)}</code></li>`).join('')}${audit.count > 12 ? `<li>and ${audit.count - 12} more</li>` : ''}</ol>` : ''}
         </div>
       </div>`
   })
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-    body { font-family: Georgia, 'Times New Roman', serif; color: #1a1a2e; margin: 0; }
+    body { font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; color: #161616; margin: 0; background: #fbfaf7; }
+    code, .mono { font-family: 'IBM Plex Mono', Menlo, monospace; }
     .page { padding: 60px 70px; }
-    .cover { background: #101828; color: #fff; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+    .cover { border-bottom: 2px solid #161616; }
     .cover h1 { font-size: 42px; line-height: 1.2; margin: 0 0 16px; }
-    .cover .meta { color: #98a2b3; font-size: 15px; }
-    .cover img { max-width: 100%; border-radius: 12px; margin-top: 32px; opacity: .9; }
-    .chip { display: inline-block; background: #1d2939; border: 1px solid #344054; color: #d0d5dd;
-            border-radius: 999px; padding: 4px 14px; margin: 4px 6px 4px 0; font-size: 13px; }
+    .cover .meta { color: #555; font-size: 14px; }
+    .cover img { max-width: 100%; border: 1px solid #e3e0d8; margin-top: 24px; }
+    .chip { display: inline-block; border: 1px solid #e3e0d8; background: #fff; color: #3b3b3b;
+            border-radius: 3px; padding: 2px 8px; margin: 4px 6px 4px 0; font-size: 12px; font-family: Menlo, monospace; }
     h2 { font-size: 26px; margin: 40px 0 12px; }
     p { font-size: 15px; line-height: 1.7; }
     .numbers { display: flex; gap: 24px; margin: 24px 0; }
-    .num { flex: 1; background: #f2f4f7; border-radius: 12px; padding: 20px; text-align: center; }
+    .num { flex: 1; background: #fff; border: 1px solid #e3e0d8; padding: 14px; }
     .num .big { font-size: 34px; font-weight: bold; display: block; }
-    .moment { display: flex; gap: 20px; border: 1px solid #eaecf0; border-radius: 12px; padding: 18px; margin: 14px 0; page-break-inside: avoid; }
-    .moment img { width: 260px; height: auto; border-radius: 8px; object-fit: cover; }
+    .moment { display: flex; gap: 20px; border-top: 1px solid #e3e0d8; padding: 16px 0; margin: 0; page-break-inside: avoid; }
+    .els { margin: 8px 0 0; padding-left: 18px; font-size: 11px; color: #3b3b3b; }
+    .els li { margin: 2px 0; word-break: break-all; }
+    .impact { display: inline-block; border: 1px solid #c94124; color: #a8351d; border-radius: 3px; padding: 0 6px; font-size: 11px; text-transform: uppercase; font-family: Menlo, monospace; }
+    .moment img { width: 240px; height: auto; border: 1px solid #e3e0d8; object-fit: cover; }
     .moment h3 { margin: 4px 0 8px; font-size: 18px; }
     .moment-time { color: #667085; font-size: 12px; margin: 0; }
     .note { font-style: italic; color: #475467; }
@@ -115,16 +122,17 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
                   border-radius: 6px; padding: 1px 8px; font-size: 13px; font-weight: bold; }
     .auto { display: inline-block; background: #fef3c7; color: #78350f; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: bold; }
     .detail { color: #475467; }
-    .mission { margin-top: 28px; border: 1px solid #344054; border-radius: 16px; padding: 18px 20px; }
-    .mission small { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #98a2b3; }
-    .mission .goal { font-size: 20px; margin: 6px 0 14px; color: #fff; }
-    .sides { display: flex; gap: 12px; }
-    .side { flex: 1; background: #1d2939; border-radius: 12px; padding: 14px; }
-    .side.as { background: #3b1d16; }
-    .side b { display: block; font-size: 30px; color: #fff; margin: 4px 0; }
-    .side span { font-size: 13px; color: #d0d5dd; }
-    .verdict { color: #ffad93; font-weight: bold; margin: 12px 0 0; }
-    .intro { font-size: 16px; background: #f2f4f7; border-radius: 12px; padding: 16px 20px; }
+    .mission { margin-top: 24px; border-top: 1px solid #e3e0d8; padding-top: 14px; }
+    .mission small { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #6b6b6b; font-family: Menlo, monospace; }
+    .mission .goal { font-size: 18px; margin: 6px 0 12px; }
+    .sides { display: flex; gap: 16px; }
+    .side { flex: 1; border-left: 2px solid #161616; padding: 4px 12px; background: #fff; }
+    .side.as { border-left-color: #c94124; }
+    .side b { display: block; font-size: 28px; margin: 4px 0; font-family: Menlo, monospace; }
+    .side.as b { color: #a8351d; }
+    .side span { font-size: 12px; color: #555; }
+    .verdict { color: #a8351d; font-weight: bold; margin: 12px 0 0; }
+    .intro { font-size: 14px; border-left: 2px solid #161616; padding: 4px 14px; background: #fff; }
   </style></head><body>
     <div class="page cover">
       <h1>${esc(who)}'s experience of ${esc(session.page_title || session.url)}</h1>
@@ -145,7 +153,7 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
       </div>
       ${persona?.story ? `<p>${esc(persona.story)}</p>` : ''}
       ${lookedAtHtml(looked)}
-      <h2>Where the experience broke down</h2>
+      <h2>Every issue found</h2>
       ${momentCards.join('') || `<p>${esc(noMomentsText(session, 0) || '')}</p>`}
       <h2>What this means</h2>
       <p>None of this is about compliance. It is about whether ${esc(who)} can do what they came to do.

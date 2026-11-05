@@ -15,7 +15,7 @@ export function PersonaCard({ persona, onSelect, selected = false }) {
       onClick={() => onSelect?.(persona)}
       aria-pressed={selected}
       className={`text-left rounded-xl border p-4 w-full transition-colors
-        ${selected ? 'border-brand-500 bg-brand-50' : 'border-gray-200 bg-white hover:border-brand-300'}`}
+        ${selected ? 'border-brand-500 bg-brand-50' : 'border-rule bg-white hover:border-brand-300'}`}
     >
       <div className="flex items-center gap-3">
         <span

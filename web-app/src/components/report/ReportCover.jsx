@@ -34,11 +34,8 @@ export function ReportCover({ session, empathyMoments, mission = null, eventCoun
   ]
 
   return (
-    <section aria-label="Report cover" className="relative overflow-hidden rounded-3xl bg-ink-950 p-7 text-white sm:p-12">
-      <div aria-hidden="true" className="grain pointer-events-none absolute inset-0" />
-      <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-brand-600/30 blur-[100px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 right-0 h-80 w-80 rounded-full bg-ember-500/20 blur-[100px]" />
-      <div className="relative">
+    <section aria-label="Report cover" className="border-b border-rule pb-8">
+      <div>
         <div className="flex flex-wrap items-center gap-4">
           {persona && (
             <span aria-hidden="true" className="flex h-14 w-14 items-center justify-center rounded-full text-xl font-semibold text-ink-900"
@@ -47,18 +44,18 @@ export function ReportCover({ session, empathyMoments, mission = null, eventCoun
             </span>
           )}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+            <p className="eyebrow">
               Empathy report · {new Date(session.start_time).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
-            <p className="mt-0.5 text-sm text-white/60 break-all">{session.url}</p>
+            <p className="mt-0.5 text-sm text-ink-600 break-all">{session.url}</p>
           </div>
         </div>
-        <h1 className="mt-8 max-w-3xl font-display text-4xl font-semibold leading-[1.05] sm:text-6xl">{headline}</h1>
+        <h1 className="mt-6 max-w-3xl text-3xl font-semibold leading-tight text-ink-900 sm:text-4xl">{headline}</h1>
         <ul className="mt-5 flex flex-wrap gap-2" aria-label="Conditions experienced">
           {(session.active_profiles || []).map((ap) => {
             const p = getProfile(ap.id)
             return (
-              <li key={ap.id} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-sm text-white/80">
+              <li key={ap.id} className="rounded-[3px] border border-rule bg-white px-2 py-0.5 font-mono text-xs text-ink-700">
                 {p?.name || ap.name || ap.id}{p?.hasSeverity && ap.severity ? ` · ${SEVERITY_LABELS[ap.severity]}` : ''}
               </li>
             )
@@ -67,19 +64,19 @@ export function ReportCover({ session, empathyMoments, mission = null, eventCoun
 
         <MissionResult mission={mission} who={persona?.name || 'them'} />
 
-        <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-white/10 sm:grid-cols-4">
+        <dl className="mt-8 grid grid-cols-2 border-l border-t border-rule sm:grid-cols-4">
           {stats.map(([value, label]) => (
-            <div key={label} className="flex flex-col bg-ink-950/80 p-4">
-              <dt className="order-2 text-xs text-white/50">{label}</dt>
-              <dd className="order-1 font-display text-2xl font-semibold">{value}</dd>
+            <div key={label} className="flex flex-col border-b border-r border-rule bg-white p-3">
+              <dt className="order-2 text-xs text-ink-600">{label}</dt>
+              <dd className="num order-1 font-mono text-2xl font-semibold text-ink-900">{value}</dd>
             </div>
           ))}
         </dl>
 
         {hero?.screenshot_url && (
           <figure className="mt-8">
-            <PinnedShot src={hero.screenshot_url} rect={hero.rect} alt={`The page as ${who} met it: ${hero.label}`} className="rounded-2xl ring-1 ring-white/10" />
-            <figcaption className="mt-2 text-sm text-white/55">{isAutoMoment(hero) ? hero.label : `“${hero.label}”`}</figcaption>
+            <PinnedShot src={hero.screenshot_url} rect={hero.rect} alt={`The page as ${who} met it: ${hero.label}`} className="rounded-lg border border-rule" />
+            <figcaption className="mt-2 text-sm text-ink-600">{isAutoMoment(hero) ? hero.label : `“${hero.label}”`}</figcaption>
           </figure>
         )}
       </div>

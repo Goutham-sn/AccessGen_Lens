@@ -42,7 +42,7 @@ export function BeforeAfter({ normalImageUrl, simulatedImageUrl }) {
   if (!simulatedImageUrl) return null
 
   return (
-    <section aria-labelledby="before-after-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
+    <section aria-labelledby="before-after-heading" className="card p-6">
       <h2 id="before-after-heading" className="text-xl font-semibold text-ink-900 mb-1">
         Two people, one page
       </h2>
@@ -60,7 +60,7 @@ export function BeforeAfter({ normalImageUrl, simulatedImageUrl }) {
         {normalImageUrl ? (
           <img src={normalImageUrl} alt="The page under normal vision" className="w-full block" draggable="false" />
         ) : (
-          <div className="w-full aspect-video bg-gray-100 flex items-center justify-center text-sm text-ink-500">
+          <div className="w-full aspect-video bg-paper flex items-center justify-center text-sm text-ink-500">
             Normal view not captured
           </div>
         )}

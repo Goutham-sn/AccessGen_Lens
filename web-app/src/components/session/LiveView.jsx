@@ -9,7 +9,7 @@ export function LiveView({ session, focusPath }) {
 
   return (
     <div className="space-y-4">
-      <section aria-labelledby="live-profiles-heading" className="rounded-xl border border-gray-200 bg-white p-4">
+      <section aria-labelledby="live-profiles-heading" className="card p-4">
         <h2 id="live-profiles-heading" className="text-sm font-semibold text-ink-900 mb-2">
           Living with, right now
         </h2>
@@ -33,7 +33,7 @@ export function LiveView({ session, focusPath }) {
       </section>
 
       {keyboardActive && (
-        <section aria-labelledby="focus-path-heading" className="rounded-xl border border-gray-200 bg-white p-4">
+        <section aria-labelledby="focus-path-heading" className="card p-4">
           <h2 id="focus-path-heading" className="text-sm font-semibold text-ink-900 mb-2">
             Focus path
           </h2>

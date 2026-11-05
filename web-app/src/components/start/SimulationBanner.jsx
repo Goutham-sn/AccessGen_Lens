@@ -5,7 +5,7 @@ export function SimulationBanner({ text, className = '' }) {
   return (
     <section
       aria-label="About this simulation"
-      className={`rounded-xl border border-brand-200 bg-brand-50 p-4 text-ink-900 ${className}`}
+      className={`border-l-2 border-ink-900 bg-white p-4 text-ink-900 ${className}`}
     >
       <p className="text-base leading-relaxed">{text}</p>
     </section>

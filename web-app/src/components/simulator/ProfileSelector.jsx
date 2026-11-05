@@ -8,7 +8,7 @@ function ProfileCard({ profile }) {
 
   return (
     <div className={`rounded-xl border p-4 transition-colors
-      ${active ? 'border-brand-400 bg-brand-50' : 'border-gray-200 bg-white'}`}>
+      ${active ? 'border-brand-400 bg-brand-50' : 'border-rule bg-white'}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-medium text-ink-900">{profile.name}</h3>

@@ -2,7 +2,8 @@ import { cardTitle, getCard, fillPronouns } from '../../data/personaCards.js'
 import { splitFirstSentence } from '../../utils/cardSummary.js'
 import { ForYourTeam } from './ForYourTeam.jsx'
 
-const SHOW_DRAFT_TAG = import.meta.env.DEV
+// Draft tags are for copy review; set VITE_SHOW_DRAFTS=1 to see them.
+const SHOW_DRAFT_TAG = import.meta.env.VITE_SHOW_DRAFTS === '1'
 
 function seconds(card) {
   if (!card.estimatedSeconds) return null
@@ -57,7 +58,7 @@ export function PersonaCardFull({ card, isLive, detailsOpen, onToggleDetails, ch
       role="group"
       aria-labelledby={titleId}
       aria-describedby={later ? comingId : undefined}
-      className={`rounded-xl border p-4 ${later ? 'border-dashed border-gray-300 bg-gray-50' : 'border-gray-200 bg-white'}`}
+      className={`rounded-xl border p-4 ${later ? 'border-dashed border-rule bg-paper' : 'border-rule bg-white'}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 id={titleId} className="text-lg font-semibold text-ink-900">{cardTitle(card)}</h3>

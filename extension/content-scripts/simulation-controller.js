@@ -167,7 +167,8 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
       // Every page is checked against every rule, whatever the conditions:
       // nothing the rules engine can find is left out. Not in the "as
       // yourself" first run of a mission, which is only the baseline.
-      if (!payload.baseline && !stopAuditor) {
+      const startLooking = () => {
+        if (payload.baseline || stopAuditor) return
         stopAuditor = startAuditor({ profileIds: (payload.profiles || []).map((p) => p.id) })
         // Things only a mouse can use, hover-only menus, a forced Tab order
         // and no skip link hurt keyboard, switch and screen reader users
@@ -177,6 +178,9 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
         const stop = stopAuditor
         stopAuditor = () => { scans.forEach(clearTimeout); stop() }
       }
+      // Not while the step-in screen covers the page: the pictures would
+      // show the screen, not the page.
+      if (!payload.showIntro) startLooking()
       if (payload.showIntro) {
         const profiles = payload.profiles || []
         const hints = profiles.map((p) => KEYBOARD_HINTS[p.id]).filter(Boolean)
@@ -184,6 +188,7 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
         showIntro({ persona: payload.persona, profiles, hints, mission: payload.mission, baseline: payload.baseline })
           .then(() => {
             panel?.host.style.setProperty('visibility', 'visible', 'important')
+            setTimeout(startLooking, 1300)
             return chrome.runtime.sendMessage({ type: 'ACCESSGEN_MISSION_START' })
           })
           .then((reply) => panel?.startMission(reply?.missionStartedAt))

@@ -55,7 +55,7 @@ export function TaskForm({ value, onChange, limits, error }) {
   const listError = error?.field === 'intents' ? error.message : null
 
   return (
-    <section aria-labelledby="task-heading" className="mt-4 space-y-5 border-t border-gray-200 pt-4">
+    <section aria-labelledby="task-heading" className="mt-4 space-y-5 border-t border-rule pt-4">
       <div>
         <h3 id="task-heading" className="text-base font-semibold text-ink-900">What should they find?</h3>
         <p id="task-explain" className="mt-1 text-sm text-ink-700">

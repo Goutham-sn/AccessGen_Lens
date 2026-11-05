@@ -45,43 +45,42 @@ export default function StepIn() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-ink-950 text-white">
-      <div aria-hidden="true" className="grain pointer-events-none absolute inset-0" />
-      <div aria-hidden="true" className="pointer-events-none absolute -left-32 -top-32 h-[460px] w-[460px] rounded-full bg-brand-600/30 blur-[120px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 -right-20 h-[420px] w-[420px] rounded-full bg-ember-500/20 blur-[120px]" />
-      <header className="relative mx-auto flex h-16 w-full max-w-5xl items-center px-5"><Logo dark /></header>
-      <main className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 pb-20 animate-fade-up">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">Run one of two, as yourself</p>
-        <p className="mt-3 font-display text-2xl text-white/70">“{chain.mission.goal}”</p>
-        <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] sm:text-6xl">
+    <div className="flex min-h-screen flex-col bg-paper">
+      <header className="border-b border-rule">
+        <div className="mx-auto flex h-14 max-w-5xl items-center px-5"><Logo /></div>
+      </header>
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 py-16">
+        <p className="eyebrow">Run 1 of 2 · as yourself</p>
+        <p className="mt-3 text-lg text-ink-600">“{chain.mission.goal}”</p>
+        <h1 className="mt-4 text-4xl font-semibold leading-tight text-ink-900 sm:text-5xl">
           {m?.outcome === 'done'
-            ? <>You did it in <span className="text-brand-300">{yourTime}</span>.</>
+            ? <>You did it in <span className="num font-mono">{yourTime}</span>.</>
             : m?.outcome === 'gave-up'
             ? <>Even as yourself, you gave up.</>
             : <>That was you.</>}
         </h1>
-        <p className="mt-5 max-w-xl text-lg text-white/70">
+        <p className="mt-4 max-w-xl text-lg text-ink-700">
           Now do exactly the same thing as {who}{persona?.age ? `, ${persona.age}` : ''}. Same page, same mission. Only the body changes.
         </p>
 
-        <div className="mt-10 flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-semibold text-ink-900"
-            style={{ background: avatarColorFor(persona?.name) || '#d1ccff' }}>
+        <div className="mt-10 flex items-center gap-4 border-y border-rule py-5">
+          <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-semibold text-ink-900"
+            style={{ background: avatarColorFor(persona?.name) || '#e3e0d8' }}>
             {(persona?.name || '?').charAt(0)}
           </span>
           <div className="min-w-0">
-            <p className="font-display text-xl font-semibold">{persona?.name ? `${persona.name}${persona.age ? `, ${persona.age}` : ''}` : 'With the simulation on'}</p>
-            <p className="text-sm text-white/60">{conditions}</p>
+            <p className="text-lg font-semibold text-ink-900">{persona?.name ? `${persona.name}${persona.age ? `, ${persona.age}` : ''}` : 'With the simulation on'}</p>
+            <p className="text-sm text-ink-600">{conditions}</p>
           </div>
         </div>
 
-        {message && <p role="alert" className="mt-4 text-sm font-medium text-ember-300">{message}</p>}
-        <div className="mt-8 flex flex-wrap items-center gap-4">
+        {message && <p role="alert" className="mt-4 text-sm font-medium text-ember-700">{message}</p>}
+        <div className="mt-8 flex flex-wrap items-center gap-5">
           <button type="button" onClick={stepIn} disabled={explore.starting}
-            className="inline-flex min-h-[54px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold text-ink-900 hover:bg-brand-50 disabled:opacity-60">
+            className="inline-flex min-h-[48px] items-center gap-2 rounded-[4px] bg-ink-900 px-6 font-medium text-paper hover:bg-ink-700 disabled:opacity-60">
             {explore.starting ? 'Opening…' : `Step into ${persona?.name ? `${persona.name}'s` : 'their'} world`} <Icon name="arrow" size={18} />
           </button>
-          <Link to={`/results/${id}`} onClick={clearChain} className="text-sm text-white/60 underline hover:text-white">
+          <Link to={`/results/${id}`} onClick={clearChain} className="text-sm text-ink-600 underline underline-offset-2 hover:text-ink-900">
             Not now, show my run
           </Link>
         </div>

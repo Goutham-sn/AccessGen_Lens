@@ -106,7 +106,7 @@ export function FramePlayer({ frames, videoRef, onTimeUpdate, onLoadedMetadata, 
           <button
             type="button"
             onClick={() => (paused ? handle.play() : handle.pause())}
-            className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+            className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700"
           >
             {paused ? 'Play' : 'Pause'}
           </button>

@@ -21,7 +21,7 @@ export function StartIntro({ text }) {
   const { first, rest } = splitFirstSentence(text)
 
   return (
-    <section aria-label="About this simulation" className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-ink-900">
+    <section aria-label="About this simulation" className="border-l-2 border-ink-900 bg-white px-4 py-2 text-ink-900">
       <p className="text-sm leading-relaxed">
         {first}
         {rest && (

@@ -195,11 +195,10 @@ export function SessionResults({ sessionId, embedded = false }) {
         </div>
       </section>
 
-      <section aria-labelledby={`journey-${sessionId}`} className="mt-14">
+      <div className="mt-14">
         <p className="eyebrow">02</p>
-        <h2 id={`journey-${sessionId}`} className="mt-1 text-2xl font-semibold text-ink-900">The journey</h2>
-        <div className="mt-4"><JourneyMap session={session} events={events} empathyMoments={moments} /></div>
-      </section>
+        <JourneyMap session={session} events={events} empathyMoments={moments} />
+      </div>
 
       {lookedAt && (
         <section className="mt-14">

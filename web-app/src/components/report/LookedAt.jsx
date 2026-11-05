@@ -11,7 +11,7 @@ export function LookedAt({ lookedAt, headingLevel = 2, idPrefix = 'looked-at' })
   const Sub = `h${headingLevel + 1}`
   const size = headingLevel === 2 ? 'text-xl' : 'text-base'
   return (
-    <section aria-labelledby={`${idPrefix}-heading`} className="rounded-2xl border border-gray-200 bg-white p-6">
+    <section aria-labelledby={`${idPrefix}-heading`} className="card p-6">
       <H id={`${idPrefix}-heading`} className={`${size} font-semibold text-ink-900`}>What we looked at</H>
       {lookedAt.items.length > 0 ? (
         <ul className="mt-3 list-disc space-y-1 pl-5 text-ink-700">

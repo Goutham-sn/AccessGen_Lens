@@ -47,7 +47,7 @@ export function PlaybackControls({
         Next moment →
       </Button>
 
-      <div role="radiogroup" aria-label="Playback speed" className="inline-flex rounded-lg border border-gray-300 overflow-hidden ml-auto">
+      <div role="radiogroup" aria-label="Playback speed" className="inline-flex rounded-lg border border-rule overflow-hidden ml-auto">
         {SPEEDS.map((s, i) => (
           <button
             key={s}
@@ -56,8 +56,8 @@ export function PlaybackControls({
             aria-checked={speed === s}
             onClick={() => setSpeed(s)}
             className={`px-3 py-2 text-sm font-medium min-h-[40px]
-              ${speed === s ? 'bg-brand-700 text-white' : 'bg-white text-ink-700 hover:bg-gray-100'}
-              ${i < SPEEDS.length - 1 ? 'border-r border-gray-300' : ''}`}
+              ${speed === s ? 'bg-ink-900 text-white' : 'bg-white text-ink-700 hover:bg-paper'}
+              ${i < SPEEDS.length - 1 ? 'border-r border-rule' : ''}`}
           >
             {s}×
           </button>

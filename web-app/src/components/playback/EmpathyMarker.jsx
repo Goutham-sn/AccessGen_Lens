@@ -15,7 +15,7 @@ export function EmpathyMarker({ moment, positionPercent, onJump, current = false
           aria-label={`Jump to ${auto ? 'noticed struggle' : 'empathy moment'}: ${moment.label}`}
           className={`h-6 w-6 rounded-full border-2 border-white shadow
             flex items-center justify-center text-[10px] text-white transition-transform hover:scale-110
-            ${auto ? (current ? 'bg-amber-700 scale-110' : 'bg-amber-500') : (current ? 'bg-rose-700 scale-110' : 'bg-rose-500')}`}
+            ${auto ? (current ? 'bg-ink-700 scale-110' : 'bg-ink-900') : (current ? 'bg-ember-700 scale-110' : 'bg-ember-500')}`}
         >
           <span aria-hidden="true">{auto ? '!' : '◉'}</span>
         </button>

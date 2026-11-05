@@ -2,11 +2,11 @@
 
 .panel {
   width: 300px;
-  background: #0f1420;
+  background: #161616;
   color: #e6e9f0;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-  border: 1px solid #232a3d;
+  border: 1px solid #333;
   overflow: hidden;
   user-select: none;
   font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -24,7 +24,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px 10px 14px;
-  background: #161c2c;
+  background: #101010;
   cursor: grab;
 }
 .header:active { cursor: grabbing; }
@@ -65,8 +65,8 @@
 
 .active-profiles { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px 0; }
 .chip {
-  background: #1c2438;
-  border: 1px solid #2c3652;
+  background: #232323;
+  border: 1px solid #3a3a3a;
   color: #c7d2f0;
   font-size: 11px;
   padding: 3px 10px;
@@ -93,14 +93,14 @@
   width: calc(100% - 28px);
   margin: 12px 14px 8px;
   padding: 11px;
-  background: #be123c;
+  background: #e2502f;
   color: #fff;
   border: none;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 650;
 }
-.empathy-btn:hover { background: #9f1239; }
+.empathy-btn:hover { background: #c94124; }
 .empathy-btn:focus-visible { outline: 3px solid #fda4af; outline-offset: 2px; }
 
 .empathy-menu { padding: 0 14px 8px; display: none; }
@@ -110,7 +110,7 @@
   margin-bottom: 8px;
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid #2c3652;
+  border: 1px solid #3a3a3a;
   background: #0b0f19;
   color: #e6e9f0;
   font-size: 12px;
@@ -122,15 +122,15 @@
   display: block;
   width: 100%;
   text-align: left;
-  background: #1c2438;
-  border: 1px solid #2c3652;
+  background: #232323;
+  border: 1px solid #3a3a3a;
   color: #dbe2f4;
   font-size: 12px;
   padding: 8px 12px;
   border-radius: 8px;
   margin-bottom: 6px;
 }
-.empathy-menu button:hover { background: #26304a; border-color: #3d4a6e; }
+.empathy-menu button:hover { background: #26304a; border-color: #555; }
 .empathy-menu button:focus-visible { outline: 2px solid #60a5fa; }
 
 .toast { padding: 0 14px; font-size: 12px; color: #86efac; min-height: 0; }
@@ -143,28 +143,28 @@
   padding: 10px;
   background: transparent;
   color: #dbe2f4;
-  border: 1px solid #3d4a6e;
+  border: 1px solid #555;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
 }
-.stop-btn:hover:not(:disabled) { background: #1c2438; color: #fff; }
+.stop-btn:hover:not(:disabled) { background: #232323; color: #fff; }
 .stop-btn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
 .stop-btn:disabled { opacity: 0.6; cursor: wait; }
 
-.mission { margin: 12px 14px 0; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, #1f1b3d, #2a1a1f); border: 1px solid #3b3366; }
+.mission { margin: 12px 14px 0; padding: 12px; border-radius: 6px; background: #1d1d1d; border: 1px solid #333; border-left: 3px solid #e2502f; }
 .mission[hidden] { display: none; }
-.mission.baseline { background: #18202e; border-color: #2c3652; }
+.mission.baseline { border-left-color: #fbfaf7; }
 .mission-top { display: flex; justify-content: space-between; align-items: baseline; }
-.mission-label { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: #ffad93; font-weight: 700; }
-.mission.baseline .mission-label { color: #93b4fd; }
+.mission-label { font: 600 10.5px/1.2 ui-monospace, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: #ef9a85; }
+.mission.baseline .mission-label { color: #d6d3cc; }
 .mission-clock { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: #fff; }
-.mission-goal { margin: 6px 0 10px; font: 600 15px/1.35 Georgia, 'Times New Roman', serif; color: #fff; }
+.mission-goal { margin: 6px 0 10px; font-size: 14px; font-weight: 600; line-height: 1.35; color: #fff; }
 .mission-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .mission-actions button { padding: 8px; border-radius: 8px; border: 0; font-size: 12.5px; font-weight: 650; }
-.done-btn { background: #10b981; color: #052e1f; }
-.done-btn:hover { background: #34d399; }
-.giveup-btn { background: #3a2230; color: #ffd4c4; border: 1px solid #6b2f3f !important; }
-.giveup-btn:hover { background: #4a2a3a; }
+.done-btn { background: #fbfaf7; color: #161616; }
+.done-btn:hover { background: #fff; }
+.giveup-btn { background: transparent; color: #ef9a85; border: 1px solid #a8351d !important; }
+.giveup-btn:hover { background: #2a1814; }
 .mission-actions button:focus-visible { outline: 2px solid #b0a7ff; outline-offset: 2px; }
 .mission-actions button:disabled { opacity: .6; cursor: wait; }

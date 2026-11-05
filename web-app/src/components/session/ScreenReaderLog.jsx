@@ -10,7 +10,7 @@ export function ScreenReaderLog({ announcements }) {
   }, [announcements.length])
 
   return (
-    <section aria-labelledby="sr-log-heading" className="rounded-xl border border-gray-200 bg-white p-4">
+    <section aria-labelledby="sr-log-heading" className="card p-4">
       <h2 id="sr-log-heading" className="text-sm font-semibold text-ink-900 mb-2">
         What the screen reader said
       </h2>

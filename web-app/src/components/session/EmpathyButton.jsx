@@ -46,7 +46,7 @@ export function EmpathyButton({ sessionId, startedAt, onLogged }) {
       <Button
         size="lg"
         onClick={() => setOpen(true)}
-        className="w-full !bg-rose-700 hover:!bg-rose-800"
+        className="w-full !bg-ember-700 hover:!bg-rose-800"
       >
         ◉ I Felt This
       </Button>
@@ -65,8 +65,8 @@ export function EmpathyButton({ sessionId, startedAt, onLogged }) {
               aria-pressed={selectedLabel === label}
               className={`w-full text-left rounded-lg border px-4 py-3 text-sm font-medium transition-colors
                 ${selectedLabel === label
-                  ? 'border-rose-500 bg-rose-50 text-rose-900'
-                  : 'border-gray-200 text-ink-700 hover:border-rose-300 hover:bg-rose-50'}`}
+                  ? 'border-rose-500 bg-ember-50 text-rose-900'
+                  : 'border-rule text-ink-700 hover:border-ember-300 hover:bg-ember-50'}`}
             >
               {label}
             </button>
@@ -81,7 +81,7 @@ export function EmpathyButton({ sessionId, startedAt, onLogged }) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-rule px-3 py-2 text-sm"
           />
         </div>
         <div className="mt-4 flex justify-end gap-2">

@@ -16,8 +16,8 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
       </h2>
       {empathyMoments.some(isAutoMoment) && (
         <p className="text-xs text-ink-600 -mt-2 mb-3">
-          <span className="inline-block h-2 w-2 rounded-full bg-rose-500 mr-1" aria-hidden="true" />You logged it
-          <span className="inline-block h-2 w-2 rounded-full bg-amber-500 ml-3 mr-1" aria-hidden="true" />The simulation noticed it
+          <span className="inline-block h-2 w-2 rounded-full bg-ember-500 mr-1" aria-hidden="true" />You logged it
+          <span className="inline-block h-2 w-2 rounded-full bg-ink-900 ml-3 mr-1" aria-hidden="true" />The simulation noticed it
         </p>
       )}
       {empathyMoments.length === 0 ? (
@@ -32,7 +32,7 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
                   <img
                     src={mediaUrl(m.screenshot_url)}
                     alt=""
-                    className="mb-2 h-28 w-full rounded-lg object-cover object-top bg-gray-100"
+                    className="mb-2 h-28 w-full rounded-lg object-cover object-top bg-paper"
                     loading="lazy"
                   />
                 )}
@@ -48,7 +48,7 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
             // Logged before recording started: no video position to jump to.
             if (sec == null) {
               return (
-                <li key={m.id} className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3">
+                <li key={m.id} className="rounded-xl border border-dashed border-rule bg-paper p-3">
                   {content}
                   <p className="text-xs text-ink-600 mt-1">Logged before recording started, no video position.</p>
                 </li>
@@ -61,7 +61,7 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
                   type="button"
                   onClick={() => onJump(sec)}
                   className={`w-full text-left rounded-xl border p-3 transition-colors
-                    ${active ? (isAutoMoment(m) ? 'border-amber-400 bg-amber-50' : 'border-rose-400 bg-rose-50') : 'border-gray-200 bg-white hover:border-rose-300'}`}
+                    ${active ? (isAutoMoment(m) ? 'border-amber-400 bg-amber-50' : 'border-ember-400 bg-ember-50') : 'border-rule bg-white hover:border-ember-300'}`}
                 >
                   {content}
                 </button>

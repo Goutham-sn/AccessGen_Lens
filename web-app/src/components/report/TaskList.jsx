@@ -10,7 +10,7 @@ export function TaskList({ session, headingLevel = 2, idPrefix = 'task' }) {
   const H = `h${headingLevel}`
   const size = headingLevel === 2 ? 'text-xl' : 'text-base'
   return (
-    <section aria-labelledby={`${idPrefix}-heading`} className="rounded-2xl border border-gray-200 bg-white p-6">
+    <section aria-labelledby={`${idPrefix}-heading`} className="card p-6">
       <H id={`${idPrefix}-heading`} className={`${size} font-semibold text-ink-900`}>
         What {task.name} was looking for
       </H>

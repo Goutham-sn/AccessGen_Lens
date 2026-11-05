@@ -306,7 +306,7 @@ export default function Start() {
               <label
                 key={opt.value}
                 className={`flex cursor-pointer gap-3 rounded-xl border-2 p-4 transition-colors ${
-                  mode === opt.value ? 'border-brand-600 bg-brand-50' : 'border-gray-200 bg-white hover:border-brand-300'
+                  mode === opt.value ? 'border-ink-900 bg-white' : 'border-rule bg-white hover:border-ink-400'
                 }`}
               >
                 <input
@@ -338,7 +338,7 @@ export default function Start() {
               A browser on our side moves through the page as each person you choose, and records it. Choose up to {MAX_WATCH}.
             </p>
 
-            <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+            <div className="mt-4 card p-4">
               <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-ink-900">
                 <input
                   type="checkbox"
@@ -381,8 +381,8 @@ export default function Start() {
                     <label
                       className={`flex min-h-[44px] items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium ${
                         reason
-                          ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-ink-600 opacity-60'
-                          : 'cursor-pointer border-gray-300 text-ink-900 hover:border-brand-500'
+                          ? 'cursor-not-allowed border-rule bg-paper text-ink-600 opacity-60'
+                          : 'cursor-pointer border-rule text-ink-900 hover:border-ink-400'
                       }`}
                     >
                       <input
@@ -401,7 +401,7 @@ export default function Start() {
               })}
             </div>
 
-            <div className="mt-6 space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+            <div className="mt-6 space-y-3 card p-4">
               <p className="text-sm text-ink-900">{summary}</p>
               {watchMessage && <p role="alert" className="text-sm font-medium text-red-800">{watchMessage}</p>}
               <Button onClick={startWatching} disabled={starting}>
@@ -460,7 +460,7 @@ export default function Start() {
           </section>
 
           {/* Later */}
-          <details id="section-later" className="group rounded-xl border border-dashed border-gray-300 bg-white/60 p-4">
+          <details id="section-later" className="group rounded-xl border border-dashed border-rule bg-white/60 p-4">
             <summary className="cursor-pointer text-base font-semibold text-ink-900">
               {CARD_SECTIONS[2].title} ({bySection.later.length})
             </summary>

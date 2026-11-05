@@ -65,7 +65,7 @@ export default function Team() {
       {error && <p role="alert" className="text-sm text-red-700 mb-2">{error}</p>}
 
       {!activeTeam ? (
-        <section aria-labelledby="create-team-heading" className="max-w-md rounded-xl border border-gray-200 bg-white p-6">
+        <section aria-labelledby="create-team-heading" className="max-w-md card p-6">
           <h2 id="create-team-heading" className="font-semibold text-ink-900">Create a team</h2>
           <p className="mt-1 text-sm text-ink-600">
             Share personas and empathy reports with the people you build with.
@@ -77,7 +77,7 @@ export default function Team() {
                 id="team-name" type="text" required value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="e.g. Design Systems Guild"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-rule px-3 py-2 text-sm"
               />
             </div>
             <Button type="submit">Create</Button>
@@ -85,7 +85,7 @@ export default function Team() {
         </section>
       ) : (
         <div className="space-y-6 max-w-2xl">
-          <section aria-labelledby="members-heading" className="rounded-xl border border-gray-200 bg-white p-6">
+          <section aria-labelledby="members-heading" className="card p-6">
             <h2 id="members-heading" className="font-semibold text-ink-900">{activeTeam.name}</h2>
             <ul className="mt-4 divide-y divide-gray-100">
               {members.map((m) => (
@@ -112,7 +112,7 @@ export default function Team() {
           </section>
 
           {activeTeam.owner_id === user?.id && (
-            <section aria-labelledby="invite-heading" className="rounded-xl border border-gray-200 bg-white p-6">
+            <section aria-labelledby="invite-heading" className="card p-6">
               <h2 id="invite-heading" className="font-semibold text-ink-900">Invite someone</h2>
               <p className="mt-1 text-sm text-ink-600">They need an AccessGen Lens account first.</p>
               <form onSubmit={invite} className="mt-4 flex gap-2">
@@ -122,7 +122,7 @@ export default function Team() {
                     id="invite-email" type="email" required value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="teammate@company.com"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-rule px-3 py-2 text-sm"
                   />
                 </div>
                 <Button type="submit">Invite</Button>

@@ -70,7 +70,7 @@ export function Modal({ open, onClose, title, children, wide = false }) {
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded-md p-2 text-ink-600 hover:bg-gray-100 hover:text-ink-900"
+            className="rounded-md p-2 text-ink-600 hover:bg-paper hover:text-ink-900"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

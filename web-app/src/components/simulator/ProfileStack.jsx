@@ -7,7 +7,7 @@ export function ProfileStack() {
   const { activeProfiles, persona, toggleProfile, clearAll } = useProfileStore()
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="card p-5">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-ink-900">Your experience</h2>
         {activeProfiles.length > 0 && (

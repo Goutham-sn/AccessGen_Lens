@@ -1,7 +1,7 @@
 export function HumanSummary({ paragraphs }) {
   if (!paragraphs || paragraphs.length === 0) return null
   return (
-    <section aria-labelledby="summary-heading" className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
+    <section aria-labelledby="summary-heading" className="card p-6 sm:p-8">
       <h2 id="summary-heading" className="text-xl font-semibold text-ink-900 mb-4">
         In human terms
       </h2>

@@ -8,29 +8,27 @@ import { styleHost, mountTopLayer } from './topLayer.js'
 const CSS = `
   :host { all: initial; }
   .wrap { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px;
-    background: radial-gradient(80% 60% at 20% 0%, rgba(111,92,246,.28), transparent 60%),
-                radial-gradient(60% 50% at 100% 100%, rgba(255,106,69,.18), transparent 60%),
-                rgba(8,9,14,.94);
+    background: rgba(14,14,14,.95);
     color: #f4f3ff; font: 16px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
     opacity: 0; transition: opacity .6s ease; cursor: auto; letter-spacing: normal; word-spacing: normal; text-align: left; }
   .wrap.show { opacity: 1; }
   .wrap.leave { opacity: 0; transition: opacity 1.1s ease; }
   .card { max-width: 620px; width: 100%; transform: translateY(10px); transition: transform .8s ease; }
   .show .card { transform: none; }
-  .eyebrow { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #ffad93; font-weight: 600; }
-  h1 { font: 600 56px/1.02 Fraunces, Georgia, 'Times New Roman', serif; margin: 12px 0 6px; letter-spacing: -.02em; color: #fff; }
-  .line { color: #b0a7ff; font-size: 17px; margin: 0; }
+  .eyebrow { font: 500 12px/1.2 ui-monospace, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: #ef9a85; }
+  h1 { font-size: 52px; font-weight: 600; line-height: 1.05; margin: 12px 0 6px; letter-spacing: -.02em; color: #fff; }
+  .line { color: #d6d3cc; font-size: 17px; margin: 0; }
   .story { color: rgba(244,243,255,.75); font-size: 17px; margin: 18px 0 0; }
   .changes { margin: 22px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
   .changes li { display: flex; gap: 10px; color: rgba(244,243,255,.85); font-size: 15px; }
-  .changes li::before { content: ''; flex: 0 0 6px; height: 6px; margin-top: 9px; border-radius: 50%; background: #ff8a66; }
-  .mission { margin-top: 26px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); border-radius: 16px; padding: 16px 18px; }
+  .changes li::before { content: ''; flex: 0 0 10px; height: 2px; margin-top: 11px; background: #e2502f; }
+  .mission { margin-top: 26px; border-left: 3px solid #e2502f; background: #1d1d1d; border-radius: 4px; padding: 14px 18px; }
   .mission small { display: block; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: rgba(244,243,255,.55); font-weight: 600; }
-  .mission p { margin: 6px 0 0; font: 600 21px/1.3 Fraunces, Georgia, serif; color: #fff; }
+  .mission p { margin: 6px 0 0; font-size: 20px; font-weight: 600; line-height: 1.3; color: #fff; }
   .row { display: flex; align-items: center; gap: 16px; margin-top: 28px; }
-  button { font: 600 16px/1 inherit; font-family: inherit; border: 0; border-radius: 999px; padding: 15px 26px; cursor: pointer;
-    background: #fff; color: #13141c; }
-  button:focus-visible { outline: 3px solid #b0a7ff; outline-offset: 3px; }
+  button { font: 600 16px/1 inherit; font-family: inherit; border: 0; border-radius: 4px; padding: 14px 24px; cursor: pointer;
+    background: #fbfaf7; color: #161616; }
+  button:focus-visible { outline: 2px solid #fbfaf7; outline-offset: 3px; }
   .count { color: rgba(244,243,255,.5); font-size: 14px; }
   @media (prefers-reduced-motion: reduce) { .wrap, .card, .wrap.leave { transition: none; } }
 `

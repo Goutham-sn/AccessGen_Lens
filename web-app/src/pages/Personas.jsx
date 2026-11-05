@@ -59,13 +59,13 @@ function CreatePersonaModal({ open, onClose, onCreated }) {
             <label htmlFor="p-name" className="block text-sm font-medium text-ink-700 mb-1">Name</label>
             <input id="p-name" type="text" value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+              className="w-full rounded-lg border border-rule px-3 py-2 text-sm" />
           </div>
           <div>
             <label htmlFor="p-age" className="block text-sm font-medium text-ink-700 mb-1">Age</label>
             <input id="p-age" type="number" min="1" max="120" value={form.age}
               onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+              className="w-full rounded-lg border border-rule px-3 py-2 text-sm" />
           </div>
         </div>
         <div>
@@ -74,14 +74,14 @@ function CreatePersonaModal({ open, onClose, onCreated }) {
           </label>
           <textarea id="p-story" rows={3} value={form.story}
             onChange={(e) => setForm((f) => ({ ...f, story: e.target.value }))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+            className="w-full rounded-lg border border-rule px-3 py-2 text-sm" />
         </div>
         <fieldset>
           <legend className="text-sm font-medium text-ink-700 mb-2">Profiles they live with</legend>
           <div className="grid gap-2 sm:grid-cols-2 max-h-64 overflow-y-auto pr-1">
             {PROFILES.map((p) => (
               <label key={p.id} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer
-                ${selected[p.id] ? 'border-brand-400 bg-brand-50' : 'border-gray-200'}`}>
+                ${selected[p.id] ? 'border-brand-400 bg-brand-50' : 'border-rule'}`}>
                 <input
                   type="checkbox"
                   checked={Boolean(selected[p.id])}
@@ -180,7 +180,7 @@ export default function Personas() {
                   type="button"
                   onClick={() => removeCustom(p.id)}
                   aria-label={`Delete persona ${p.name}`}
-                  className="absolute top-2 right-2 rounded-md bg-white/90 border border-gray-300 px-2 py-1 text-xs text-ink-600 hover:text-red-800 hover:border-red-300"
+                  className="absolute top-2 right-2 rounded-md bg-white/90 border border-rule px-2 py-1 text-xs text-ink-600 hover:text-red-800 hover:border-red-300"
                 >
                   Delete
                 </button>

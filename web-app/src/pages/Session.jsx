@@ -93,7 +93,7 @@ export default function Session() {
             startedAt={session.startedAt}
             onLogged={() => {}}
           />
-          <section aria-labelledby="live-moments-heading" className="rounded-xl border border-gray-200 bg-white p-4">
+          <section aria-labelledby="live-moments-heading" className="card p-4">
             <h2 id="live-moments-heading" className="text-sm font-semibold text-ink-900 mb-2">
               Moments so far
             </h2>
@@ -107,7 +107,7 @@ export default function Session() {
                 <ul className="space-y-2 text-sm text-ink-700">
                   {session.liveMoments.map((m, i) => (
                     <li key={m.id || i} className="flex gap-2">
-                      <span aria-hidden="true" className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${isAutoMoment(m) ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                      <span aria-hidden="true" className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${isAutoMoment(m) ? 'bg-ink-900' : 'bg-ember-500'}`} />
                       <span>
                         {momentTitle(m)}
                         {isAutoMoment(m) && <span className="sr-only"> (noticed by the simulation)</span>}

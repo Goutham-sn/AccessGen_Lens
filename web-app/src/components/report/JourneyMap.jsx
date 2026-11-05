@@ -7,7 +7,7 @@ export function JourneyMap({ session, events, empathyMoments }) {
   const pos = (ms) => Math.max(0, Math.min(100, (ms / totalMs) * 100))
 
   return (
-    <section aria-labelledby="journey-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
+    <section aria-labelledby="journey-heading" className="card p-6">
       <h2 id="journey-heading" className="text-xl font-semibold text-ink-900 mb-1">The journey</h2>
       <p className="text-sm text-ink-600 mb-8">
         Every dot is an interaction. Red markers are where the tester felt it break down; amber ones are struggles the simulation noticed.
@@ -34,11 +34,11 @@ export function JourneyMap({ session, events, empathyMoments }) {
             style={{ left: `${pos(m.timestamp_ms)}%` }}
           >
             {!isAutoMoment(m) && (
-              <span className="absolute bottom-6 w-max max-w-[140px] text-center text-xs font-medium text-rose-800 leading-tight">
+              <span className="absolute bottom-6 w-max max-w-[140px] text-center text-xs font-medium text-ember-800 leading-tight">
                 {m.label}
               </span>
             )}
-            <span className={`rounded-full border-2 border-white shadow ${isAutoMoment(m) ? 'h-4 w-4 bg-amber-500' : 'h-5 w-5 bg-rose-600'}`} />
+            <span className={`rounded-full border-2 border-white shadow ${isAutoMoment(m) ? 'h-4 w-4 bg-ink-900' : 'h-5 w-5 bg-ember-600'}`} />
           </span>
         ))}
       </div>

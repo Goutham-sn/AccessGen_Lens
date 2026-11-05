@@ -197,8 +197,8 @@ export function LiveLens() {
               role="tab"
               aria-selected={active}
               onClick={() => setPersonId(p.id)}
-              className={`group flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3.5 text-left text-sm transition ${
-                active ? 'border-white/40 bg-white text-ink-900 shadow-lg shadow-black/30' : 'border-white/10 bg-white/[0.04] text-white/80 hover:border-white/25 hover:bg-white/10'
+              className={`group flex items-center gap-2 rounded-[4px] border py-1.5 pl-1.5 pr-3 text-left text-sm ${
+                active ? 'border-ink-900 bg-ink-900 text-paper' : 'border-rule bg-white text-ink-800 hover:border-ink-400'
               }`}
             >
               <span
@@ -210,20 +210,19 @@ export function LiveLens() {
               </span>
               <span className="leading-tight">
                 <span className="block font-semibold">{p.id === 'you' ? 'You' : `${p.name}, ${p.age}`}</span>
-                <span className={`block text-[11px] ${active ? 'text-ink-500' : 'text-white/50'}`}>{p.line}</span>
+                <span className={`block text-[11px] ${active ? 'text-paper/70' : 'text-ink-500'}`}>{p.line}</span>
               </span>
-              {results[p.id] && <span aria-label="done" className="ml-1 text-emerald-500">●</span>}
+              {results[p.id] && <span className="ml-1 font-mono text-[11px]" aria-label="done">✓</span>}
             </button>
           )
         })}
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_260px]">
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#1b1c26] shadow-2xl shadow-black/50">
-          <div className="flex items-center gap-2 border-b border-white/5 px-4 py-2.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" /><span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" /><span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-            <span className="ml-3 flex-1 truncate rounded-md bg-white/5 px-3 py-1 text-[11px] text-white/45">northwind.example/shoes</span>
-            {person.id !== 'you' && <span className="rounded-full bg-ember-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ember-300">As {person.name}</span>}
+        <div className="overflow-hidden rounded-lg border border-ink-900 bg-white">
+          <div className="flex items-center gap-3 border-b border-ink-900 bg-ink-900 px-3 py-2 font-mono text-[11px] text-paper/80">
+            <span className="flex-1 truncate">northwind.example/shoes</span>
+            {person.id !== 'you' && <span className="text-ember-400">as {person.name}</span>}
           </div>
           <div
             ref={frame}
@@ -262,31 +261,31 @@ export function LiveLens() {
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-white">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ember-300">Your mission</p>
-          <p className="mt-2 font-display text-xl leading-snug">Put a pair of shoes that is in stock in the basket.</p>
-          <p className="mt-3 text-sm text-white/60">{person.hint}</p>
+        <aside className="rounded-lg border border-rule bg-white p-5">
+          <p className="eyebrow">Your mission</p>
+          <p className="mt-2 text-lg font-semibold leading-snug text-ink-900">Put a pair of shoes that is in stock in the basket.</p>
+          <p className="mt-2 text-sm text-ink-600">{person.hint}</p>
 
-          <div className="mt-5 rounded-xl bg-black/30 p-4" aria-live="polite">
+          <div className="mt-5 border-t border-rule pt-4" aria-live="polite">
             {mine ? (
               <>
-                <p className="text-sm text-white/60">{person.id === 'you' ? 'You did it in' : `As ${person.name}, it took`}</p>
-                <p className="font-display text-3xl font-semibold">{fmt(mine.ms)}</p>
-                <p className="text-sm text-white/60">{mine.mistakes} wrong {mine.mistakes === 1 ? 'try' : 'tries'}</p>
+                <p className="text-sm text-ink-600">{person.id === 'you' ? 'You did it in' : `As ${person.name}, it took`}</p>
+                <p className="num font-mono text-3xl font-semibold text-ink-900">{fmt(mine.ms)}</p>
+                <p className="text-sm text-ink-600">{mine.mistakes} wrong {mine.mistakes === 1 ? 'try' : 'tries'}</p>
                 {you && person.id !== 'you' && mine.ms > you.ms * 1.3 && (
-                  <p className="mt-3 text-sm font-semibold text-ember-300">{(mine.ms / you.ms).toFixed(1)}× longer than you.</p>
+                  <p className="mt-3 text-sm font-semibold text-ember-700">{(mine.ms / you.ms).toFixed(1)}× longer than you.</p>
                 )}
-                <button type="button" onClick={reset} className="mt-3 text-sm text-white/70 underline">Try again</button>
+                <button type="button" onClick={reset} className="mt-3 text-sm text-brand-700 underline underline-offset-2">Try again</button>
               </>
             ) : (
-              <p className="text-sm text-white/60">{run.startedAt ? 'Timing you…' : 'The clock starts as soon as you move into the shop.'}</p>
+              <p className="text-sm text-ink-600">{run.startedAt ? 'Timing you…' : 'The clock starts as soon as you move into the shop.'}</p>
             )}
           </div>
 
           {Object.keys(results).length > 1 && (
-            <ul className="mt-4 space-y-1.5 text-sm">
+            <ul className="mt-4 space-y-1 border-t border-rule pt-3 font-mono text-xs">
               {LENS_PEOPLE.filter((p) => results[p.id]).map((p) => (
-                <li key={p.id} className="flex justify-between text-white/75">
+                <li key={p.id} className="flex justify-between text-ink-700">
                   <span>{p.id === 'you' ? 'You' : p.name}</span>
                   <span className="tabular-nums">{fmt(results[p.id].ms)}</span>
                 </li>

@@ -47,7 +47,7 @@ export function ShareDialog({ open, onClose, sessionId }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-rule px-3 py-2 text-sm"
             />
           </div>
           <div>
@@ -58,7 +58,7 @@ export function ShareDialog({ open, onClose, sessionId }) {
               id="share-expiry"
               value={expiresInDays}
               onChange={(e) => setExpiresInDays(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-rule px-3 py-2 text-sm"
             >
               <option value="">Never</option>
               <option value="7">7 days</option>
@@ -85,7 +85,7 @@ export function ShareDialog({ open, onClose, sessionId }) {
               readOnly
               value={shareUrl}
               aria-label="Share link"
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-50"
+              className="flex-1 rounded-lg border border-rule px-3 py-2 text-sm bg-paper"
               onFocus={(e) => e.target.select()}
             />
             <Button onClick={copy}>{copied ? 'Copied!' : 'Copy'}</Button>

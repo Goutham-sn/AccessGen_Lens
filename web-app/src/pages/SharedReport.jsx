@@ -49,11 +49,11 @@ export default function SharedReport() {
   useEffect(() => { load() }, [load])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-paper">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <header className="bg-white border-b border-gray-200 h-14 flex items-center px-4">
+      <header className="bg-white border-b border-rule h-14 flex items-center px-4">
         <span className="flex items-center gap-2 font-semibold text-ink-900">
-          <span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700 text-white text-sm">◉</span>
+          <span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-ink-900 text-white text-sm">◉</span>
           AccessGen Lens: shared report
         </span>
       </header>
@@ -63,7 +63,7 @@ export default function SharedReport() {
         {!loading && needsPassword && (
           <form
             onSubmit={(e) => { e.preventDefault(); load(password) }}
-            className="max-w-sm mx-auto rounded-xl border border-gray-200 bg-white p-6 space-y-4"
+            className="max-w-sm mx-auto card p-6 space-y-4"
           >
             <h1 className="text-lg font-semibold text-ink-900">This report is protected</h1>
             <div>
@@ -71,7 +71,7 @@ export default function SharedReport() {
               <input
                 id="report-password" type="password" value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-rule px-3 py-2 text-sm"
               />
             </div>
             {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
@@ -91,7 +91,7 @@ export default function SharedReport() {
             <NoticedSummary empathyMoments={data.empathyMoments} onJump />
             <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.noMomentsText} />
             {(data.session.video_url || playableFrames(data.frames).length >= 2) && (
-              <section aria-labelledby="shared-watch-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
+              <section aria-labelledby="shared-watch-heading" className="card p-6">
                 <h2 id="shared-watch-heading" className="text-xl font-semibold text-ink-900 mb-4">Watch the session</h2>
                 {!data.session.video_url ? (
                   <FramePlayer frames={data.frames} controls label="Full session recording" />

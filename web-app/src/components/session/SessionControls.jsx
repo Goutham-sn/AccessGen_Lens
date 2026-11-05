@@ -37,7 +37,7 @@ export function SessionControls({
       <>
         Want a smoother video? On the simulated tab{' '}
         {recordShortcut
-          ? <>press <kbd className="rounded border border-gray-300 bg-gray-50 px-1 font-mono text-xs">{recordShortcut}</kbd> or </>
+          ? <>press <kbd className="rounded border border-rule bg-paper px-1 font-mono text-xs">{recordShortcut}</kbd> or </>
           : null}
         click the AccessGen Lens icon and choose Turn on smooth video.
       </>
@@ -45,7 +45,7 @@ export function SessionControls({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 flex flex-wrap items-center justify-between gap-4">
+    <div className="card p-4 flex flex-wrap items-center justify-between gap-4">
       <div className="min-w-0">
         <div className="flex items-center gap-3">
           {/* Only state changes are announced; the ticking timer stays outside

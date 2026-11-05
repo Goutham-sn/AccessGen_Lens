@@ -25,7 +25,7 @@ export function MissionField({ value, onChange, idPrefix = 'mission' }) {
           <div className="mt-2 flex flex-wrap gap-1.5">
             {MISSION_EXAMPLES.map((ex) => (
               <button key={ex} type="button" onClick={() => set({ goal: ex })}
-                className="rounded-full border border-black/10 px-2.5 py-1 text-xs text-ink-600 hover:border-brand-300 hover:text-brand-800">
+                className="rounded-[3px] border border-rule px-2 py-0.5 text-xs text-ink-600 hover:border-ink-400 hover:text-ink-900">
                 {ex}
               </button>
             ))}

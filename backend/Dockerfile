@@ -3,6 +3,7 @@ FROM node:20-slim
 # Chromium deps for Puppeteer PDF report generation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
+    ffmpeg \
     fonts-liberation \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*

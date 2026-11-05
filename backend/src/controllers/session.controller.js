@@ -65,7 +65,9 @@ export async function endSession(req, res, next) {
     await Session.closeUploads(session.id)
     if (session.status === 'recording') {
       session = await Session.end(session.id)
-      await enqueueSessionProcessing(session.id)
+      // The extension says whether a tab recording is still on its way.
+      // Without one, the video is built from the captured frames at once.
+      await enqueueSessionProcessing(session.id, { recordingExpected: req.body?.recordingExpected !== false })
     }
     res.json({ session })
   } catch (err) { next(err) }
@@ -77,8 +79,14 @@ export async function logEmpathyMoment(req, res, next) {
     const session = await Session.findById(req.params.id)
     if (!session) return res.status(404).json({ error: 'Session not found' })
 
-    const { timestampMs, frameIndex, label, note, screenshot, activeProfiles } = req.body
-    if (!label) return res.status(400).json({ error: 'A label is required' })
+    const { timestampMs, frameIndex, label, note, screenshot, activeProfiles, detector, profileId, rect } = req.body
+    if (!label || typeof label !== 'string') return res.status(400).json({ error: 'A label is required' })
+    // 'extension-auto': noticed by the simulation itself (friction.js), not
+    // logged by the tester. Nothing else may be claimed from here.
+    const source = req.body.source === 'extension-auto' ? 'extension-auto' : 'extension'
+    const cleanRect = rect && ['x', 'y', 'width', 'height'].every((k) => Number.isFinite(rect[k]))
+      ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+      : null
 
     let screenshotUrl = null
     if (screenshot) {
@@ -90,7 +98,15 @@ export async function logEmpathyMoment(req, res, next) {
     const moment = await EmpathyMoment.create({
       sessionId: session.id,
       timestampMs: timestampMs ?? 0,
-      frameIndex, label, note, screenshotUrl, activeProfiles
+      frameIndex,
+      label: label.slice(0, 255),
+      note: typeof note === 'string' ? note.slice(0, 1000) : null,
+      screenshotUrl,
+      activeProfiles,
+      source,
+      detector: source === 'extension-auto' && typeof detector === 'string' ? detector.slice(0, 64) : null,
+      profileId: typeof profileId === 'string' ? profileId.slice(0, 64) : null,
+      rect: cleanRect
     })
     await Session.incrementCounts(session.id, { moments: 1 })
 

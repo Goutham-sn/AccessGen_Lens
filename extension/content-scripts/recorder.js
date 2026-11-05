@@ -1,33 +1,33 @@
 // AccessGen Lens: session recorder (injected into the target page).
-// Logs every interaction and batch-uploads it to the backend every 5
-// seconds, for the Journey Map and event count on the report.
+// Logs interactions and batch-uploads them every 5 seconds, for the Journey
+// Map and event count on the report, and uploads empathy moments: the ones
+// the tester logs with "I felt this" and the ones the profiles notice on
+// their own (friction.js).
 //
-// The session VIDEO is no longer this file's job. It used to capture a
-// screenshot every 500ms with html2canvas and have the backend stitch
-// them into an MP4 with FFmpeg, but html2canvas throws on a tainted
-// canvas, and a canvas taints the moment it draws a cross-origin image
-// without CORS headers, which is true of almost every real website. Most
-// sessions uploaded zero usable frames, so no video was ever produced.
-// Real tab video now comes from chrome.tabCapture + MediaRecorder, run in
-// an offscreen document by the background worker; it records the actual
-// rendered pixels, costs this page nothing to run, and has none of the
-// cross-origin failure modes. This file keeps exactly one html2canvas
-// call: a single one-time thumbnail right when recording starts, for the
-// dashboard card and report cover.
-
-import html2canvas from 'html2canvas'
+// Pictures: the session video and every moment picture come from the
+// background worker (chrome.tabs.captureVisibleTab and tabCapture), which
+// see the real rendered pixels with the simulation on. This file used to
+// draw them with html2canvas, which cannot render CSS or SVG filters (the
+// picture showed the page without the simulation) and throws on any page
+// with a cross-origin image (no picture at all).
 
 (() => {
   if (window.__accessgenRecorder) return
   window.__accessgenRecorder = true
 
-  const TRACKED_EVENTS = ['click', 'keydown', 'scroll', 'focus', 'blur']
+  const TRACKED_EVENTS = ['click', 'keydown', 'scroll', 'focus', 'blur', 'submit', 'change']
   const UPLOAD_INTERVAL_MS = 5000
+  const SCROLL_GAP_MS = 400
+  // Keys worth keeping as they are. Anything else typed into a field is
+  // stored only as "character": the recorder never keeps what was typed
+  // (passwords, emails, search terms).
+  const NAMED_KEYS = new Set(['Tab', 'Enter', ' ', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'Home', 'End', 'PageUp', 'PageDown', 'Backspace', 'Delete', 'Shift', 'Control', 'Alt', 'Meta'])
 
   let sessionId = null
   let sessionStartTime = Date.now()
   let recording = false
-  let thumbnailCaptured = false
+  let lastScrollAt = 0
 
   let eventBuffer = []
   let uploadTimer = null
@@ -37,29 +37,41 @@ import html2canvas from 'html2canvas'
     if (el.id) return `#${el.id}`
     let selector = el.tagName.toLowerCase()
     if (el.className && typeof el.className === 'string') {
-      const cls = el.className.trim().split(/\s+/).slice(0, 2).join('.')
+      const cls = el.className.trim().split(/\s+/).filter((c) => !c.startsWith('accessgen')).slice(0, 2).join('.')
       if (cls) selector += `.${cls}`
     }
     return selector
   }
 
+  function elementLabel(el) {
+    if (!el || el.nodeType !== 1) return null
+    if (el.matches?.('input[type="password"]')) return 'password field'
+    const text = el.getAttribute('aria-label') || el.getAttribute('alt') || el.getAttribute('title') ||
+      (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) ? el.getAttribute('placeholder') || el.name : el.innerText)
+    return text ? String(text).replace(/\s+/g, ' ').trim().slice(0, 80) : null
+  }
+
+  function nextFrame() {
+    return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  }
+
+  // A picture of the page as the tester sees it, with the AccessGen panel
+  // hidden while it is taken. Counted, so two pictures in quick succession
+  // never show it again while the second is still waiting for its turn.
+  let hiding = 0
   async function captureScreenshot() {
+    const panel = document.getElementById('accessgen-control-panel')
+    hiding += 1
     try {
-      const canvas = await html2canvas(document.documentElement, {
-        useCORS: true,
-        scale: 0.4,
-        logging: false,
-        x: window.scrollX,
-        y: window.scrollY,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        windowWidth: window.innerWidth,
-        windowHeight: window.innerHeight,
-        ignoreElements: (el) => el.tagName === 'ACCESSGEN-CONTROL-PANEL'
-      })
-      return canvas.toDataURL('image/jpeg', 0.7)
+      panel?.style.setProperty('visibility', 'hidden', 'important')
+      await nextFrame()
+      const reply = await chrome.runtime.sendMessage({ type: 'ACCESSGEN_SCREENSHOT' })
+      return reply?.ok ? reply.dataUrl : null
     } catch {
       return null
+    } finally {
+      hiding -= 1
+      if (hiding === 0) panel?.style.setProperty('visibility', 'visible', 'important')
     }
   }
 
@@ -76,24 +88,6 @@ import html2canvas from 'html2canvas'
     }
   }
 
-  async function captureThumbnailOnce() {
-    if (thumbnailCaptured || !sessionId) return
-    thumbnailCaptured = true
-    const screenshot = await captureScreenshot()
-    if (!screenshot) return
-    // The thumbnail is a nice-to-have, not worth retrying.
-    await upload('frames', {
-      frames: [{
-        frameIndex: 0,
-        timestamp: 0,
-        screenshot,
-        scrollX: Math.round(window.scrollX),
-        scrollY: Math.round(window.scrollY)
-      }],
-      events: []
-    })
-  }
-
   async function uploadEvents() {
     if (!sessionId || eventBuffer.length === 0) return
     const events = eventBuffer
@@ -105,16 +99,37 @@ import html2canvas from 'html2canvas'
     }
   }
 
+  function keyFor(e) {
+    if (e.type !== 'keydown') return null
+    if (NAMED_KEYS.has(e.key) || /^F\d{1,2}$/.test(e.key)) {
+      const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.metaKey && 'Meta', e.shiftKey && e.key !== 'Shift' && 'Shift'].filter(Boolean)
+      return [...mods, e.key === ' ' ? 'Space' : e.key].join('+')
+    }
+    return 'character'
+  }
+
   function trackEvent(e) {
     if (!recording) return
-    if (e.target?.dataset?.accessgen || e.target?.dataset?.accessgenPanel) return
+    const target = e.target
+    if (target?.dataset?.accessgen || target?.dataset?.accessgenPanel) return
+    if (e.type === 'scroll') {
+      const now = Date.now()
+      if (now - lastScrollAt < SCROLL_GAP_MS) return
+      lastScrollAt = now
+    }
+    // A run of typed characters is one event, not one per letter.
+    const key = keyFor(e)
+    const last = eventBuffer[eventBuffer.length - 1]
+    if (key === 'character' && last?.key === 'character' && last.target === getElementSelector(target)) return
+
     eventBuffer.push({
       type: e.type,
       timestamp: Date.now() - sessionStartTime,
-      target: getElementSelector(e.target),
+      target: target === document || target === window ? 'page' : getElementSelector(target),
+      label: target === document || target === window ? null : elementLabel(target),
       x: typeof e.clientX === 'number' ? Math.round(e.clientX) : null,
       y: typeof e.clientY === 'number' ? Math.round(e.clientY) : null,
-      key: e.key || null
+      key
     })
   }
 
@@ -122,23 +137,35 @@ import html2canvas from 'html2canvas'
     document.addEventListener(eventType, trackEvent, { capture: true, passive: true })
   }
 
-  // Empathy moments: capture a fresh screenshot and POST immediately.
+  // Empathy moments from "I felt this": capture a picture and POST now.
   window.addEventListener('accessgen-empathy', async (e) => {
     if (!sessionId) return
     const { label, note, activeProfiles } = e.detail
+    const timestampMs = Date.now() - sessionStartTime
     const screenshot = await captureScreenshot()
 
+    await upload('moment', { label, note, screenshot, timestampMs, activeProfiles, source: 'extension' })
+  })
+
+  // Struggles the profiles noticed themselves: uploaded as automatic moments.
+  window.addEventListener('accessgen-friction', async (e) => {
+    if (!sessionId || !recording) return
+    const { kind, profileId, headline, detail, rect } = e.detail
+    const timestampMs = Date.now() - sessionStartTime
+    const screenshot = await captureScreenshot()
     await upload('moment', {
-      label,
-      note,
+      label: headline,
+      note: detail,
       screenshot,
-      timestampMs: Date.now() - sessionStartTime,
-      activeProfiles
+      timestampMs,
+      source: 'extension-auto',
+      detector: kind,
+      profileId,
+      rect
     })
   })
 
   function startTimers() {
-    captureThumbnailOnce()
     if (uploadTimer) return
     uploadTimer = setInterval(uploadEvents, UPLOAD_INTERVAL_MS)
   }
@@ -155,7 +182,10 @@ import html2canvas from 'html2canvas'
       sessionId = payload.sessionId
       if (payload.startedAt) sessionStartTime = payload.startedAt
       recording = payload.isRecording !== false
-      if (recording) startTimers()
+      if (recording) {
+        startTimers()
+        eventBuffer.push({ type: 'navigate', timestamp: Date.now() - sessionStartTime, target: 'page', label: document.title || location.pathname, x: null, y: null, key: null })
+      }
       // simulation-controller also answers INIT; don't double-respond.
     }
 
@@ -170,12 +200,8 @@ import html2canvas from 'html2canvas'
       stopTimers()
       // Fire-and-forget: simulation-controller.js also listens for this
       // message and responds synchronously, which wins the race and closes
-      // the reply channel immediately. Calling sendResponse here too (even
-      // later, after this flush finishes) would try to use an
-      // already-closed channel and throw "message channel closed before a
-      // response was received". The background worker doesn't rely on this
-      // response anyway; it gives the tab a fixed grace period before
-      // closing it, which is what actually protects this flush.
+      // the reply channel immediately. The background worker gives the tab
+      // a fixed grace period before closing it, which protects this flush.
       uploadEvents().finally(() => {
         window.__accessgenRecorder = false
       })

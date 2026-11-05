@@ -77,6 +77,10 @@ function timing(clickedAt, label) { // [timing]
 const stateReady = restoreState().catch((err) => {
   console.warn('[accessgen] state restore failed:', err?.message)
 })
+// A worker that was recycled mid-session picks the frame capture back up.
+stateReady.then(() => {
+  if (state.isActive && !state.isRecording && state.targetTabId != null) startFrameCapture()
+})
 
 // ---------------------------------------------------------------- injection
 
@@ -237,6 +241,7 @@ async function beginRecording(tabId) {
 
     state.isRecording = true
     state.recordingStartedAt = reply.startedAt
+    await stopFrameCapture()
     await persistState()
     applyBadge()
     forwardToWebApp({
@@ -305,6 +310,126 @@ async function destroySimulation(tabId) {
   await new Promise((resolve) => setTimeout(resolve, 600))
 }
 
+// ------------------------------------------------------- frame capture
+//
+// The session video, with no extra step for the tester. chrome.tabCapture
+// (above) gives a smooth video but Chrome only allows it after the tester
+// invokes the extension on the tab (popup or shortcut), so most sessions
+// used to end with no video at all. captureVisibleTab needs no gesture with
+// the <all_urls> host permission: it returns the tab's real composited
+// pixels, filters and overlays included, exactly what the tester saw. The
+// backend joins these frames into a video. Once a tabCapture recording runs,
+// frames stop and that recording is the video.
+
+const FRAME_INTERVAL_MS = 700      // captureVisibleTab allows 2 calls a second
+const FRAME_BATCH = 6
+const FRAME_MAX_WIDTH = 1280
+const frames = { timer: null, buffer: [], uploading: null, lastShotAt: 0, queue: Promise.resolve() }
+
+function blobToDataUrl(blob) {
+  return blob.arrayBuffer().then((buf) => {
+    let binary = ''
+    const bytes = new Uint8Array(buf)
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000))
+    }
+    return `data:${blob.type};base64,${btoa(binary)}`
+  })
+}
+
+// One capture at a time, spaced out to stay inside Chrome's rate limit.
+// Returns a JPEG data URL of the target tab, or null when it is not the
+// visible tab (the tester switched tabs) or Chrome refused.
+function captureTargetTab({ maxWidth = FRAME_MAX_WIDTH, quality = 0.62 } = {}) {
+  const run = async () => {
+    const tabId = state.targetTabId
+    if (tabId == null) return null
+    const tab = await chrome.tabs.get(tabId).catch(() => null)
+    if (!tab?.active) return null
+    const wait = 520 - (Date.now() - frames.lastShotAt)
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+    frames.lastShotAt = Date.now()
+    let dataUrl
+    try {
+      dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 70 })
+    } catch {
+      return null
+    }
+    try {
+      const bitmap = await createImageBitmap(await (await fetch(dataUrl)).blob())
+      const scale = Math.min(1, maxWidth / bitmap.width)
+      const w = Math.round(bitmap.width * scale)
+      const h = Math.round(bitmap.height * scale)
+      const canvas = new OffscreenCanvas(w, h)
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h)
+      bitmap.close()
+      return await blobToDataUrl(await canvas.convertToBlob({ type: 'image/jpeg', quality }))
+    } catch {
+      return dataUrl
+    }
+  }
+  const next = frames.queue.then(run, run)
+  frames.queue = next.catch(() => null)
+  return next
+}
+
+async function postToSession(path, body) {
+  if (!state.sessionId) return { ok: false }
+  try {
+    const res = await fetch(`${state.apiUrl}/api/sessions/${state.sessionId}/${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+        ...(state.uploadToken ? { 'X-Upload-Token': state.uploadToken } : {})
+      },
+      body: JSON.stringify(body)
+    })
+    return { ok: res.ok, status: res.status }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+}
+
+async function flushFrames() {
+  if (frames.uploading) await frames.uploading
+  if (frames.buffer.length === 0) return
+  const batch = frames.buffer
+  frames.buffer = []
+  frames.uploading = postToSession('frames', { frames: batch, events: [] })
+    .then((r) => {
+      // Not accepted: keep them for the next try, but never grow unbounded.
+      if (!r.ok && r.status !== 401 && r.status !== 403) frames.buffer = batch.concat(frames.buffer).slice(-30)
+    })
+    .finally(() => { frames.uploading = null })
+  await frames.uploading
+}
+
+async function captureFrame() {
+  if (!state.isActive || state.isRecording || !state.startedAt) return
+  const shot = await captureTargetTab()
+  if (!shot || !state.isActive || state.isRecording) return
+  const timestamp = Date.now() - state.startedAt
+  frames.buffer.push({
+    // Time-based index: unique and ordered across worker restarts.
+    frameIndex: Math.max(1, Math.round(timestamp / 100)),
+    timestamp,
+    screenshot: shot
+  })
+  if (frames.buffer.length >= FRAME_BATCH) flushFrames()
+}
+
+function startFrameCapture() {
+  if (frames.timer) return
+  frames.timer = setInterval(() => { captureFrame() }, FRAME_INTERVAL_MS)
+}
+
+async function stopFrameCapture() {
+  clearInterval(frames.timer)
+  frames.timer = null
+  await flushFrames()
+}
+
 // ------------------------------------------------------------- lifecycle
 
 async function startSimulation({ profiles, sessionId, url, token, apiUrl, uploadToken, clickedAt }, senderTabId) {
@@ -358,6 +483,7 @@ async function startSimulation({ profiles, sessionId, url, token, apiUrl, upload
   await injectSimulation(state.targetTabId)
   timing(clickedAt, 'simulation injected') // [timing]
   state.pendingInitialLoad = false
+  startFrameCapture()
   return { ok: true, tabId: state.targetTabId }
 }
 
@@ -369,7 +495,7 @@ async function startSimulation({ profiles, sessionId, url, token, apiUrl, upload
 // this worker's state, and only the expected fields are forwarded.
 const UPLOAD_KINDS = {
   frames: { path: 'frames', fields: ['frames', 'events'] },
-  moment: { path: 'empathy-moments', fields: ['label', 'note', 'screenshot', 'timestampMs', 'activeProfiles'] }
+  moment: { path: 'empathy-moments', fields: ['label', 'note', 'screenshot', 'timestampMs', 'activeProfiles', 'source', 'detector', 'profileId', 'rect'] }
 }
 
 async function uploadFromTab(sender, payload) {
@@ -398,7 +524,7 @@ async function uploadFromTab(sender, payload) {
   }
 }
 
-async function endSessionOnBackend(sessionId, token, apiUrl, uploadToken) {
+async function endSessionOnBackend(sessionId, token, apiUrl, uploadToken, recordingExpected = false) {
   if (!sessionId) return
   try {
     await fetch(`${apiUrl}/api/sessions/${sessionId}/end`, {
@@ -407,7 +533,10 @@ async function endSessionOnBackend(sessionId, token, apiUrl, uploadToken) {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(uploadToken ? { 'X-Upload-Token': uploadToken } : {})
-      }
+      },
+      // Without a tab recording on its way, the backend builds the video
+      // from the captured frames straight away instead of waiting for one.
+      body: JSON.stringify({ recordingExpected })
     })
   } catch {
     // Backend unreachable: the web app's own "Stop session" flow (if the
@@ -428,12 +557,14 @@ async function stopSimulation() {
     // wait for that to actually happen before we touch the tab.
     await destroySimulation(tabId)
   }
+  // The last frames go up before /end closes uploads.
+  await stopFrameCapture()
 
   // /end first (sets end_time/duration, status: processing), THEN stop and
   // upload the recording (which sets video_url and status: complete).
   // Reversing this order would let /end's "processing" write clobber the
   // "complete" status the recording upload had just set.
-  await endSessionOnBackend(sessionId, token, apiUrl, uploadToken)
+  await endSessionOnBackend(sessionId, token, apiUrl, uploadToken, wasRecording)
   await finishRecording(sessionId, wasRecording)
 
   // Reset state (including targetTabId) before closing the tab, so the
@@ -550,6 +681,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true }
     },
     ACCESSGEN_UPLOAD: () => uploadFromTab(sender, payload),
+    // A picture of the simulated tab for a moment: real pixels, filters on.
+    ACCESSGEN_SCREENSHOT: async () => {
+      if (!state.isActive || sender?.tab?.id == null || sender.tab.id !== state.targetTabId) return { ok: false }
+      const dataUrl = await captureTargetTab({ maxWidth: 1400, quality: 0.75 })
+      return dataUrl ? { ok: true, dataUrl } : { ok: false }
+    },
     ACCESSGEN_DATA: () => {
       forwardToWebApp(payload)
       return { ok: true }
@@ -621,6 +758,11 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   const apiUrl = state.apiUrl
   const wasRecording = state.isRecording
 
+  // Frames still buffered belong to this session: send them first.
+  clearInterval(frames.timer)
+  frames.timer = null
+  await flushFrames()
+
   state.isActive = false
   state.isRecording = false
   state.recordingStartedAt = null
@@ -639,7 +781,7 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   // offscreen document, but asking explicitly is harmless if it already
   // has: it just reports "not recording"), and still let the web app
   // know it's ready.
-  endSessionOnBackend(sessionId, token, apiUrl, uploadToken)
+  endSessionOnBackend(sessionId, token, apiUrl, uploadToken, wasRecording)
     .then(() => finishRecording(sessionId, wasRecording))
     .then(() => {
       if (sessionId) forwardToWebApp({ event: 'session-ended', sessionId })

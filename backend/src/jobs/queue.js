@@ -24,7 +24,7 @@ export const precheckQueue = new Bull('lens-precheck', {
 })
 
 export function startWorkers(io) {
-  sessionQueue.process(async (job) => processSession(job.data.sessionId))
+  sessionQueue.process(async (job) => processSession(job.data.sessionId, job.data, io))
   reportQueue.process(async (job) => processReportGeneration(job.data.sessionId))
   finalizeQueue.process(async (job) => finalizeIfStillPending(job.data.sessionId, io))
 
@@ -34,8 +34,8 @@ export function startWorkers(io) {
   console.log('[queue] workers started')
 }
 
-export async function enqueueSessionProcessing(sessionId) {
-  await sessionQueue.add({ sessionId })
+export async function enqueueSessionProcessing(sessionId, { recordingExpected = true } = {}) {
+  await sessionQueue.add({ sessionId, recordingExpected })
 }
 
 export async function enqueueReportGeneration(sessionId) {

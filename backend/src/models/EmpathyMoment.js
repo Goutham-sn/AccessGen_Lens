@@ -1,14 +1,18 @@
 import { query } from '../config/database.js'
 
 export const EmpathyMoment = {
-  async create({ sessionId, timestampMs, frameIndex, label, note, screenshotUrl, activeProfiles }) {
+  async create({ sessionId, timestampMs, frameIndex, label, note, screenshotUrl, activeProfiles,
+    source = 'extension', detector = null, profileId = null, rect = null }) {
     const { rows } = await query(
-      `INSERT INTO empathy_moments (session_id, timestamp_ms, frame_index, label, note, screenshot_url, active_profiles)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      `INSERT INTO empathy_moments (session_id, timestamp_ms, frame_index, label, note, screenshot_url, active_profiles,
+                                    source, detector, profile_id, rect)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [sessionId, timestampMs, frameIndex ?? null, label, note ?? null, screenshotUrl ?? null,
-       activeProfiles ? JSON.stringify(activeProfiles) : null]
+       activeProfiles ? JSON.stringify(activeProfiles) : null,
+       source, detector, profileId, rect ? JSON.stringify(rect) : null]
     )
-    return rows[0]
+    const { internal_ref, ...moment } = rows[0]
+    return moment
   },
 
   async findBySession(sessionId) {

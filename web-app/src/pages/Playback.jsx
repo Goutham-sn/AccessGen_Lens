@@ -12,6 +12,7 @@ import { usePlayback } from '../hooks/usePlayback.js'
 import { useSocket } from '../hooks/useSocket.js'
 import { getProfile, SEVERITY_LABELS } from '../data/profiles.js'
 import { api } from '../services/api.js'
+import { formatDuration } from '../utils/moments.js'
 
 export default function Playback() {
   const { id } = useParams()
@@ -62,7 +63,7 @@ export default function Playback() {
             </div>
             <div>
               <h2 className="font-semibold text-ink-900 text-xs uppercase tracking-wide mb-1">Duration</h2>
-              <p className="text-ink-700">{Math.round((session.duration_seconds || 0) / 60)} minutes</p>
+              <p className="text-ink-700">{formatDuration(session.duration_seconds)}</p>
             </div>
             {persona && (
               <div>

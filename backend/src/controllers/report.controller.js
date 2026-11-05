@@ -6,6 +6,7 @@ import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { enqueueReportGeneration } from '../jobs/queue.js'
 import { getObjectBuffer } from '../utils/storage.js'
 import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
+import { durationText, isAutoMoment } from '../utils/duration.js'
 
 const LABEL_PHRASES = {
   'Got completely stuck here': 'came to a complete stop',
@@ -19,24 +20,33 @@ const LABEL_PHRASES = {
 function buildHumanSummary(session, moments) {
   const persona = session.persona_snapshot
   const who = persona?.name || 'The visitor'
-  const minutes = Math.max(1, Math.round((session.duration_seconds || 0) / 60))
   const profiles = (session.active_profiles || []).map((p) => p.name || p.id).join(', ')
+  const felt = moments.filter((m) => !isAutoMoment(m))
+  const noticed = moments.filter(isAutoMoment)
 
   const paras = []
   paras.push(
-    `${who} spent ${minutes} minute${minutes === 1 ? '' : 's'} on ${session.url}, experiencing it with ${profiles || 'the selected profiles'}. ` +
+    `${who} spent ${durationText(session.duration_seconds)} on ${session.url}, experiencing it with ${profiles || 'the selected profiles'}. ` +
     (persona?.story ? persona.story : `Every interaction happened exactly as it would for a real person living with these conditions.`)
   )
 
-  if (moments.length > 0) {
-    const phrases = moments.slice(0, 3).map((m) =>
+  if (felt.length > 0) {
+    const phrases = felt.slice(0, 3).map((m) =>
       `${who} ${LABEL_PHRASES[m.label] || 'struggled'}${m.note ? `: "${m.note}"` : ''}`
     )
     paras.push(
-      `There were ${moments.length} moment${moments.length === 1 ? '' : 's'} where the experience broke down. ` +
+      `There ${felt.length === 1 ? 'was 1 moment' : `were ${felt.length} moments`} where the experience broke down. ` +
       phrases.join('. ') + '.'
     )
-  } else {
+  }
+  if (noticed.length > 0) {
+    const examples = [...new Map(noticed.map((m) => [m.detector, m])).values()].slice(0, 3).map((m) => m.label)
+    paras.push(
+      `Along the way, the simulation itself noticed ${noticed.length} place${noticed.length === 1 ? '' : 's'} where the page pushed back, ` +
+      `for example: ${examples.join('; ')}.`
+    )
+  }
+  if (moments.length === 0) {
     // Never an all-clear: say what was done and how little we look at, or
     // why a run stopped.
     const line = noMomentsText(session, 0)

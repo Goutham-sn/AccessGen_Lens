@@ -1,7 +1,5 @@
-// html2canvas captures the raw page (it cannot render CSS/SVG filters), so
-// canvas-overlay effects (tunnel vision, blotches) are baked into the video
-// while filter-based effects are not. We re-apply those exact filters as CSS
-// on the <video> element so playback looks like the live session did.
+// The filters each profile applies, for previews of what a profile does
+// (not for recorded video, which already shows them: see getVideoFilter).
 
 export const COLOR_MATRICES = {
   deuteranopia: [
@@ -42,11 +40,14 @@ export function getSimulationFilter(activeProfiles = []) {
   return parts.join(' ') || 'none'
 }
 
-// The filter to put on a session's <video>. Runner videos already have the
-// simulation recorded into them, so adding it again would double it.
-export function getVideoFilter(session) {
-  if (session?.source === 'runner') return 'none'
-  return getSimulationFilter(session?.active_profiles)
+// The filter to put on a session's <video>. Every video already has the
+// simulation in its pixels: runner videos, extension tab recordings
+// (tabCapture) and videos built from captured frames (captureVisibleTab)
+// all record what was on screen. Adding the filter again doubled it (a
+// deuteranopia session played back twice as colour-blind, low vision
+// blurred twice).
+export function getVideoFilter() {
+  return 'none'
 }
 
 // Inline SVG defs for the color-matrix filters referenced above.

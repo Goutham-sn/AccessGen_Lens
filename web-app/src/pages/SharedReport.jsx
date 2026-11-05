@@ -3,13 +3,14 @@ import { useParams } from 'react-router-dom'
 import { ReportCover } from '../components/report/ReportCover.jsx'
 import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
 import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
+import { NoticedSummary } from '../components/report/NoticedSummary.jsx'
 import { LookedAt } from '../components/report/LookedAt.jsx'
 import { TaskList } from '../components/report/TaskList.jsx'
 import { SnapshotNote } from '../components/report/SnapshotNote.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { mediaUrl, API_URL } from '../services/api.js'
-import { getVideoFilter, SimulationFilterDefs } from '../data/simulationFilters.jsx'
+import { getVideoFilter } from '../data/simulationFilters.jsx'
 
 // Public, no-auth view of a shared empathy report.
 export default function SharedReport() {
@@ -86,16 +87,16 @@ export default function SharedReport() {
             <SnapshotNote ranAt={data.session.start_time} note={data.snapshotNote} />
             <TaskList session={data.session} idPrefix="shared-task" />
             <LookedAt lookedAt={data.lookedAt} idPrefix="shared-looked-at" />
+            <NoticedSummary empathyMoments={data.empathyMoments} onJump />
             <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.noMomentsText} />
             {data.session.video_url && (
               <section aria-labelledby="shared-watch-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
                 <h2 id="shared-watch-heading" className="text-xl font-semibold text-ink-900 mb-4">Watch the session</h2>
-                <SimulationFilterDefs />
                 <video
                   src={mediaUrl(data.session.video_url)}
                   controls playsInline preload="metadata"
                   className="w-full rounded-xl bg-black"
-                  style={{ filter: getVideoFilter(data.session) }}
+                  style={{ filter: getVideoFilter() }}
                   aria-label="Full session recording"
                 />
               </section>

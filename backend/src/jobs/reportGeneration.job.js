@@ -4,6 +4,7 @@ import { SIMULATION_INTRO, SNAPSHOT_NOTE, ranOnLine, UNVERIFIED_LABEL } from '..
 import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { getObjectBuffer, putBuffer } from '../utils/storage.js'
+import { durationText, isAutoMoment } from '../utils/duration.js'
 
 // Everything shown in the PDF that came from a page or a person (titles,
 // names, moment text) goes through this, so it is text, never markup.
@@ -49,7 +50,8 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
   const looked = lookedAt(session, moments.length)
   const persona = session.persona_snapshot
   const who = persona?.name || 'A visitor'
-  const minutes = Math.max(1, Math.round((session.duration_seconds || 0) / 60))
+  const duration = durationText(session.duration_seconds)
+  const noticed = moments.filter(isAutoMoment).length
   const profiles = (session.active_profiles || []).map((p) => p.name || p.id)
 
   const momentCards = moments.map((m) => {
@@ -61,8 +63,9 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
         <div class="moment-body">
           <p class="moment-time">${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} into the session</p>
           ${m.unverified ? `<p><span class="unverified">${esc(UNVERIFIED_LABEL)}</span></p>` : ''}
-          <h3>"${esc(m.label)}"</h3>
-          ${m.note ? `<p class="note">${esc(m.note)}</p>` : ''}
+          ${isAutoMoment(m) ? '<p><span class="auto">Noticed by the simulation</span></p>' : ''}
+          <h3>${isAutoMoment(m) ? esc(m.label) : `"${esc(m.label)}"`}</h3>
+          ${m.note ? `<p class="${isAutoMoment(m) ? 'detail' : 'note'}">${esc(m.note)}</p>` : ''}
         </div>
       </div>`
   })
@@ -89,11 +92,13 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
     .snapshot { font-size: 14px; color: #475467; }
     .unverified { display: inline-block; border: 1px solid #b54708; background: #fffaeb; color: #93370d;
                   border-radius: 6px; padding: 1px 8px; font-size: 13px; font-weight: bold; }
+    .auto { display: inline-block; background: #fef3c7; color: #78350f; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: bold; }
+    .detail { color: #475467; }
     .intro { font-size: 16px; background: #f2f4f7; border-radius: 12px; padding: 16px 20px; }
   </style></head><body>
     <div class="page cover">
       <h1>${esc(who)}'s experience of ${esc(session.page_title || session.url)}</h1>
-      <p class="meta">${esc(session.url)} · ${esc(new Date(session.start_time).toLocaleDateString())} · ${minutes} minute${minutes === 1 ? '' : 's'}</p>
+      <p class="meta">${esc(session.url)} · ${esc(new Date(session.start_time).toLocaleDateString())} · ${esc(duration)}</p>
       <div>${profiles.map((p) => `<span class="chip">${esc(p)}</span>`).join('')}</div>
       ${cover && String(cover).startsWith('data:image/') ? `<img src="${cover}" alt="" />` : ''}
     </div>
@@ -102,8 +107,9 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
       <p class="snapshot">${esc(ranOnLine(session.start_time))} ${esc(SNAPSHOT_NOTE)}</p>
       <h2>The experience in numbers</h2>
       <div class="numbers">
-        <div class="num"><span class="big">${minutes}m</span>time spent</div>
-        <div class="num"><span class="big">${moments.length}</span>moments of struggle</div>
+        <div class="num"><span class="big">${esc(duration)}</span>time spent</div>
+        <div class="num"><span class="big">${moments.length - noticed}</span>moments felt</div>
+        <div class="num"><span class="big">${noticed}</span>struggles noticed</div>
         <div class="num"><span class="big">${session.event_count || 0}</span>interactions needed</div>
       </div>
       ${persona?.story ? `<p>${esc(persona.story)}</p>` : ''}

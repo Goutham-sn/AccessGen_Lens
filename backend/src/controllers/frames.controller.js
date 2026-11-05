@@ -32,9 +32,9 @@ export async function uploadFrames(req, res, next) {
       session_id: session.id,
       timestamp_ms: e.timestamp ?? 0,
       event_type: e.type,
-      target_element: e.target ? { selector: e.target } : null,
+      target_element: e.target ? { selector: String(e.target).slice(0, 200), label: e.label ? String(e.label).slice(0, 120) : null } : null,
       coordinates: e.x != null ? { x: e.x, y: e.y } : null,
-      key_pressed: e.key
+      key_pressed: e.key ? String(e.key).slice(0, 40) : null
     })))
     await Session.incrementCounts(session.id, { frames: frames.length, events: events.length })
 

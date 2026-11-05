@@ -1,10 +1,8 @@
 import { LoadingSpinner } from '../shared/LoadingSpinner.jsx'
-import { getVideoFilter, SimulationFilterDefs } from '../../data/simulationFilters.jsx'
+import { getVideoFilter } from '../../data/simulationFilters.jsx'
 
-// True <video> playback of the FFmpeg-compiled session recording.
-// Canvas overlays (tunnel vision, blotches) are baked into the frames;
-// CSS/SVG filter effects are re-applied here so playback matches the
-// live experience exactly.
+// <video> playback of the session recording. Every recording already shows
+// the simulation (it records the screen), so nothing is re-applied here.
 export function PlaybackPlayer({ videoRef, videoUrl, processing, session, onTimeUpdate, onLoadedMetadata, onEnded }) {
   if (processing) {
     return (
@@ -24,12 +22,11 @@ export function PlaybackPlayer({ videoRef, videoUrl, processing, session, onTime
 
   return (
     <>
-      <SimulationFilterDefs />
       <video
         ref={videoRef}
         src={videoUrl}
         className="w-full rounded-xl bg-black"
-        style={{ filter: getVideoFilter(session) }}
+        style={{ filter: getVideoFilter() }}
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={onLoadedMetadata}
         onEnded={onEnded}

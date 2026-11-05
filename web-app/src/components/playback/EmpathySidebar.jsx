@@ -1,5 +1,6 @@
 import { mediaUrl } from '../../services/api.js'
 import { UnverifiedLabel } from '../shared/UnverifiedLabel.jsx'
+import { isAutoMoment, momentTitle } from '../../utils/moments.js'
 
 function fmtMs(ms) {
   const s = Math.floor(ms / 1000)
@@ -13,6 +14,12 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
       <h2 id="empathy-sidebar-heading" className="text-sm font-semibold text-ink-900 mb-3">
         Moments of struggle ({empathyMoments.length})
       </h2>
+      {empathyMoments.some(isAutoMoment) && (
+        <p className="text-xs text-ink-600 -mt-2 mb-3">
+          <span className="inline-block h-2 w-2 rounded-full bg-rose-500 mr-1" aria-hidden="true" />You logged it
+          <span className="inline-block h-2 w-2 rounded-full bg-amber-500 ml-3 mr-1" aria-hidden="true" />The simulation noticed it
+        </p>
+      )}
       {empathyMoments.length === 0 ? (
         emptyText ? <p className="text-sm text-ink-500">{emptyText}</p> : null
       ) : (
@@ -25,14 +32,17 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
                   <img
                     src={mediaUrl(m.screenshot_url)}
                     alt=""
-                    className="mb-2 h-24 w-full rounded-lg object-cover"
+                    className="mb-2 h-28 w-full rounded-lg object-cover object-top bg-gray-100"
                     loading="lazy"
                   />
                 )}
-                <p className="text-xs text-ink-500 tabular-nums">{fmtMs(m.timestamp_ms)}</p>
+                <p className="text-xs text-ink-500 tabular-nums">
+                  {fmtMs(m.timestamp_ms)}
+                  {isAutoMoment(m) && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-amber-900 font-medium">Noticed automatically</span>}
+                </p>
                 {m.unverified && <p className="mt-1"><UnverifiedLabel /></p>}
-                <p className="text-sm font-medium text-ink-900 mt-0.5">"{m.label}"</p>
-                {m.note && <p className="text-sm text-ink-600 mt-1 italic">{m.note}</p>}
+                <p className="text-sm font-medium text-ink-900 mt-0.5">{momentTitle(m)}</p>
+                {m.note && <p className={`text-sm text-ink-600 mt-1 ${isAutoMoment(m) ? '' : 'italic'}`}>{m.note}</p>}
               </>
             )
             // Logged before recording started: no video position to jump to.
@@ -51,7 +61,7 @@ export function EmpathySidebar({ empathyMoments, onJump, currentTime, sessionMsT
                   type="button"
                   onClick={() => onJump(sec)}
                   className={`w-full text-left rounded-xl border p-3 transition-colors
-                    ${active ? 'border-rose-400 bg-rose-50' : 'border-gray-200 bg-white hover:border-rose-300'}`}
+                    ${active ? (isAutoMoment(m) ? 'border-amber-400 bg-amber-50' : 'border-rose-400 bg-rose-50') : 'border-gray-200 bg-white hover:border-rose-300'}`}
                 >
                   {content}
                 </button>

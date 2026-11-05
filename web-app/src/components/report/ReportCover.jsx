@@ -2,16 +2,24 @@ import { getProfile, SEVERITY_LABELS } from '../../data/profiles.js'
 import { avatarColorFor } from '../../data/personaCards.js'
 import { mediaUrl } from '../../services/api.js'
 import { Badge } from '../shared/Badge.jsx'
+import { isAutoMoment, formatDuration } from '../../utils/moments.js'
 
 export function ReportCover({ session, empathyMoments }) {
   const persona = session.persona_snapshot
   const who = persona?.name || 'A visitor'
-  const minutes = Math.max(1, Math.round((session.duration_seconds || 0) / 60))
-  const worst = empathyMoments[0]
+  const duration = formatDuration(session.duration_seconds)
+  const felt = empathyMoments.filter((m) => !isAutoMoment(m))
+  const noticed = empathyMoments.length - felt.length
+  // The tester's own "would have given up" says the most, then anything
+  // they felt, then what the simulation noticed.
+  const gaveUp = felt.find((m) => m.label === 'Would have given up')
+  const place = session.page_title || 'this page'
 
-  const headline = worst
-    ? `${who} ${worst.label === 'Would have given up' ? 'nearly gave up on' : 'struggled with'} ${session.page_title || 'this page'}.`
-    : `${who} spent ${minutes} minute${minutes === 1 ? '' : 's'} experiencing ${session.page_title || session.url}.`
+  const headline = gaveUp
+    ? `${who} nearly gave up on ${place}.`
+    : empathyMoments.length
+    ? `${who} struggled with ${place}${empathyMoments.length > 1 ? ` ${empathyMoments.length} times` : ''}.`
+    : `${who} spent ${duration} experiencing ${session.page_title || session.url}.`
 
   return (
     <section aria-label="Report cover" className="rounded-2xl bg-ink-900 text-white p-8 sm:p-12">
@@ -26,8 +34,15 @@ export function ReportCover({ session, empathyMoments }) {
       )}
       <h1 className="text-3xl sm:text-4xl font-semibold leading-tight max-w-2xl">{headline}</h1>
       <p className="mt-4 text-gray-300 break-all">
-        {session.url} · {new Date(session.start_time).toLocaleDateString()} · {minutes} min
+        {session.url} · {new Date(session.start_time).toLocaleDateString()} · {duration}
       </p>
+      {(felt.length > 0 || noticed > 0) && (
+        <p className="mt-2 text-gray-200">
+          {felt.length > 0 && <span>{felt.length} moment{felt.length === 1 ? '' : 's'} felt by the tester</span>}
+          {felt.length > 0 && noticed > 0 && <span> · </span>}
+          {noticed > 0 && <span>{noticed} struggle{noticed === 1 ? '' : 's'} noticed by the simulation</span>}
+        </p>
+      )}
       <ul className="mt-5 flex flex-wrap gap-2" aria-label="Profiles experienced">
         {(session.active_profiles || []).map((ap) => {
           const p = getProfile(ap.id)

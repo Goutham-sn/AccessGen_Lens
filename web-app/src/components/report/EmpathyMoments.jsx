@@ -2,6 +2,7 @@ import { getProfile } from '../../data/profiles.js'
 import { mediaUrl } from '../../services/api.js'
 import { Badge } from '../shared/Badge.jsx'
 import { UnverifiedLabel } from '../shared/UnverifiedLabel.jsx'
+import { isAutoMoment, momentTitle } from '../../utils/moments.js'
 
 const LABEL_STORIES = {
   'Got completely stuck here': 'Progress stopped completely at this point. There was no obvious way forward.',
@@ -36,23 +37,29 @@ export function EmpathyMoments({ empathyMoments, emptyText }) {
         Where it broke down
       </h2>
       {empathyMoments.map((m, i) => (
-        <article key={m.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden sm:flex">
+        <article key={m.id} id={`moment-${m.id}`}
+          className={`scroll-mt-6 rounded-2xl border bg-white overflow-hidden sm:flex ${isAutoMoment(m) ? 'border-amber-200' : 'border-gray-200'}`}>
           {m.screenshot_url && (
             <img
               src={mediaUrl(m.screenshot_url)}
               alt={`The page at the moment: ${m.label}`}
-              className="sm:w-2/5 object-cover"
+              className="sm:w-2/5 object-cover object-top bg-gray-100"
               loading="lazy"
             />
           )}
           <div className="p-5 flex-1">
             <p className="text-xs text-ink-500 tabular-nums">
               Moment {i + 1} · {fmtMs(m.timestamp_ms)} into the session
+              {isAutoMoment(m)
+                ? <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900">Noticed by the simulation</span>
+                : <span className="ml-2 rounded bg-rose-100 px-1.5 py-0.5 font-medium text-rose-900">Felt by the tester</span>}
             </p>
             {m.unverified && <p className="mt-2"><UnverifiedLabel /></p>}
-            <h3 className="mt-1 text-lg font-semibold text-rose-800">"{m.label}"</h3>
-            {m.note && <p className="mt-2 text-ink-700 italic">"{m.note}"</p>}
-            <p className="mt-2 text-sm text-ink-600">{LABEL_STORIES[m.label] || ''}</p>
+            <h3 className={`mt-1 text-lg font-semibold ${isAutoMoment(m) ? 'text-amber-900' : 'text-rose-800'}`}>{momentTitle(m)}</h3>
+            {m.note && (isAutoMoment(m)
+              ? <p className="mt-2 text-ink-700">{m.note}</p>
+              : <p className="mt-2 text-ink-700 italic">"{m.note}"</p>)}
+            {!isAutoMoment(m) && LABEL_STORIES[m.label] && <p className="mt-2 text-sm text-ink-600">{LABEL_STORIES[m.label]}</p>}
             {Array.isArray(m.active_profiles) && m.active_profiles.length > 0 && (
               <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Active profiles at this moment">
                 {m.active_profiles.map((ap) => {

@@ -10,12 +10,14 @@ import { TaskList } from '../components/report/TaskList.jsx'
 import { SnapshotNote } from '../components/report/SnapshotNote.jsx'
 import { BeforeAfter } from '../components/report/BeforeAfter.jsx'
 import { HumanSummary } from '../components/report/HumanSummary.jsx'
+import { NoticedSummary } from '../components/report/NoticedSummary.jsx'
+import { isAutoMoment, formatDuration } from '../utils/moments.js'
 import { ShareDialog } from '../components/shared/ShareDialog.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { api, mediaUrl, API_URL } from '../services/api.js'
 import { useAuthStore } from '../store/authStore.js'
-import { getVideoFilter, SimulationFilterDefs } from '../data/simulationFilters.jsx'
+import { getVideoFilter } from '../data/simulationFilters.jsx'
 
 export default function Report() {
   const { id } = useParams()
@@ -62,7 +64,7 @@ export default function Report() {
 
   const { session, frames, events, empathyMoments, humanSummary, intro } = data
   const persona = session.persona_snapshot
-  const minutes = Math.max(1, Math.round((session.duration_seconds || 0) / 60))
+  const noticedCount = empathyMoments.filter(isAutoMoment).length
 
   const firstFrame = frames[0]
   const momentWithShot = empathyMoments.find((m) => m.screenshot_url)
@@ -94,10 +96,10 @@ export default function Report() {
           </h2>
           <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             {[
-              [`${minutes}m`, 'time spent'],
-              [String(empathyMoments.length), 'moments of struggle'],
-              [String(session.event_count || events.length), 'interactions needed'],
-              [String(session.frame_count || frames.length), 'moments recorded']
+              [formatDuration(session.duration_seconds), 'time spent'],
+              [String(empathyMoments.length - noticedCount), 'moments felt'],
+              [String(noticedCount), 'struggles noticed'],
+              [String(session.event_count || events.length), 'interactions needed']
             ].map(([value, label]) => (
               <div key={label} className="rounded-xl bg-gray-50 p-4">
                 <dt className="order-2 text-sm text-ink-600">{label}</dt>
@@ -107,14 +109,20 @@ export default function Report() {
           </dl>
         </section>
 
+        <NoticedSummary empathyMoments={empathyMoments} onJump />
         <JourneyMap session={session} events={events} empathyMoments={empathyMoments} />
         <LookedAt lookedAt={data.lookedAt} />
         <EmpathyMoments empathyMoments={empathyMoments} emptyText={data.noMomentsText} />
 
-        <BeforeAfter
-          normalImageUrl={firstFrame ? mediaUrl(firstFrame.screenshot_url) : null}
-          simulatedImageUrl={simulatedShot ? mediaUrl(simulatedShot) : null}
-        />
+        {/* Runner moments keep a clean picture next to the persona's view.
+            Extension pictures are all taken with the simulation on, so
+            there is no "before" to compare with. */}
+        {session.source === 'runner' && (
+          <BeforeAfter
+            normalImageUrl={firstFrame ? mediaUrl(firstFrame.screenshot_url) : null}
+            simulatedImageUrl={simulatedShot ? mediaUrl(simulatedShot) : null}
+          />
+        )}
 
         {/* Watch the session */}
         {session.video_url && (
@@ -122,14 +130,14 @@ export default function Report() {
             <h2 id="watch-heading" className="text-xl font-semibold text-ink-900 mb-4">
               Watch the session
             </h2>
-            <SimulationFilterDefs />
             <video
               src={mediaUrl(session.video_url)}
+              poster={session.page_thumbnail ? mediaUrl(session.page_thumbnail) : undefined}
               controls
               playsInline
               preload="metadata"
               className="w-full rounded-xl bg-black"
-              style={{ filter: getVideoFilter(session) }}
+              style={{ filter: getVideoFilter() }}
               aria-label={`Full recording of ${persona?.name || 'the visitor'}'s session`}
             />
           </section>

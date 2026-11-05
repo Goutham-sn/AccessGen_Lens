@@ -293,27 +293,66 @@ export const PERSONA_CARDS = [
   },
   {
     id: 'margaret-cataracts',
-    mode: 'later',
+    mode: 'extension',
     kind: 'person',
     draft: true,
     name: 'Margaret',
     age: 78,
     place: 'Leeds, UK',
+    avatarColor: '#E8E1B7',
     experience: 'cataracts and glare',
     story: 'Retired nurse waiting for cataract surgery. Everything looks hazy, and bright screens dazzle {them}.',
-    howTheyUseTheWeb: 'Margaret turns the brightness down and still squints. Pale grey text on white almost disappears for {them}.'
+    howTheyUseTheWeb: 'Margaret turns the brightness down and still squints. Pale grey text on white almost disappears for {them}.',
+    whatYouWillSee: [
+      'The page through a clouded, yellowed lens',
+      'A milky glare that washes out pale text and thin lines',
+      'Which words and buttons still stand out, and which vanish'
+    ],
+    looksAt: [
+      { text: 'Pale text, thin fonts and low-contrast buttons' },
+      { text: 'Anything marked only by a soft colour difference' }
+    ],
+    notSimulated: [
+      { text: 'How {their} eyes tire over a long session, and the dazzle of a bright room.' }
+    ],
+    estimatedSeconds: 180,
+    profiles: [{ id: 'cataracts', severity: 2 }],
+    guidelines: [
+      { name: 'Contrast (Minimum)', number: '1.4.3', level: 'AA' },
+      { name: 'Non-text Contrast', number: '1.4.11', level: 'AA' },
+      { name: 'Resize Text', number: '1.4.4', level: 'AA' }
+    ]
   },
   {
     id: 'kenji-colour',
-    mode: 'later',
+    mode: 'extension',
     kind: 'person',
     draft: true,
     name: 'Kenji',
     age: 45,
     place: 'Osaka, Japan',
-    experience: 'protanopia or tritanopia',
-    story: 'Logistics planner with protanopia: reds look dark and dull to {them}. This card also stands for tritanopia, where blues and yellows are hard to tell apart.',
-    howTheyUseTheWeb: 'Kenji reads charts and maps all day, and misses anything that is only marked in red.'
+    avatarColor: '#C9B7E8',
+    experience: 'protanopia',
+    story: 'Logistics planner with protanopia: reds look dark and dull to {them}.',
+    howTheyUseTheWeb: 'Kenji reads charts and maps all day, and misses anything that is only marked in red.',
+    whatYouWillSee: [
+      'The page in the colours Kenji sees',
+      'Red warnings, prices and error borders that sink into the page',
+      'Charts and status colours that stop telling things apart'
+    ],
+    looksAt: [
+      { text: 'Anything that is marked only by being red or green' },
+      { text: 'Charts, maps and status lights that rely on colour' }
+    ],
+    notSimulated: [
+      { text: 'Tritanopia, where blues and yellows are hard to tell apart. Choose it yourself on the conditions page.' }
+    ],
+    estimatedSeconds: 180,
+    profiles: [{ id: 'protanopia', severity: 3 }],
+    guidelines: [
+      { name: 'Use of Color', number: '1.4.1', level: 'A' },
+      { name: 'Non-text Contrast', number: '1.4.11', level: 'AA' }
+    ]
   },
   {
     id: 'situation-sunlight',

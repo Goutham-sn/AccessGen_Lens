@@ -8,6 +8,9 @@ import { mountControlPanel } from '../overlay/ControlPanel.js'
 
 import { Deuteranopia } from '../profiles/visual/Deuteranopia.js'
 import { Achromatopsia } from '../profiles/visual/Achromatopsia.js'
+import { Protanopia } from '../profiles/visual/Protanopia.js'
+import { Tritanopia } from '../profiles/visual/Tritanopia.js'
+import { Cataracts } from '../profiles/visual/Cataracts.js'
 import { LowVision } from '../profiles/visual/LowVision.js'
 import { TunnelVision } from '../profiles/visual/TunnelVision.js'
 import { MacularDegeneration } from '../profiles/visual/MacularDegeneration.js'
@@ -34,6 +37,9 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
   const REGISTRY = {
     deuteranopia: Deuteranopia,
     achromatopsia: Achromatopsia,
+    protanopia: Protanopia,
+    tritanopia: Tritanopia,
+    cataracts: Cataracts,
     'low-vision': LowVision,
     'tunnel-vision': TunnelVision,
     'macular-degeneration': MacularDegeneration,
@@ -49,8 +55,8 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
   // Application order: visual filters → motor/event interception →
   // cognitive overlays → hearing → screen reader (announcement layer).
   const LAYER_ORDER = [
-    'deuteranopia', 'achromatopsia',
-    'low-vision', 'tunnel-vision', 'macular-degeneration',
+    'deuteranopia', 'protanopia', 'tritanopia', 'achromatopsia',
+    'cataracts', 'low-vision', 'tunnel-vision', 'macular-degeneration',
     'keyboard-only', 'tremor', 'switch-access',
     'dyslexia', 'adhd',
     'deaf',

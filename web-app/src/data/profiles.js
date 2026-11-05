@@ -14,8 +14,26 @@ export const PROFILES = [
     name: 'Deuteranopia',
     category: PROFILE_CATEGORIES.VISUAL,
     tagline: 'Red-green colorblindness. Affects 6% of men.',
-    description: 'Red and green appear as the same muddy yellow-brown. Charts, error messages, and status indicators that rely on color alone become indistinguishable.',
-    hasSeverity: false,
+    description: 'Red and green appear as the same muddy yellow-brown. Charts, error messages, and status indicators that rely on color alone become indistinguishable. Mild and moderate are the weaker forms (deuteranomaly).',
+    hasSeverity: true,
+    icon: 'eye'
+  },
+  {
+    id: 'protanopia',
+    name: 'Protanopia',
+    category: PROFILE_CATEGORIES.VISUAL,
+    tagline: 'Red-blind. Reds look dark and dull.',
+    description: 'Red text and red warnings sink into the background, and red and green are easily confused. A red "sale" price or error border can simply disappear.',
+    hasSeverity: true,
+    icon: 'eye'
+  },
+  {
+    id: 'tritanopia',
+    name: 'Tritanopia',
+    category: PROFILE_CATEGORIES.VISUAL,
+    tagline: 'Blue-yellow colour blindness.',
+    description: 'Blues look green and yellows look pink or grey. Blue links and yellow highlights stop standing out.',
+    hasSeverity: true,
     icon: 'eye'
   },
   {
@@ -23,9 +41,18 @@ export const PROFILES = [
     name: 'Achromatopsia',
     category: PROFILE_CATEGORIES.VISUAL,
     tagline: 'Complete color blindness. The world in greyscale.',
-    description: 'No color perception at all. Every element appears in shades of grey. If your UI uses color alone to convey meaning, it becomes unusable.',
-    hasSeverity: false,
+    description: 'No color perception at all. Every element appears in shades of grey. If your UI uses color alone to convey meaning, it becomes unusable. Mild and moderate fade colour rather than remove it.',
+    hasSeverity: true,
     icon: 'eye-off'
+  },
+  {
+    id: 'cataracts',
+    name: 'Cataracts and Glare',
+    category: PROFILE_CATEGORIES.VISUAL,
+    tagline: 'A clouded lens. Hazy, yellowed, dazzled.',
+    description: 'Everything looks foggy and low in contrast, colours turn yellow-brown, and a milky glare washes over the screen. Pale grey text on white all but disappears.',
+    hasSeverity: true,
+    icon: 'eye'
   },
   {
     id: 'low-vision',

@@ -11,7 +11,11 @@ const KEYBOARD_HINTS = {
   'macular-degeneration': 'The middle of your vision is gone. Look around the edges.',
   dyslexia: 'Letters shift as you read. Try to read a paragraph to the end.',
   adhd: 'Your attention drifts. Try to finish one task anyway.',
-  deaf: 'All sound is gone. Notice what you miss.'
+  deaf: 'All sound is gone. Notice what you miss.',
+  cataracts: 'Everything is hazy and washed out. Look for pale text you can no longer read.',
+  protanopia: 'Reds look dark and dull. Notice what was only marked in red.',
+  tritanopia: 'Blues and yellows are hard to tell apart.',
+  deuteranopia: 'Reds and greens look alike. Notice what was only marked by colour.'
 }
 
 function formatElapsed(ms) {

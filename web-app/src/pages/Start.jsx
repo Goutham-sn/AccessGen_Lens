@@ -21,7 +21,10 @@ function isWebUrl(raw) {
 }
 
 // How each condition reads in "Explore applies Ravi's tremor only".
-const CONDITION_WORDS = { tremor: 'tremor', dyslexia: 'dyslexia', adhd: 'ADHD', deaf: 'hearing loss' }
+const CONDITION_WORDS = {
+  tremor: 'tremor', dyslexia: 'dyslexia', adhd: 'ADHD', deaf: 'hearing loss',
+  'switch-access': 'switch access', cataracts: 'cataracts and glare', protanopia: 'protanopia'
+}
 const STORE_KEY = 'accessgen.start.v1'
 
 // Choices survive a reload and the back button. The "allowed to test"

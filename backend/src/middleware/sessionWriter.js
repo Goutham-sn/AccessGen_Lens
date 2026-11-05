@@ -1,6 +1,7 @@
 import { Session } from '../models/Session.js'
 import { verifyAccessToken } from '../utils/jwt.js'
 import { uploadTokenMatches } from '../utils/uploadToken.js'
+import { getLocalUser } from '../config/localUser.js'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -14,7 +15,9 @@ function refuse(res) {
 // expired access token is treated exactly as if it were absent.
 function ownerFromBearer(req) {
   const bearer = req.headers.authorization?.split(' ')[1]
-  if (!bearer) return null
+  // No sign-in: the web app's own requests come without a token and are the
+  // local user's. The extension still sends its per-session upload token.
+  if (!bearer) return req.get('X-Upload-Token') ? null : getLocalUser()
   try {
     const decoded = verifyAccessToken(bearer)
     return { id: decoded.sub, email: decoded.email, name: decoded.name }

@@ -1,63 +1,27 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { api, configureApi } from '../services/api.js'
 
-export const useAuthStore = create(
-  persist(
-    (set, get) => ({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      loading: false,
-      error: null,
-
-      async register(email, password, name) {
-        set({ loading: true, error: null })
-        try {
-          const data = await api.post('/auth/register', { email, password, name })
-          set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, loading: false })
-          return true
-        } catch (err) {
-          set({ error: err.message, loading: false })
-          return false
-        }
-      },
-
-      async login(email, password) {
-        set({ loading: true, error: null })
-        try {
-          const data = await api.post('/auth/login', { email, password })
-          set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, loading: false })
-          return true
-        } catch (err) {
-          set({ error: err.message, loading: false })
-          return false
-        }
-      },
-
-      async logout() {
-        const { refreshToken } = get()
-        try { await api.post('/auth/logout', { refreshToken }) } catch { /* best effort */ }
-        set({ user: null, accessToken: null, refreshToken: null })
-      },
-
-      setTokens({ user, accessToken, refreshToken }) {
-        set({ user: user ?? get().user, accessToken, refreshToken })
-      },
-
-      clearAuth() {
-        set({ user: null, accessToken: null, refreshToken: null })
-      }
-    }),
-    { name: 'accessgen-auth' }
-  )
-)
+// There is no sign-in: AccessGen Lens runs on your own machine, and the
+// backend treats every request as its one local user. This store only
+// holds that user's name for the greeting. Tokens are gone; the fields
+// stay null so older callers keep working.
+export const useAuthStore = create((set) => ({
+  user: { id: 'local', name: 'You', email: null },
+  accessToken: null,
+  refreshToken: null,
+  async load() {
+    try {
+      const data = await api.get('/auth/me')
+      if (data?.user) set({ user: data.user })
+    } catch { /* keep the placeholder */ }
+  }
+}))
 
 configureApi({
-  tokens: () => ({
-    accessToken: useAuthStore.getState().accessToken,
-    refreshToken: useAuthStore.getState().refreshToken
-  }),
-  refreshed: (data) => useAuthStore.getState().setTokens(data),
-  failure: () => useAuthStore.getState().clearAuth()
+  tokens: () => ({ accessToken: null, refreshToken: null }),
+  refreshed: () => {},
+  failure: () => {}
 })
+
+// Old sessions kept tokens in local storage; they are not needed any more.
+try { localStorage.removeItem('accessgen-auth') } catch { /* private mode */ }

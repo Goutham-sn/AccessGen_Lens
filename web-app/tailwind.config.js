@@ -4,55 +4,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        // AA on white: brand-600 and up, ink-500 and up, ember-700 and up.
+        // Links and focus. AA on white from 600 up.
         brand: {
-          50: '#f3f2ff',
-          100: '#e8e5ff',
-          200: '#d1ccff',
-          300: '#b0a7ff',
-          400: '#8c7fff',
-          500: '#6f5cf6',
-          600: '#5c46e9',
-          700: '#4b36cc',
-          800: '#3d2ca3',
-          900: '#2f2480'
+          50: '#eef3ff', 100: '#dce6ff', 200: '#b9ccff', 300: '#8aa8f5', 400: '#5b82e8',
+          500: '#3864d6', 600: '#2a52c2', 700: '#2043a6', 800: '#1b3785', 900: '#172e6b'
         },
-        // The colour of struggle: moments, hotspots, "gave up".
+        // The one signal colour: struggles, issues, "gave up".
         ember: {
-          50: '#fff3ef',
-          100: '#ffe2d8',
-          300: '#ffad93',
-          400: '#ff8a66',
-          500: '#ff6a45',
-          600: '#e8502c',
-          700: '#bf3d1d',
-          800: '#963015'
+          50: '#fdf1ee', 100: '#fadcd4', 200: '#f4bfb1', 300: '#ef9a85', 400: '#e9735a',
+          500: '#e2502f', 600: '#c94124', 700: '#a8351d', 800: '#842a17'
         },
-        ink: {
-          950: '#0a0b11',
-          900: '#13141c',
-          800: '#1d1f2a',
-          700: '#363948',
-          600: '#4a4e60',
-          500: '#636879'
-        },
-        paper: '#f7f6f2'
+        ink: { 950: '#0e0e0e', 900: '#161616', 800: '#262626', 700: '#3b3b3b', 600: '#555555', 500: '#6b6b6b', 400: '#8f8f8f' },
+        rule: '#e3e0d8',
+        paper: '#fbfaf7'
       },
+      borderRadius: { lg: '5px', xl: '6px', '2xl': '8px', '3xl': '10px' },
       boxShadow: {
-        soft: '0 1px 2px rgba(16,17,26,.04), 0 8px 24px -12px rgba(16,17,26,.12)',
-        lift: '0 2px 4px rgba(16,17,26,.05), 0 24px 48px -20px rgba(16,17,26,.28)'
+        soft: '0 1px 0 rgba(0,0,0,.03)',
+        lift: '0 1px 3px rgba(0,0,0,.08)'
       },
       keyframes: {
-        'fade-up': { '0%': { opacity: 0, transform: 'translateY(8px)' }, '100%': { opacity: 1, transform: 'none' } },
-        'pulse-ring': { '0%': { transform: 'scale(.6)', opacity: .9 }, '100%': { transform: 'scale(2.4)', opacity: 0 } }
+        'fade-up': { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+        'pulse-ring': { '0%': { transform: 'scale(.6)', opacity: 0.9 }, '100%': { transform: 'scale(2.2)', opacity: 0 } }
       },
       animation: {
-        'fade-up': 'fade-up .5s ease-out both',
+        'fade-up': 'fade-up .25s ease-out both',
         'pulse-ring': 'pulse-ring 2.2s cubic-bezier(.2,.6,.3,1) infinite'
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        display: ['Fraunces', 'Georgia', 'Times New Roman', 'serif']
+        sans: ['"IBM Plex Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
       }
     }
   },

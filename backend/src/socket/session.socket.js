@@ -1,5 +1,6 @@
 import { verifyAccessToken } from '../utils/jwt.js'
 import { Session } from '../models/Session.js'
+import { getLocalUser } from '../config/localUser.js'
 
 // Realtime channel between the extension (publisher) and the web app (subscriber).
 // Events relayed per session room:
@@ -20,6 +21,8 @@ export function attachSessionSocket(io) {
         /* allow anonymous: the extension relays without user context */
       }
     }
+    // No sign-in: the web app connects as the local user.
+    if (!socket.user && getLocalUser()) socket.user = { id: getLocalUser().id }
     next()
   })
 

@@ -8,15 +8,15 @@
   }
   body {
     @apply bg-paper text-ink-900 font-sans;
-    font-feature-settings: 'cv11', 'ss01';
+    font-feature-settings: 'ss02';
   }
-  h1, h2 {
-    letter-spacing: -0.015em;
+  h1, h2, h3 {
+    letter-spacing: -0.01em;
   }
 
   /* WCAG 2.2, 2.4.11/2.4.13: always-visible, unobscured focus indicator */
   :focus-visible {
-    outline: 3px solid #4b36cc;
+    outline: 2px solid #2043a6;
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -40,11 +40,10 @@
 }
 
 @layer components {
-  .font-display { font-optical-sizing: auto; letter-spacing: -0.02em; }
-  .card { @apply rounded-2xl border border-black/[0.06] bg-white shadow-soft; }
-  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.14em] text-ink-500; }
-  .grain {
-    background-image: radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
-    background-size: 3px 3px;
-  }
+  .font-display { letter-spacing: -0.02em; }
+  .card { @apply rounded-lg border border-rule bg-white; }
+  .eyebrow { @apply font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-ink-500; }
+  .rule-top { @apply border-t border-rule; }
+  .num { font-variant-numeric: tabular-nums; }
+  .grain { background: none; }
 }

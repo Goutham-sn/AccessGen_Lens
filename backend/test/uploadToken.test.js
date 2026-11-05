@@ -56,12 +56,16 @@ after(async () => {
   await closeAppPool()
 })
 
-test('reading and creating sessions still needs a valid access token', async () => {
-  const s = await newSession()
-  assert.equal((await call('/sessions', { bearer: 'expired.or.invalid' })).status, 401)
-  assert.equal((await call(`/sessions/${s.id}`, { uploadToken: s.token })).status, 401, 'the upload token cannot read')
-  assert.equal((await call('/sessions', { method: 'POST', json: { url: 'https://example.com' } })).status, 401)
-  assert.equal((await call(`/sessions/${s.id}`, { method: 'DELETE', uploadToken: s.token })).status, 401)
+test('no sign-in: requests without a token are the local user, who cannot reach another owner\'s session', async () => {
+  const s = await newSession() // made by the test user, with a token
+  // Without a token (or with a bad one) a request is the local user's.
+  assert.equal((await call('/sessions', { bearer: 'expired.or.invalid' })).status, 200)
+  const mine = await call('/sessions', { method: 'POST', json: { url: 'https://example.com' } })
+  assert.equal(mine.status, 201, 'the local user can create sessions')
+  // The upload token never reads or deletes, and someone else's session stays theirs.
+  assert.equal((await call(`/sessions/${s.id}`, { uploadToken: s.token })).status, 403, 'the upload token cannot read')
+  assert.equal((await call(`/sessions/${s.id}`, { method: 'DELETE', uploadToken: s.token })).status, 403)
+  await call(`/sessions/${mine.data.session.id}`, { method: 'DELETE' })
 })
 
 test('the token is returned once to the owner and only its hash is stored', async () => {

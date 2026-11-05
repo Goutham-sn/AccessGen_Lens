@@ -1,5 +1,4 @@
-import { Link, Navigate } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore.js'
+import { Link } from 'react-router-dom'
 import { PERSONA_CARDS } from '../data/personaCards.js'
 import { teaserPeople, teaserLine } from '../utils/landingTeaser.js'
 import { Logo } from '../components/brand/Logo.jsx'
@@ -46,8 +45,6 @@ function ReportPreview() {
 }
 
 export default function Landing() {
-  const user = useAuthStore((s) => s.user)
-  if (user) return <Navigate to="/dashboard" replace />
   const teaser = teaserPeople(PERSONA_CARDS)
 
   return (
@@ -63,7 +60,7 @@ export default function Landing() {
           <Logo dark />
           <nav aria-label="Account" className="flex items-center gap-2">
             <a href="#how" className="hidden rounded-full px-4 py-2 text-sm text-white/70 hover:text-white sm:inline">How it works</a>
-            <Link to="/onboarding" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-900 hover:bg-brand-50">Sign in</Link>
+            <Link to="/start" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-900 hover:bg-brand-50">Open the app</Link>
           </nav>
         </header>
 
@@ -82,7 +79,7 @@ export default function Landing() {
                 video should speak. Then it shows your whole team exactly where it broke.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/onboarding" className="inline-flex min-h-[50px] items-center gap-2 rounded-full bg-white px-6 text-base font-semibold text-ink-900 hover:bg-brand-50">
+                <Link to="/start" className="inline-flex min-h-[50px] items-center gap-2 rounded-full bg-white px-6 text-base font-semibold text-ink-900 hover:bg-brand-50">
                   Experience your site <Icon name="arrow" size={18} />
                 </Link>
                 <a href="#try" className="inline-flex min-h-[50px] items-center rounded-full border border-white/15 px-6 text-base font-medium text-white hover:bg-white/10">
@@ -166,7 +163,7 @@ export default function Landing() {
         <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-ink-950 px-8 py-16 text-center text-white">
           <div aria-hidden="true" className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[60%] -translate-x-1/2 rounded-full bg-brand-600/30 blur-[100px]" />
           <h2 className="relative font-display text-4xl font-semibold sm:text-5xl">Ten minutes as someone else<br />changes what you build.</h2>
-          <Link to="/onboarding" className="relative mt-8 inline-flex min-h-[50px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold text-ink-900 hover:bg-brand-50">
+          <Link to="/start" className="relative mt-8 inline-flex min-h-[50px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold text-ink-900 hover:bg-brand-50">
             Start your first experience <Icon name="arrow" size={18} />
           </Link>
         </div>

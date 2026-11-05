@@ -30,7 +30,7 @@ test('a check is live, unverified or not built, never two at once, and built che
     assert.ok(CHECKS[id], `${id} has a module`)
   }
   for (const id of liveChecks()) assert.equal(checkStatus(id), 'live')
-  assert.equal(checkStatus('unnamed-controls'), null, 'not built yet')
+  assert.equal(checkStatus('reflow-320'), null, 'not built')
   assert.deepEqual(capabilityGaps(), [])
 })
 
@@ -43,20 +43,15 @@ test('the flag works only as 1, and never in production', () => {
   assert.equal(unverifiedEnabled({ UNVERIFIED_CHECKS: '1', NODE_ENV: 'production' }), false)
 })
 
-test('flag off: no keyboard check runs, so no moments can come from them', () => {
-  assert.deepEqual(ids(detectorsFor(keyboard, { NODE_ENV: 'development' })), [])
-  assert.deepEqual(checksToRun(keyboard, { NODE_ENV: 'development' }).filter((id) => BUILT_UNVERIFIED.includes(id)), [])
-})
-
-test('production ignores the flag', () => {
-  assert.deepEqual(ids(detectorsFor(keyboard, { UNVERIFIED_CHECKS: '1', NODE_ENV: 'production' })), [])
-})
-
-test('flag on outside production: the five keyboard checks run, only for the profiles that list them', () => {
-  const env = { UNVERIFIED_CHECKS: '1', NODE_ENV: 'development' }
-  assert.deepEqual(ids(detectorsFor(keyboard, env)).sort(), ids(KEYBOARD_CHECKS).sort())
-  assert.deepEqual(ids(detectorsFor(['deuteranopia'], env)), [], 'a conditions-only persona has none of them listed')
-  for (const id of ids(KEYBOARD_CHECKS)) assert.equal(RUNNER_CAPABILITIES['keyboard-only'].checks[id], false, `${id} flag is still false`)
+test('nothing is held back: every built check is live, for everyone, with no flag', () => {
+  assert.deepEqual(BUILT_UNVERIFIED, [])
+  for (const id of [...ids(KEYBOARD_CHECKS), 'page-audit']) assert.ok(liveChecks().has(id), `${id} is live`)
+  for (const env of [{}, { NODE_ENV: 'production' }, { UNVERIFIED_CHECKS: '1', NODE_ENV: 'development' }]) {
+    const run = ids(detectorsFor(keyboard, env))
+    for (const id of [...ids(KEYBOARD_CHECKS), 'page-audit']) assert.ok(run.includes(id), `${id} runs for keyboard-only (${JSON.stringify(env)})`)
+  }
+  assert.ok(ids(detectorsFor(['deuteranopia'], {})).includes('page-audit'), 'the page audit runs for a conditions-only persona too')
+  assert.ok(!ids(detectorsFor(['deuteranopia'], {})).includes('focus-lost'), 'keyboard checks stay with the people who use the keyboard')
 })
 
 // ---- the persona flow on a fixture page, with the real detectors ----
@@ -112,24 +107,13 @@ async function runWith(env) {
   }
 }
 
-test('flag off: a page with known problems gives no moments and no unverified record', async () => {
-  const { store, result } = await runWith({ UNVERIFIED_CHECKS: undefined, NODE_ENV: 'development' })
-  assert.equal(store.saved.moments.length, 0)
-  assert.equal(result.coverage.unverifiedChecks, undefined)
-})
-
-test('production: the flag is ignored, no moments', async () => {
-  const { store, result } = await runWith({ UNVERIFIED_CHECKS: '1', NODE_ENV: 'production' })
-  assert.equal(store.saved.moments.length, 0)
-  assert.equal(result.coverage.unverifiedChecks, undefined)
-})
-
-test('flag on outside production: moments come out, every one marked unverified, and the run says so', async () => {
-  const { store, result } = await runWith({ UNVERIFIED_CHECKS: '1', NODE_ENV: 'development' })
-  const saved = store.saved.moments
-  assert.ok(saved.length >= 1, `moments saved: ${saved.length}`)
-  for (const { m } of saved) assert.equal(m.unverified, true, `${m.detector} moment is marked unverified`)
-  assert.deepEqual([...new Set(saved.map(({ m }) => m.detector))], ['focus-lost'])
-  assert.deepEqual([...result.coverage.unverifiedChecks].sort(), [...BUILT_UNVERIFIED].sort())
-  assert.equal(result.coverage.unverifiedMoments, saved.length)
+test('a page with known problems gives its moments, none labelled unverified, in production too', async () => {
+  for (const env of [{ UNVERIFIED_CHECKS: undefined, NODE_ENV: 'development' }, { UNVERIFIED_CHECKS: undefined, NODE_ENV: 'production' }]) {
+    const { store, result } = await runWith(env)
+    const saved = store.saved.moments
+    const detectors = new Set(saved.map(({ m }) => m.detector))
+    assert.ok(detectors.has('focus-lost'), `focus lost is found (${env.NODE_ENV}): ${[...detectors]}`)
+    for (const { m } of saved) assert.equal(Boolean(m.unverified), false, `${m.detector} moment is not labelled unverified`)
+    assert.equal(result.coverage.unverifiedChecks, undefined)
+  }
 })

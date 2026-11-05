@@ -69,13 +69,13 @@ function SessionCard({ session, onDelete, liveId, onFinish }) {
         </ul>
         <div className="mt-auto pt-4 flex gap-2">
           <Link
-            to={`/playback/${session.id}`}
+            to={`/results/${session.id}`}
             className="flex-1 rounded-lg bg-brand-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-brand-800"
           >
             Watch
           </Link>
           <Link
-            to={`/report/${session.id}`}
+            to={`/results/${session.id}`}
             className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-center text-sm font-medium text-ink-700 hover:bg-gray-50"
           >
             Report

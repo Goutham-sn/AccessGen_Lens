@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore.js'
 import { useSessionStore } from './store/sessionStore.js'
 import { listenFromExtension } from './services/extension-bridge.js'
@@ -8,12 +8,11 @@ import { loadChain } from './utils/missionChain.js'
 import { LoadingSpinner } from './components/shared/LoadingSpinner.jsx'
 
 const Landing = lazy(() => import('./pages/Landing.jsx'))
-const Onboarding = lazy(() => import('./pages/Onboarding.jsx'))
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
 const Configure = lazy(() => import('./pages/Configure.jsx'))
 const Session = lazy(() => import('./pages/Session.jsx'))
-const Playback = lazy(() => import('./pages/Playback.jsx'))
-const Report = lazy(() => import('./pages/Report.jsx'))
+const Results = lazy(() => import('./pages/Results.jsx'))
+const ToResults = lazy(() => import('./pages/Results.jsx').then((m) => ({ default: m.ToResults })))
 const Run = lazy(() => import('./pages/Run.jsx'))
 const Start = lazy(() => import('./pages/Start.jsx'))
 const Personas = lazy(() => import('./pages/Personas.jsx'))
@@ -21,10 +20,8 @@ const Team = lazy(() => import('./pages/Team.jsx'))
 const SharedReport = lazy(() => import('./pages/SharedReport.jsx'))
 const StepIn = lazy(() => import('./pages/StepIn.jsx'))
 
+// No sign-in: every page is open. Kept as a pass-through so routes read the same.
 function RequireAuth({ children }) {
-  const user = useAuthStore((s) => s.user)
-  const location = useLocation()
-  if (!user) return <Navigate to="/onboarding" state={{ from: location }} replace />
   return children
 }
 
@@ -49,7 +46,7 @@ function useExtensionSessionEndedListener() {
         // which starts the run as the person.
         const chain = loadChain()
         if (chain?.baselineSessionId === msg.sessionId) navigate(`/next/${msg.sessionId}`)
-        else navigate(`/playback/${msg.sessionId}`)
+        else navigate(`/results/${msg.sessionId}`)
       }
     })
   }, [navigate, clearLiveSession])
@@ -57,6 +54,8 @@ function useExtensionSessionEndedListener() {
 
 export default function App() {
   useExtensionSessionEndedListener()
+  const loadUser = useAuthStore((s) => s.load)
+  useEffect(() => { loadUser() }, [loadUser])
 
   return (
     <Suspense
@@ -67,14 +66,16 @@ export default function App() {
       }
     >
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/lens" element={<Landing />} />
+        <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
         <Route path="/shared/:token" element={<SharedReport />} />
         <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
         <Route path="/configure" element={<RequireAuth><Configure /></RequireAuth>} />
         <Route path="/session/:id" element={<RequireAuth><Session /></RequireAuth>} />
-        <Route path="/playback/:id" element={<RequireAuth><Playback /></RequireAuth>} />
-        <Route path="/report/:id" element={<RequireAuth><Report /></RequireAuth>} />
+        <Route path="/results/:id" element={<Results />} />
+        <Route path="/playback/:id" element={<ToResults />} />
+        <Route path="/report/:id" element={<ToResults />} />
         <Route path="/run/:runId" element={<RequireAuth><Run /></RequireAuth>} />
         <Route path="/start" element={<RequireAuth><Start /></RequireAuth>} />
         <Route path="/next/:id" element={<RequireAuth><StepIn /></RequireAuth>} />

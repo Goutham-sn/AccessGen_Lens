@@ -58,13 +58,13 @@ export default function Session() {
       // stuck with a session that never stops.
       try { await api.post(`/sessions/${id}/end`) } catch { /* shown on Playback */ }
       session.clearLiveSession()
-      navigate(`/playback/${id}`)
+      navigate(`/results/${id}`)
       return
     }
     // Fallback in case session-ended never arrives.
     saveTimeout.current = setTimeout(() => {
       session.clearLiveSession()
-      navigate(`/playback/${id}`)
+      navigate(`/results/${id}`)
     }, 60000)
   }
 

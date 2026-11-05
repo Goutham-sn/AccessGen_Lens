@@ -111,13 +111,13 @@ export default function Run() {
                 {s.complete && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link
-                      to={`/playback/${s.id}`}
+                      to={`/results/${s.id}`}
                       className="inline-flex min-h-[40px] items-center rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
                     >
                       Watch the playback<span className="sr-only"> for {s.personaName}</span>
                     </Link>
                     <Link
-                      to={`/report/${s.id}`}
+                      to={`/results/${s.id}`}
                       className="inline-flex min-h-[40px] items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-ink-700 hover:bg-gray-100"
                     >
                       Read the report<span className="sr-only"> for {s.personaName}</span>

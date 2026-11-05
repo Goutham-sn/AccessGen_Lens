@@ -19,7 +19,7 @@ export default function StepIn() {
   const [message, setMessage] = useState(null)
 
   useEffect(() => {
-    if (!chain || chain.baselineSessionId !== id) { navigate(`/playback/${id}`, { replace: true }); return }
+    if (!chain || chain.baselineSessionId !== id) { navigate(`/results/${id}`, { replace: true }); return }
     let tries = 0
     const load = () => api.get(`/sessions/${id}`).then((d) => {
       setBaseline(d.session)
@@ -81,7 +81,7 @@ export default function StepIn() {
             className="inline-flex min-h-[54px] items-center gap-2 rounded-full bg-white px-7 text-base font-semibold text-ink-900 hover:bg-brand-50 disabled:opacity-60">
             {explore.starting ? 'Opening…' : `Step into ${persona?.name ? `${persona.name}'s` : 'their'} world`} <Icon name="arrow" size={18} />
           </button>
-          <Link to={`/playback/${id}`} onClick={clearChain} className="text-sm text-white/60 underline hover:text-white">
+          <Link to={`/results/${id}`} onClick={clearChain} className="text-sm text-white/60 underline hover:text-white">
             Not now, show my run
           </Link>
         </div>

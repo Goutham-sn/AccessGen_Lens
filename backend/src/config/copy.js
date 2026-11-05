@@ -40,6 +40,7 @@ export const CHECK_WORDS = {
   structure: 'The headings and landmarks a screen reader can move between',
   narration: 'What a screen reader says, item by item',
   'filter-video': 'How the page looks with the conditions we can show on screen',
+  'page-audit': 'Every rule of axe-core, the open-source accessibility rules engine, on every element of the page',
   'reflow-320': 'Whether the page fits a narrow screen without scrolling sideways',
   covering: 'Whether something covers the content when the page is zoomed in'
 }

@@ -39,7 +39,7 @@ test('no Tab walk: says the page was recorded and nothing else measured', () => 
 })
 
 test('no live check for the conditions: says so instead of a list', () => {
-  const looked = lookedAt(runner({ active_profiles: [{ id: 'screen-reader' }] }), 2)
+  const looked = lookedAt(runner({ active_profiles: [{ id: 'tremor' }] }), 2)
   assert.deepEqual(looked.items, [])
   assert.equal(looked.noItems, 'We do not measure anything for these conditions yet. The video shows the page as David would see it.')
 })
@@ -60,14 +60,15 @@ test('extension sessions with no moments point to I Felt This', () => {
 })
 
 test('a run that included unverified checks says so, separately from what was looked at', () => {
-  const withUnverified = runner({}, { unverifiedChecks: ['focus-lost', 'trap'], unverifiedMoments: 2 })
+  // Every built check is live today, so this uses checks that are not.
+  const withUnverified = runner({}, { unverifiedChecks: ['reflow-320', 'covering'], unverifiedMoments: 2 })
   const looked = lookedAt(withUnverified, 2)
   assert.deepEqual(looked.unverified, {
     label: 'Unverified, for testing',
-    items: [CHECK_WORDS['focus-lost'], CHECK_WORDS.trap],
+    items: [CHECK_WORDS['reflow-320'], CHECK_WORDS.covering],
     moments: 2
   })
-  assert.ok(!looked.items.includes(CHECK_WORDS.trap), 'unverified checks are never listed with the live ones')
+  assert.ok(!looked.items.includes(CHECK_WORDS.covering), 'unverified checks are never listed with the live ones')
   // The no-moments line counts what was run, unverified included.
   const none = lookedAt(withUnverified, 0)
   assert.equal(none.zeroMoments,

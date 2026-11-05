@@ -149,20 +149,19 @@ test('the numbered label stays inside the viewport, and large elements get an in
   }
 })
 
-test('only the first eight moments are held on screen', async () => {
+test('every moment is held on screen for five seconds, with the element and the problem written out', async () => {
   const { context, page } = await openFixture(browser, 'evidence', 'evidence.html')
   try {
     await page.evaluate(installOverlay)
     const engine = createEvidenceEngine({ page, readyAt: Date.now() })
     const results = []
-    for (let i = 1; i <= 9; i++) {
+    for (let i = 1; i <= 2; i++) {
       const t = Date.now()
       const m = await engine.capture(finding(`#b${i}`))
       results.push({ held: m.held, ms: Date.now() - t })
     }
-    assert.deepEqual(results.map((r) => r.held), [true, true, true, true, true, true, true, true, false])
-    assert.ok(results[0].ms >= 1200, `held moment took ${results[0].ms} ms`)
-    assert.ok(results[8].ms < 1000, `ninth moment took ${results[8].ms} ms`)
+    assert.deepEqual(results.map((r) => r.held), [true, true])
+    for (const r of results) assert.ok(r.ms >= 5000, `held moment took only ${r.ms} ms`)
   } finally {
     await context.close()
   }

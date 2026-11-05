@@ -65,7 +65,8 @@ export function reportFriction({ kind, profileId, headline, detail = null, targe
   if (target?.getBoundingClientRect) {
     const r = target.getBoundingClientRect()
     if (r.width > 0 && r.height > 0) {
-      rect = { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) }
+      // With the viewport size, so the report can pin it on the picture.
+      rect = { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height), vw: window.innerWidth, vh: window.innerHeight }
     }
   }
   window.dispatchEvent(new CustomEvent('accessgen-friction', {

@@ -341,7 +341,8 @@ async function destroySimulation(tabId) {
 const FRAME_INTERVAL_MS = 700      // captureVisibleTab allows 2 calls a second
 const FRAME_BATCH = 6
 const FRAME_MAX_WIDTH = 1280
-const frames = { timer: null, buffer: [], uploading: null, lastShotAt: 0, queue: Promise.resolve() }
+// notBefore: no frames until the step-in screen has finished fading out.
+const frames = { timer: null, buffer: [], uploading: null, lastShotAt: 0, queue: Promise.resolve(), notBefore: 0 }
 
 function blobToDataUrl(blob) {
   return blob.arrayBuffer().then((buf) => {
@@ -424,6 +425,9 @@ async function flushFrames() {
 
 async function captureFrame() {
   if (!state.isActive || state.isRecording || !state.startedAt) return
+  // Not while the step-in screen is up: the video, and the cover picture
+  // taken from it, start with the page as the person meets it.
+  if (!state.introShown || Date.now() < frames.notBefore) return
   const shot = await captureTargetTab()
   if (!shot || !state.isActive || state.isRecording) return
   const timestamp = Date.now() - state.startedAt
@@ -727,6 +731,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     ACCESSGEN_MISSION_START: async () => {
       if (!state.isActive || sender?.tab?.id !== state.targetTabId) return { ok: false }
       state.introShown = true
+      frames.notBefore = Date.now() + 1300
       if (!state.missionStartedAt) state.missionStartedAt = Date.now()
       await persistState()
       return { ok: true, missionStartedAt: state.missionStartedAt }

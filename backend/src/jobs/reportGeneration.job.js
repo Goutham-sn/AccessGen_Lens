@@ -5,6 +5,7 @@ import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { getObjectBuffer, putBuffer } from '../utils/storage.js'
 import { durationText, isAutoMoment } from '../utils/duration.js'
+import { missionComparison } from '../utils/mission.js'
 
 // Everything shown in the PDF that came from a page or a person (titles,
 // names, moment text) goes through this, so it is text, never markup.
@@ -29,7 +30,9 @@ export async function processReportGeneration(sessionId) {
   const images = {}
   for (const m of moments) images[m.id] = await imageDataUrl(m.screenshot_url)
 
-  const { pdf } = await renderPdf(buildReportHtml({ session, moments, cover, images }))
+  const baseline = session.baseline_session_id ? await Session.findById(session.baseline_session_id) : null
+  const mission = missionComparison(session, baseline?.user_id === session.user_id ? baseline : null)
+  const { pdf } = await renderPdf(buildReportHtml({ session, moments, cover, images, mission }))
   await putBuffer(`sessions/${sessionId}/report.pdf`, Buffer.from(pdf), 'application/pdf')
   console.log(`[report] PDF generated for session ${sessionId}`)
 }
@@ -46,7 +49,25 @@ function lookedAtHtml(looked) {
     (looked.gaps.length ? `<h2>What we could not look at</h2>${list(looked.gaps)}` : '')
 }
 
-export function buildReportHtml({ session, moments, cover = null, images = {} }) {
+function fmtMs(ms) {
+  if (ms == null) return '-'
+  const s = ms / 1000
+  return s < 60 ? `${s < 10 ? s.toFixed(1) : Math.round(s)} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`
+}
+
+// The mission, as yourself and as the person, side by side.
+function missionHtml(mission, who) {
+  if (!mission) return ''
+  const side = (label, s, cls) => `<div class="side ${cls}"><small>${esc(label)}</small><b>${s ? esc(fmtMs(s.durationMs)) : 'Not run'}</b>` +
+    `<span>${s?.outcome === 'done' ? 'Did it' : s?.outcome === 'gave-up' ? 'Gave up' : s ? 'Ended without saying' : ''}</span></div>`
+  const verdict = mission.ratio && mission.ratio >= 1.3 ? `${mission.ratio}× longer as ${who}.`
+    : mission.as?.outcome === 'gave-up' ? `${who} gave up.` : ''
+  return `<div class="mission"><small>The mission</small><p class="goal">“${esc(mission.goal)}”</p>` +
+    `<div class="sides">${mission.you ? side('You', mission.you, '') : ''}${side(`As ${who}`, mission.as, 'as')}</div>` +
+    (verdict ? `<p class="verdict">${esc(verdict)}</p>` : '') + '</div>'
+}
+
+export function buildReportHtml({ session, moments, cover = null, images = {}, mission = null }) {
   const looked = lookedAt(session, moments.length)
   const persona = session.persona_snapshot
   const who = persona?.name || 'A visitor'
@@ -94,12 +115,22 @@ export function buildReportHtml({ session, moments, cover = null, images = {} })
                   border-radius: 6px; padding: 1px 8px; font-size: 13px; font-weight: bold; }
     .auto { display: inline-block; background: #fef3c7; color: #78350f; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: bold; }
     .detail { color: #475467; }
+    .mission { margin-top: 28px; border: 1px solid #344054; border-radius: 16px; padding: 18px 20px; }
+    .mission small { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #98a2b3; }
+    .mission .goal { font-size: 20px; margin: 6px 0 14px; color: #fff; }
+    .sides { display: flex; gap: 12px; }
+    .side { flex: 1; background: #1d2939; border-radius: 12px; padding: 14px; }
+    .side.as { background: #3b1d16; }
+    .side b { display: block; font-size: 30px; color: #fff; margin: 4px 0; }
+    .side span { font-size: 13px; color: #d0d5dd; }
+    .verdict { color: #ffad93; font-weight: bold; margin: 12px 0 0; }
     .intro { font-size: 16px; background: #f2f4f7; border-radius: 12px; padding: 16px 20px; }
   </style></head><body>
     <div class="page cover">
       <h1>${esc(who)}'s experience of ${esc(session.page_title || session.url)}</h1>
       <p class="meta">${esc(session.url)} · ${esc(new Date(session.start_time).toLocaleDateString())} · ${esc(duration)}</p>
       <div>${profiles.map((p) => `<span class="chip">${esc(p)}</span>`).join('')}</div>
+      ${missionHtml(mission, persona?.name || 'them')}
       ${cover && String(cover).startsWith('data:image/') ? `<img src="${cover}" alt="" />` : ''}
     </div>
     <div class="page">

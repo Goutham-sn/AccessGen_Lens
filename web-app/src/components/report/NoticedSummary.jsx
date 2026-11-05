@@ -1,36 +1,39 @@
 import { groupFriction } from '../../data/frictionKinds.js'
 import { isAutoMoment, fmtClock } from '../../utils/moments.js'
 
-// What the simulation noticed on its own while the tester explored, grouped
-// by kind, so a team can see at a glance what made the page hard.
+// What the simulation noticed on its own while the page was being used,
+// grouped by kind, so a team can see at a glance what made it hard.
 export function NoticedSummary({ empathyMoments, onJump }) {
   const auto = empathyMoments.filter(isAutoMoment)
   if (auto.length === 0) return null
   const groups = groupFriction(auto)
 
   return (
-    <section aria-labelledby="noticed-heading" className="rounded-2xl border border-amber-200 bg-amber-50/60 p-6">
-      <h2 id="noticed-heading" className="text-xl font-semibold text-ink-900">What made it hard</h2>
-      <p className="mt-1 text-sm text-ink-700">
-        Noticed by the simulation itself while the page was being used, {auto.length} time{auto.length === 1 ? '' : 's'}.
-      </p>
-      <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+    <section aria-labelledby="noticed-heading">
+      <p className="eyebrow">What made it hard</p>
+      <h2 id="noticed-heading" className="mt-1 font-display text-3xl font-semibold text-ink-900">
+        {auto.length} {auto.length === 1 ? 'thing' : 'things'} pushed back
+      </h2>
+      <p className="mt-1 text-ink-600">Noticed by the simulation itself, as the page was used.</p>
+      <ul className="mt-6 grid gap-4 sm:grid-cols-2">
         {groups.map((g) => (
-          <li key={g.key} className="rounded-xl border border-amber-200 bg-white p-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="font-semibold text-ink-900">{g.title}</h3>
-              <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-semibold text-amber-900 tabular-nums">
+          <li key={g.key} className="card p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-ink-900">{g.title}</h3>
+                {g.why && <p className="mt-0.5 text-sm text-ink-600">{g.why}</p>}
+              </div>
+              <span className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-full bg-ember-50 px-2 font-display text-lg font-semibold text-ember-700 tabular-nums">
                 {g.moments.length}
               </span>
             </div>
-            {g.why && <p className="mt-1 text-sm text-ink-600">{g.why}</p>}
-            <ul className="mt-3 space-y-1.5 text-sm text-ink-800">
+            <ul className="mt-4 space-y-2 border-t border-black/5 pt-3 text-sm text-ink-800">
               {g.moments.slice(0, 3).map((m) => (
-                <li key={m.id} className="flex gap-2">
+                <li key={m.id} className="flex gap-3">
                   {onJump ? (
-                    <a href={`#moment-${m.id}`} className="tabular-nums text-brand-700 underline shrink-0">{fmtClock(m.timestamp_ms)}</a>
+                    <a href={`#moment-${m.id}`} className="shrink-0 tabular-nums font-medium text-brand-700 underline-offset-2 hover:underline">{fmtClock(m.timestamp_ms)}</a>
                   ) : (
-                    <span className="tabular-nums text-ink-500 shrink-0">{fmtClock(m.timestamp_ms)}</span>
+                    <span className="shrink-0 tabular-nums text-ink-500">{fmtClock(m.timestamp_ms)}</span>
                   )}
                   <span>{m.label}</span>
                 </li>

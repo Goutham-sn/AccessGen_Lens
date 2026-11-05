@@ -111,7 +111,10 @@ export async function logEmpathyMoment(req, res, next) {
     // logged by the tester. Nothing else may be claimed from here.
     const source = req.body.source === 'extension-auto' ? 'extension-auto' : 'extension'
     const cleanRect = rect && ['x', 'y', 'width', 'height'].every((k) => Number.isFinite(rect[k]))
-      ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+      ? {
+          x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+          ...(Number.isFinite(rect.vw) && Number.isFinite(rect.vh) && rect.vw > 0 && rect.vh > 0 ? { vw: rect.vw, vh: rect.vh } : {})
+        }
       : null
 
     let screenshotUrl = null

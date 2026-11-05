@@ -82,8 +82,8 @@ export default function SharedReport() {
         {!loading && !needsPassword && error && <p role="alert" className="text-red-700">{error}</p>}
 
         {!loading && data && (
-          <div className="space-y-8">
-            <ReportCover session={data.session} empathyMoments={data.empathyMoments} />
+          <div className="space-y-12">
+            <ReportCover session={data.session} empathyMoments={data.empathyMoments} mission={data.mission} />
             <SimulationBanner text={data.intro} />
             <SnapshotNote ranAt={data.session.start_time} note={data.snapshotNote} />
             <TaskList session={data.session} idPrefix="shared-task" />

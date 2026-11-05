@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
 import { PlaybackPlayer } from '../components/playback/PlaybackPlayer.jsx'
 import { Timeline } from '../components/playback/Timeline.jsx'
@@ -17,6 +17,18 @@ import { formatDuration } from '../utils/moments.js'
 export default function Playback() {
   const { id } = useParams()
   const pb = usePlayback(id)
+  // /playback/:id?at=<ms>: open at that moment of the session (from the
+  // report's "Watch this moment").
+  const [search] = useSearchParams()
+  const jumped = useRef(false)
+  const at = Number(search.get('at'))
+  useEffect(() => {
+    if (jumped.current || !Number.isFinite(at) || !search.get('at') || !pb.duration) return
+    const sec = pb.sessionMsToVideoSeconds(at)
+    if (sec == null) return
+    jumped.current = true
+    pb.seekTo(Math.max(0, sec - 1.5))
+  }, [at, search, pb.duration, pb])
   const [shareOpen, setShareOpen] = useState(false)
 
   // When the video finishes compiling, refetch to pick up the video URL.

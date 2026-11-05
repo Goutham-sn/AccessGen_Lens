@@ -11,7 +11,6 @@ import { SnapshotNote } from '../components/report/SnapshotNote.jsx'
 import { BeforeAfter } from '../components/report/BeforeAfter.jsx'
 import { HumanSummary } from '../components/report/HumanSummary.jsx'
 import { NoticedSummary } from '../components/report/NoticedSummary.jsx'
-import { isAutoMoment, formatDuration } from '../utils/moments.js'
 import { ShareDialog } from '../components/shared/ShareDialog.jsx'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
@@ -65,7 +64,6 @@ export default function Report() {
 
   const { session, frames, events, empathyMoments, humanSummary, intro } = data
   const persona = session.persona_snapshot
-  const noticedCount = empathyMoments.filter(isAutoMoment).length
 
   const firstFrame = frames[0]
   const momentWithShot = empathyMoments.find((m) => m.screenshot_url)
@@ -84,36 +82,22 @@ export default function Report() {
         </div>
       }
     >
-      <div className="space-y-8 pb-16">
-        <ReportCover session={session} empathyMoments={empathyMoments} />
-        <SimulationBanner text={intro} />
-        <SnapshotNote ranAt={session.start_time} note={data.snapshotNote} />
+      <div className="space-y-12 pb-16">
+        <ReportCover session={session} empathyMoments={empathyMoments} mission={data.mission} eventCount={events.length} />
+        <div className="space-y-2">
+          <SimulationBanner text={intro} />
+          <SnapshotNote ranAt={session.start_time} note={data.snapshotNote} />
+        </div>
         <TaskList session={session} />
-
-        {/* The experience in numbers */}
-        <section aria-labelledby="numbers-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
-          <h2 id="numbers-heading" className="text-xl font-semibold text-ink-900 mb-4">
-            The experience in numbers
-          </h2>
-          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            {[
-              [formatDuration(session.duration_seconds), 'time spent'],
-              [String(empathyMoments.length - noticedCount), 'moments felt'],
-              [String(noticedCount), 'struggles noticed'],
-              [String(session.event_count || events.length), 'interactions needed']
-            ].map(([value, label]) => (
-              <div key={label} className="rounded-xl bg-gray-50 p-4">
-                <dt className="order-2 text-sm text-ink-600">{label}</dt>
-                <dd className="order-1 text-3xl font-semibold text-ink-900">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
 
         <NoticedSummary empathyMoments={empathyMoments} onJump />
         <JourneyMap session={session} events={events} empathyMoments={empathyMoments} />
         <LookedAt lookedAt={data.lookedAt} />
-        <EmpathyMoments empathyMoments={empathyMoments} emptyText={data.noMomentsText} />
+        <EmpathyMoments
+          empathyMoments={empathyMoments}
+          emptyText={data.noMomentsText}
+          watchHref={(m) => (session.video_url || playableFrames(frames).length >= 2 ? `/playback/${session.id}?at=${m.timestamp_ms}` : null)}
+        />
 
         {/* Runner moments keep a clean picture next to the persona's view.
             Extension pictures are all taken with the simulation on, so
@@ -127,8 +111,8 @@ export default function Report() {
 
         {/* Watch the session */}
         {(session.video_url || playableFrames(frames).length >= 2) && (
-          <section aria-labelledby="watch-heading" className="rounded-2xl border border-gray-200 bg-white p-6">
-            <h2 id="watch-heading" className="text-xl font-semibold text-ink-900 mb-4">
+          <section aria-labelledby="watch-heading" className="card p-6">
+            <h2 id="watch-heading" className="mb-4 font-display text-2xl font-semibold text-ink-900">
               Watch the session
             </h2>
             {!session.video_url ? (

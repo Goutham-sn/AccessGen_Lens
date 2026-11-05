@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore.js'
+import { Logo } from '../brand/Logo.jsx'
 
 export function Navbar() {
   const { user, logout } = useAuthStore()
@@ -10,29 +11,40 @@ export function Navbar() {
     navigate('/')
   }
 
+  const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase()
+
   return (
-    <header className="bg-white border-b border-gray-200">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link to={user ? '/dashboard' : '/'} className="flex items-center gap-2 font-semibold text-ink-900">
-          <span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700 text-white text-sm">
-            ◉
-          </span>
-          AccessGen Lens
+    <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-paper/85 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
+        <Link to={user ? '/dashboard' : '/'} aria-label="AccessGen Lens home">
+          <Logo />
         </Link>
         <nav aria-label="Account">
           {user ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-ink-600 hidden sm:inline">{user.name || user.email}</span>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/start"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700"
+              >
+                <span aria-hidden="true">+</span> New experience
+              </Link>
+              <span
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-800"
+                title={user.name || user.email}
+                aria-hidden="true"
+              >
+                {initial}
+              </span>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="text-sm font-medium text-ink-700 hover:text-ink-900 rounded-md px-2 py-1"
+                className="text-sm font-medium text-ink-600 hover:text-ink-900 rounded-md px-2 py-1"
               >
                 Sign out
               </button>
             </div>
           ) : (
-            <Link to="/onboarding" className="text-sm font-medium text-brand-700 hover:text-brand-800">
+            <Link to="/onboarding" className="rounded-full bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700">
               Sign in
             </Link>
           )}

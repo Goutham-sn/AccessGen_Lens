@@ -3,7 +3,8 @@ const TONES = {
   neutral: 'bg-gray-100 text-ink-700 border-gray-300',
   success: 'bg-green-50 text-green-800 border-green-200',
   warning: 'bg-amber-50 text-amber-800 border-amber-200',
-  danger: 'bg-red-50 text-red-800 border-red-200'
+  danger: 'bg-red-50 text-red-800 border-red-200',
+  ember: 'bg-ember-50 text-ember-800 border-ember-100'
 }
 
 export function Badge({ tone = 'brand', className = '', children }) {

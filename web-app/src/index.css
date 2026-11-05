@@ -7,12 +7,16 @@
     @apply antialiased;
   }
   body {
-    @apply bg-gray-50 text-ink-900 font-sans;
+    @apply bg-paper text-ink-900 font-sans;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1, h2 {
+    letter-spacing: -0.015em;
   }
 
   /* WCAG 2.2, 2.4.11/2.4.13: always-visible, unobscured focus indicator */
   :focus-visible {
-    outline: 3px solid #1d3fd8;
+    outline: 3px solid #4b36cc;
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -32,5 +36,15 @@
   .skip-link {
     @apply sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50
       focus:bg-brand-700 focus:text-white focus:px-4 focus:py-2 focus:rounded-md;
+  }
+}
+
+@layer components {
+  .font-display { font-optical-sizing: auto; letter-spacing: -0.02em; }
+  .card { @apply rounded-2xl border border-black/[0.06] bg-white shadow-soft; }
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.14em] text-ink-500; }
+  .grain {
+    background-image: radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 3px 3px;
   }
 }

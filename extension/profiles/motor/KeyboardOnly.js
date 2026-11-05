@@ -2,6 +2,7 @@ import { BaseProfile } from '../BaseProfile.js'
 import { FocusOrderVisualiser } from '../../overlay/FocusVisualiser.js'
 import { send } from '../../content-scripts/communicator.js'
 import { reportFriction, describeElement } from '../../content-scripts/friction.js'
+import { scanForKeyboard, watchDeadKeys, checkCovered, mouseOnlyTarget, TrapWatch } from './keyboardScan.js'
 
 const BLOCKED_EVENTS = [
   'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick',
@@ -11,23 +12,10 @@ const BLOCKED_EVENTS = [
   'pointerup', 'pointermove', 'pointerover'
 ]
 
-const NATIVE_FOCUSABLE = /^(A|BUTTON|INPUT|SELECT|TEXTAREA|SUMMARY|IFRAME)$/
 const LONG_WAY_PRESSES = 25
 
 function isOurs(el) {
   return Boolean(el?.dataset?.accessgenPanel || el?.closest?.('[data-accessgen]'))
-}
-
-function looksInteractive(el) {
-  for (let node = el, i = 0; node && node.nodeType === 1 && i < 4; node = node.parentElement, i++) {
-    if (NATIVE_FOCUSABLE.test(node.tagName) || node.tabIndex >= 0) return null // reachable by keyboard
-    const role = node.getAttribute('role')
-    if (node.hasAttribute('onclick') || role === 'button' || role === 'link' || role === 'tab' ||
-        getComputedStyle(node).cursor === 'pointer') {
-      return node
-    }
-  }
-  return null
 }
 
 function isVisiblyPlaced(el) {
@@ -71,6 +59,15 @@ export class KeyboardOnly extends BaseProfile {
     // user meets, and it is noticed below.
     this.injectStyle(`* { cursor: none !important; }`, 'accessgen-keyboard-only-css')
 
+    // Look at the whole page once it has settled, and again a little later
+    // for content that arrives after load. Each finding is reported once.
+    this.scanTimers = [
+      setTimeout(() => scanForKeyboard('keyboard-only'), 1200),
+      setTimeout(() => scanForKeyboard('keyboard-only'), 6000)
+    ]
+    watchDeadKeys('keyboard-only', (...args) => this.addListener(...args))
+    this.trap = new TrapWatch('keyboard-only')
+
     this.addListener(window, 'keydown', (e) => {
       if (isOurs(e.target)) return
       if (e.key === 'Tab') {
@@ -104,6 +101,9 @@ export class KeyboardOnly extends BaseProfile {
       }
       this.visualiser.setCurrentIndex(index)
       this.checkFocusRing(el)
+      this.trap.push(el)
+      // After the browser has scrolled it into view.
+      requestAnimationFrame(() => checkCovered(el, 'keyboard-only'))
 
       send('focus-change', {
         tabIndex: index + 1,
@@ -121,7 +121,7 @@ export class KeyboardOnly extends BaseProfile {
   // The tester reached for the mouse on something that only a mouse can use.
   noticeMouseOnly(target) {
     if (!target || isOurs(target)) return
-    const el = looksInteractive(target)
+    const el = mouseOnlyTarget(target)
     if (!el) return
     reportFriction({
       kind: 'keyboard-mouse-only',
@@ -158,22 +158,54 @@ export class KeyboardOnly extends BaseProfile {
     }
   }
 
+  // Whether focus shows on screen is decided by comparing the element's
+  // look while focused with its look once focus has left it. Any change
+  // (an outline, a shadow, a colour, an underline, sliding into view, as a
+  // skip link does) counts. Only "nothing changed at all" is reported.
   checkFocusRing(el) {
     if (isOurs(el)) return
     const cs = getComputedStyle(el)
     const outline = cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0
     const shadow = cs.boxShadow && cs.boxShadow !== 'none'
     if (outline || shadow) return
-    reportFriction({
-      kind: 'keyboard-no-focus-ring',
-      profileId: 'keyboard-only',
-      target: el,
-      headline: `Tab moved to ${describeElement(el)}, and the page draws no outline around it`,
-      detail: 'Without a visible focus ring, a keyboard user has to guess where they are on the page.'
-    })
+    const focused = this.lookOf(el)
+    const onLeave = () => {
+      el.removeEventListener('focusout', onLeave, true)
+      requestAnimationFrame(() => {
+        if (!el.isConnected || document.activeElement === el) return
+        const after = this.lookOf(el)
+        if (Object.keys(focused).some((k) => focused[k] !== after[k])) return
+        reportFriction({
+          kind: 'keyboard-no-focus-ring',
+          profileId: 'keyboard-only',
+          target: el,
+          headline: `Tab moved to ${describeElement(el)}, and nothing on screen showed it`,
+          detail: 'No outline, no colour change, nothing: a keyboard user has to guess where they are on the page.'
+        })
+      })
+    }
+    el.addEventListener('focusout', onLeave, true)
+  }
+
+  lookOf(el) {
+    const cs = getComputedStyle(el)
+    const r = el.getBoundingClientRect()
+    return {
+      outline: `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor}`,
+      shadow: cs.boxShadow,
+      bg: cs.backgroundColor,
+      color: cs.color,
+      border: `${cs.borderTopColor} ${cs.borderBottomColor} ${cs.borderTopWidth} ${cs.borderBottomWidth}`,
+      deco: cs.textDecorationLine,
+      transform: cs.transform,
+      opacity: cs.opacity,
+      // Position on the page, so scrolling does not count as a change.
+      place: `${Math.round(r.left + window.scrollX)},${Math.round(r.top + window.scrollY)},${Math.round(r.width)}`
+    }
   }
 
   destroy() {
+    for (const t of this.scanTimers || []) clearTimeout(t)
     this.visualiser?.unmount()
     super.destroy()
   }

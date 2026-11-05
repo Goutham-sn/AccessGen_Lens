@@ -9,6 +9,9 @@
 // and uploads the moment with a picture; the controller shows it on the panel.
 
 const PER_KIND_LIMIT = 12       // per page load, so one broken pattern cannot flood the report
+// Kinds that repeat for every element of one broken pattern (a site that
+// removes every focus outline): a few examples say it, more is noise.
+const KIND_LIMITS = { 'keyboard-no-focus-ring': 3, 'keyboard-focus-hidden': 3, 'keyboard-focus-covered': 3, 'sr-unnamed-focus': 4, 'tremor-missed': 6, 'tremor-wrong-target': 6 }
 const SAME_TARGET_COOLDOWN_MS = 20000
 
 function getState() {
@@ -51,7 +54,7 @@ function targetKey(el) {
 export function reportFriction({ kind, profileId, headline, detail = null, target = null }) {
   const state = getState()
   const count = state.perKind.get(kind) || 0
-  if (count >= PER_KIND_LIMIT) return false
+  if (count >= (KIND_LIMITS[kind] ?? PER_KIND_LIMIT)) return false
   const key = `${kind}|${targetKey(target)}`
   const now = Date.now()
   if (target && now - (state.lastByKey.get(key) || 0) < SAME_TARGET_COOLDOWN_MS) return false

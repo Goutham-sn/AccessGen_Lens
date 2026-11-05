@@ -284,7 +284,10 @@ async function finishRecording(sessionId, wasRecording) {
       ? { ok: true }
       : { ok: false, reason: reply.error || `Upload failed (status ${reply.status ?? 'unknown'})` }
   } else {
-    result = { ok: false, reason: 'Recording was never started' }
+    // No tab recording: the captured frames are the video (built by the
+    // backend), so there is nothing to report as failed.
+    await closeOffscreenDocument()
+    return { ok: true, framesOnly: true }
   }
   await closeOffscreenDocument()
 

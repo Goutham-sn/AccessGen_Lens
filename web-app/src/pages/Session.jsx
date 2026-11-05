@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PageWrapper } from '../components/layout/PageWrapper.jsx'
 import { LiveView } from '../components/session/LiveView.jsx'
-import { CognitiveMeter } from '../components/session/CognitiveMeter.jsx'
 import { ScreenReaderLog } from '../components/session/ScreenReaderLog.jsx'
 import { EmpathyButton } from '../components/session/EmpathyButton.jsx'
 import { SessionControls } from '../components/session/SessionControls.jsx'
 import { useSession } from '../hooks/useSession.js'
 import { getExtensionStatus, stopSimulation } from '../services/extension-bridge.js'
 import { api } from '../services/api.js'
+import { isAutoMoment, momentTitle } from '../utils/moments.js'
 
 export default function Session() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const session = useSession()
+  const session = useSession(id)
   const [stopping, setStopping] = useState(false)
   const [remote, setRemote] = useState(null)
 
@@ -80,15 +80,14 @@ export default function Session() {
             stopping={stopping}
             recordingState={session.recordingState}
             recordingError={session.recordingError}
-            recordingStartedAt={session.recordingStartedAt}
             recordShortcut={session.recordShortcut}
+            startedAt={session.startedAt || (current?.start_time ? new Date(current.start_time).getTime() : null)}
           />
           <LiveView session={current} focusPath={session.focusPath} />
           {srActive && <ScreenReaderLog announcements={session.announcements} />}
         </div>
 
         <div className="space-y-4">
-          <CognitiveMeter score={session.cognitiveLoad} />
           <EmpathyButton
             sessionId={id}
             startedAt={session.startedAt}
@@ -100,11 +99,20 @@ export default function Session() {
             </h2>
             <div aria-live="polite">
               {session.liveMoments.length === 0 ? (
-                <p className="text-sm text-ink-500">None yet. When something feels wrong, press "I Felt This".</p>
+                <p className="text-sm text-ink-500">
+                  None yet. When something feels wrong, press "I felt this" on the page. Struggles the simulation
+                  notices on its own appear here too.
+                </p>
               ) : (
-                <ul className="space-y-1.5 text-sm text-ink-700">
+                <ul className="space-y-2 text-sm text-ink-700">
                   {session.liveMoments.map((m, i) => (
-                    <li key={m.id || i}>◉ {m.label}</li>
+                    <li key={m.id || i} className="flex gap-2">
+                      <span aria-hidden="true" className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${isAutoMoment(m) ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                      <span>
+                        {momentTitle(m)}
+                        {isAutoMoment(m) && <span className="sr-only"> (noticed by the simulation)</span>}
+                      </span>
+                    </li>
                   ))}
                 </ul>
               )}

@@ -5,9 +5,12 @@ import { listenFromExtension } from '../services/extension-bridge.js'
 
 // Live-session hook: subscribes to realtime updates from both the backend
 // socket and the extension bridge, feeding the session store.
-export function useSession() {
+// routeSessionId: the session the Live page is showing. Used to join its
+// room even when the store has no current session (after a reload), which
+// used to leave the live moments list empty.
+export function useSession(routeSessionId) {
   const store = useSessionStore()
-  const sessionId = store.currentSession?.id
+  const sessionId = routeSessionId || store.currentSession?.id
 
   useSocket(sessionId, {
     'cognitive-load': (p) => store.setCognitiveLoad(p.score),
@@ -24,7 +27,6 @@ export function useSession() {
       if (msg.event === 'cognitive-load') store.setCognitiveLoad(msg.score)
       if (msg.event === 'sr-announcement') store.addAnnouncement(msg)
       if (msg.event === 'focus-change') store.addFocusChange(msg)
-      if (msg.event === 'empathy-moment') store.addLiveMoment(msg)
 
       // Real recording state from the extension.
       const liveId = useSessionStore.getState().currentSession?.id

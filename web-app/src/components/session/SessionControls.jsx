@@ -8,67 +8,62 @@ function formatElapsed(ms) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-// Shows the real recording state reported by the extension. The elapsed
-// time only runs while the tab video is actually being recorded.
+// The screen is recorded from the first second (the extension captures the
+// tab's real pixels), so there is no "not recording yet" state any more.
+// A smoother tab video can still be switched on from the extension; its
+// state is shown as a detail.
 export function SessionControls({
   isRecording, onStop, stopping,
-  recordingState, recordingError, recordingStartedAt, recordShortcut
+  recordingState, recordingError, recordShortcut, startedAt
 }) {
   const [now, setNow] = useState(Date.now())
-  const live = recordingState === 'recording'
+  const smooth = recordingState === 'recording'
 
   useEffect(() => {
-    if (!live) return
-    setNow(Date.now())
+    if (stopping) return
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
-  }, [live])
+  }, [stopping])
 
-  let status
+  let detail = null
   if (stopping) {
-    status = recordingState === 'uploaded'
-      ? <span className="text-sm font-medium text-green-800">Recording saved. Opening playback…</span>
-      : <span className="text-sm text-ink-700">Saving recording…</span>
-  } else if (live) {
-    status = (
-      <span className="flex items-center gap-2 text-sm font-medium text-red-700">
-        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-red-600 animate-pulse" />
-        Recording
-      </span>
-    )
+    detail = recordingState === 'uploaded' ? 'Recording saved. Opening playback…' : 'Saving the recording and building the video…'
+  } else if (smooth) {
+    detail = 'Smooth video is on.'
   } else if (recordingState === 'failed') {
-    status = (
-      <span className="text-sm text-red-800">
-        Recording failed: {recordingError}. Switch to the simulated tab and try the shortcut again.
-      </span>
-    )
+    detail = `Smooth video could not start (${recordingError}). The screen is still being recorded.`
   } else {
-    status = (
-      <span className="text-sm text-ink-700">
-        Not recording yet. Switch to the simulated tab and{' '}
+    detail = (
+      <>
+        Want a smoother video? On the simulated tab{' '}
         {recordShortcut
-          ? <>press <kbd className="rounded border border-gray-300 bg-gray-50 px-1 font-mono text-xs">{recordShortcut}</kbd>, or </>
+          ? <>press <kbd className="rounded border border-gray-300 bg-gray-50 px-1 font-mono text-xs">{recordShortcut}</kbd> or </>
           : null}
         click the AccessGen Lens icon and choose Start recording.
-        {!recordShortcut && ' No shortcut is set. Assign one at chrome://extensions/shortcuts.'}
-      </span>
+      </>
     )
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        {/* Only state changes are announced; the ticking timer stays outside
-            the live region so screen readers are not interrupted every second. */}
-        <div role="status" aria-live="polite">{status}</div>
-        {live && !stopping && (
-          <span className="text-sm tabular-nums text-ink-700" aria-label="Recording length">
-            {formatElapsed(now - (recordingStartedAt || now))}
-          </span>
-        )}
+    <div className="rounded-xl border border-gray-200 bg-white p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="min-w-0">
+        <div className="flex items-center gap-3">
+          {/* Only state changes are announced; the ticking timer stays outside
+              the live region so screen readers are not interrupted every second. */}
+          <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm font-medium text-red-700">
+            {!stopping && <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-red-600 animate-pulse" />}
+            {stopping ? 'Ending the session' : 'Recording the screen'}
+          </div>
+          {!stopping && startedAt && (
+            <span className="text-sm tabular-nums text-ink-700" aria-label="Session length">
+              {formatElapsed(now - startedAt)}
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-ink-600">{detail}</p>
       </div>
       <Button variant="danger" onClick={onStop} disabled={stopping || !isRecording}>
-        {stopping ? 'Stopping…' : 'Stop session'}
+        {stopping ? 'Stopping…' : 'End session and see the report'}
       </Button>
     </div>
   )

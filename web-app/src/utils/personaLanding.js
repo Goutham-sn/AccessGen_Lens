@@ -7,6 +7,8 @@
 //           only an Explore card, or their Watch card cannot be chosen now (an
 //           Explore card is preferred, since it is not affected by that).
 export function landingFor(personaName, cards, canWatch) {
+  // Cards without a built-in persona (personaName unset) never match "no name".
+  if (!personaName) return null
   const mine = cards.filter((c) => c.personaName === personaName)
   const watch = mine.find((c) => c.mode === 'automated')
   const explore = mine.find((c) => c.mode === 'extension')

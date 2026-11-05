@@ -65,6 +65,9 @@ export default function Start() {
   // A built-in person picked on the Personas page (read once, then cleared).
   const landingName = useRef(location.state?.personaName ?? null)
   const [landed, setLanded] = useState(null) // { cardId, action } once applied, for moving focus
+  // Which of the two ways to experience a page is shown: 'automated' (we
+  // walk the page as the person) or 'extension' (you drive it yourself).
+  const [mode, setMode] = useState(() => (location.hash === '#manual' ? 'extension' : 'automated'))
 
   useEffect(() => {
     try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ url, chosen, open, task })) } catch { /* storage unavailable */ }
@@ -167,6 +170,8 @@ export default function Start() {
     }
     if (action === 'choose') setChosen((c) => (c.includes(found.cardId) ? c : [...c, found.cardId]))
     else setOpen((o) => (o.includes(found.cardId) ? o : [...o, found.cardId]))
+    const landedCard = getCard(found.cardId)
+    if (landedCard?.mode === 'automated' || landedCard?.mode === 'extension') setMode(landedCard.mode)
     setLanded({ cardId: found.cardId, action })
   }, [caps, dbPersonas]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -252,7 +257,9 @@ export default function Start() {
             className="mt-1 w-full max-w-xl rounded-lg border border-gray-400 px-3 py-2 text-sm"
           />
           <p id="start-url-hint" className="mt-1 text-sm text-ink-600">
-            {task.on
+            {mode === 'extension'
+              ? 'Any page you can open in Chrome, including ones behind your own sign-in. You do the clicking and typing.'
+              : task.on
               ? 'Public pages only. We press Tab, and Enter on a link to a page on the same site or on a button that does not send a form. We never sign in, type or send a form.'
               : 'Public pages only. We never sign in, click, type or submit anything.'}
           </p>
@@ -276,11 +283,49 @@ export default function Start() {
           </div>
         </div>
 
-        <p role="status" className="text-sm text-ink-900">{summary}</p>
+        <fieldset>
+          <legend className="text-sm font-medium text-ink-900">How do you want to experience it?</legend>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                value: 'automated',
+                title: 'Automated: watch it happen',
+                text: 'We open the page in our own browser as the people you choose, move through it the way they would, record it, and report what stopped them. No extension needed.'
+              },
+              {
+                value: 'extension',
+                title: 'Manual: explore it yourself',
+                text: 'The page opens in your browser with the conditions switched on. You try to use it, feel where it fights you, and get a recording and a report.'
+              }
+            ].map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex cursor-pointer gap-3 rounded-xl border-2 p-4 transition-colors ${
+                  mode === opt.value ? 'border-brand-600 bg-brand-50' : 'border-gray-200 bg-white hover:border-brand-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="start-mode"
+                  value={opt.value}
+                  checked={mode === opt.value}
+                  onChange={() => setMode(opt.value)}
+                  className="mt-1 h-5 w-5 shrink-0"
+                />
+                <span>
+                  <span className="block font-semibold text-ink-900">{opt.title}</span>
+                  <span className="mt-1 block text-sm text-ink-700">{opt.text}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {mode === 'automated' && <p role="status" className="text-sm text-ink-900">{summary}</p>}
 
         <div id="choices" className="space-y-10">
           {/* Automated */}
-          <section id="section-automated" aria-labelledby="section-automated-heading">
+          <section id="section-automated" aria-labelledby="section-automated-heading" hidden={mode !== 'automated'}>
             <h2 id="section-automated-heading" className="text-xl font-semibold text-ink-900">
               {CARD_SECTIONS[0].title}
             </h2>
@@ -302,7 +347,7 @@ export default function Start() {
               </label>
               <p id="task-on-hint" className="text-sm text-ink-700">
                 Instead of going through every stop, each person looks for the things you list, in order. This does not
-                apply to "Explore it myself".
+                apply to "Manual: explore it yourself".
               </p>
               {taskNotice && <p role="status" className="mt-2 text-sm font-medium text-ink-900">{taskNotice}</p>}
               {task.on && <TaskForm value={task} onChange={(next) => setTask((t) => ({ ...t, ...next }))} limits={caps?.task?.limits} error={taskError} />}
@@ -361,12 +406,14 @@ export default function Start() {
           </section>
 
           {/* Extension */}
-          <section id="section-extension" aria-labelledby="section-extension-heading">
+          <section id="section-extension" aria-labelledby="section-extension-heading" hidden={mode !== 'extension'}>
             <h2 id="section-extension-heading" className="text-xl font-semibold text-ink-900">
               {CARD_SECTIONS[1].title}
             </h2>
             <p className="mt-1 text-sm text-ink-700">
-              You move through the page yourself with the Chrome extension, and we record it.
+              You move through the page yourself with the Chrome extension. The screen is recorded from the first
+              second, and the simulation notes on its own where the page pushes back. Press "I felt this" on the page
+              whenever it does.
             </p>
             {installed === false && (
               <p id="extension-missing" className="mt-2 text-sm font-medium text-ink-900">
@@ -402,15 +449,15 @@ export default function Start() {
               })}
             </div>
             <p className="mt-4 text-sm">
-              <Link to="/configure" className="text-brand-700 underline">Or choose conditions yourself</Link>
+              <Link to="/configure" className="text-brand-700 underline">Or choose and combine conditions yourself</Link>
             </p>
           </section>
 
           {/* Later */}
-          <section id="section-later" aria-labelledby="section-later-heading">
-            <h2 id="section-later-heading" className="text-xl font-semibold text-ink-900">
-              {CARD_SECTIONS[2].title}
-            </h2>
+          <details id="section-later" className="group rounded-xl border border-dashed border-gray-300 bg-white/60 p-4">
+            <summary className="cursor-pointer text-base font-semibold text-ink-900">
+              {CARD_SECTIONS[2].title} ({bySection.later.length})
+            </summary>
             <p className="mt-1 text-sm text-ink-700">
               Experiences we cannot simulate yet. They are here so you can keep them in mind.
             </p>
@@ -426,7 +473,7 @@ export default function Start() {
                 />
               ))}
             </div>
-          </section>
+          </details>
         </div>
       </div>
     </PageWrapper>

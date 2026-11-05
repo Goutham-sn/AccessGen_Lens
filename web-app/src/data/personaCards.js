@@ -261,15 +261,35 @@ export const PERSONA_CARDS = [
   },
   {
     id: 'sofia-switch-access',
-    mode: 'later',
+    mode: 'extension',
     kind: 'person',
     draft: true,
     name: 'Sofia',
     age: 27,
     place: 'Lisbon, Portugal',
+    avatarColor: '#E8C9B7',
     experience: 'switch access',
-    story: 'Translator with cerebral palsy. Sofia uses two switches mounted by {their} head.',
-    howTheyUseTheWeb: 'One switch moves a highlight through items one by one and the other selects. Unlike a keyboard user, Sofia cannot jump ahead, so every extra stop costs {them} time, and anything that times out or moves on its own can undo {their} progress.'
+    story: 'Translator with cerebral palsy. Sofia uses a switch mounted by {their} head.',
+    howTheyUseTheWeb: 'A highlight moves through the page one item at a time, and Sofia presses the switch when it reaches the thing {they} can use next. Unlike a keyboard user, Sofia cannot jump ahead, so every extra stop costs {them} time, and anything that times out or moves on its own can undo {their} progress.',
+    whatYouWillSee: [
+      'A highlight stepping through every link and button, one at a time',
+      'Space as your only switch: the mouse and every other key are gone',
+      'How long it takes to reach one thing, and the waits the simulation notices'
+    ],
+    looksAt: [
+      { text: 'How long it takes to reach what you came for, one stop at a time' },
+      { text: 'Anything that moves on, times out or changes while you wait' }
+    ],
+    notSimulated: [
+      { text: 'A second switch, or the scanning settings a real switch user would tune for {them}self.' }
+    ],
+    estimatedSeconds: 180,
+    profiles: [{ id: 'switch-access', severity: 2 }],
+    guidelines: [
+      { name: 'Keyboard', number: '2.1.1', level: 'A' },
+      { name: 'Timing Adjustable', number: '2.2.1', level: 'A' },
+      { name: 'Bypass Blocks', number: '2.4.1', level: 'A' }
+    ]
   },
   {
     id: 'margaret-cataracts',
@@ -371,8 +391,8 @@ function lowVisionCard({ id, personaName, avatarColor, age, place, severity, sto
 }
 
 export const CARD_SECTIONS = [
-  { mode: 'automated', id: 'section-automated', title: 'Automated Simulation (Watch it happen)' },
-  { mode: 'extension', id: 'section-extension', title: 'Extension Based (Explore it myself)' },
+  { mode: 'automated', id: 'section-automated', title: 'Choose who to watch' },
+  { mode: 'extension', id: 'section-extension', title: 'Choose whose experience to step into' },
   { mode: 'later', id: 'section-later', title: 'Others and coming soon' }
 ]
 

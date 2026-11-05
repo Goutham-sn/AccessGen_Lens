@@ -1,5 +1,4 @@
 import { BaseProfile } from '../BaseProfile.js'
-import { FocusOrderVisualiser } from '../../overlay/FocusVisualiser.js'
 import { send } from '../../content-scripts/communicator.js'
 import { reportFriction, describeElement } from '../../content-scripts/friction.js'
 import { watchDeadKeys, checkCovered, mouseOnlyTarget, TrapWatch } from './keyboardScan.js'
@@ -33,8 +32,6 @@ export class KeyboardOnly extends BaseProfile {
     this.tabOrder = []
     this.tabPresses = 0
     this.pressesSinceActivation = 0
-    this.visualiser = new FocusOrderVisualiser()
-    this.visualiser.mount()
 
     // Block every mouse, wheel and touch interaction. Keep:
     //  - the AccessGen panel (a click inside its shadow root is retargeted to
@@ -95,9 +92,7 @@ export class KeyboardOnly extends BaseProfile {
       if (index === -1) {
         this.tabOrder.push(el)
         index = this.tabOrder.length - 1
-        this.visualiser.addElement(el, index)
       }
-      this.visualiser.setCurrentIndex(index)
       this.checkFocusRing(el)
       this.trap.push(el)
       // After the browser has scrolled it into view.
@@ -204,7 +199,6 @@ export class KeyboardOnly extends BaseProfile {
 
   destroy() {
     for (const t of this.scanTimers || []) clearTimeout(t)
-    this.visualiser?.unmount()
     super.destroy()
   }
 }

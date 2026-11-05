@@ -34,7 +34,13 @@ async function runAxeInPage(options) {
   }
   const pick = (list) => list.map((r) => ({
     id: r.id, impact: r.impact, help: r.help, description: r.description, helpUrl: r.helpUrl, tags: r.tags,
-    nodes: r.nodes.map((n) => ({ target: n.target, html: n.html, failureSummary: n.failureSummary, rect: rectOf(Array.isArray(n.target) ? String(n.target[0]) : String(n.target)) }))
+    nodes: r.nodes.map((n) => ({
+      target: n.target, html: n.html, failureSummary: n.failureSummary,
+      rect: rectOf(Array.isArray(n.target) ? String(n.target[0]) : String(n.target)),
+      // What axe measured (colours and contrast, a target's size).
+      any: (n.any || []).filter((c) => c.data).map((c) => ({ id: c.id, data: c.data })),
+      none: (n.none || []).filter((c) => c.data).map((c) => ({ id: c.id, data: c.data }))
+    }))
   }))
   return { violations: pick(result.violations), incomplete: pick(result.incomplete) }
 }

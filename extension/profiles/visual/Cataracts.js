@@ -1,13 +1,17 @@
 import { BaseProfile } from '../BaseProfile.js'
 import { setPageFilter, clearPageFilter } from '../pageFilter.js'
+import { startContrastLoss } from './contrastLoss.js'
 
 // A clouded lens: everything hazy and low in contrast, colours yellowed,
 // and a milky glare over the screen that washes out pale text.
+// A clouded lens scatters light (haze and glare), yellows colours and
+// lowers contrast sensitivity a lot; acuity drops less than people think.
 const FILTERS = {
-  1: 'blur(1px) contrast(0.82) brightness(1.04) sepia(0.25)',
-  2: 'blur(2px) contrast(0.68) brightness(1.08) sepia(0.4)',
-  3: 'blur(3.5px) contrast(0.52) brightness(1.12) sepia(0.55)'
+  1: 'blur(0.6px) contrast(0.84) brightness(1.04) sepia(0.22)',
+  2: 'blur(1.1px) contrast(0.72) brightness(1.08) sepia(0.36)',
+  3: 'blur(1.8px) contrast(0.58) brightness(1.12) sepia(0.5)'
 }
+const CONTRAST = { 1: [4, 0.5], 2: [6, 0.72], 3: [8, 0.85] }
 const GLARE = { 1: 0.14, 2: 0.24, 3: 0.36 }
 
 export class Cataracts extends BaseProfile {
@@ -21,6 +25,9 @@ export class Cataracts extends BaseProfile {
 
   apply() {
     setPageFilter(this, FILTERS[this.severity])
+    this.stopContrast?.()
+    const [threshold, maxFade] = CONTRAST[this.severity] || CONTRAST[2]
+    this.stopContrast = startContrastLoss({ threshold, maxFade })
     const a = GLARE[this.severity]
     this.glare.style.cssText = `
       position: fixed; inset: 0; pointer-events: none; z-index: 2147483635;
@@ -35,6 +42,8 @@ export class Cataracts extends BaseProfile {
   }
 
   destroy() {
+    this.stopContrast?.()
+    this.stopContrast = null
     clearPageFilter(this)
     super.destroy()
   }

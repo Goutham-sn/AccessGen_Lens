@@ -269,6 +269,8 @@ export function installOverlay() {
       if (pausedFilter !== null) return
       pausedFilter = document.documentElement.style.filter
       document.documentElement.style.filter = ''
+      // Colours faded by a condition (low vision's contrast loss) too.
+      document.documentElement.classList.add('accessgen-paused')
       // Conditions drawn on a canvas (tunnel vision) pause the same way.
       pausedCanvases = Array.from(document.querySelectorAll('canvas[data-accessgen="true"]')).map((c) => [c, c.style.display])
       for (const [c] of pausedCanvases) c.style.display = 'none'
@@ -277,6 +279,7 @@ export function installOverlay() {
       if (pausedFilter === null) return
       document.documentElement.style.filter = pausedFilter
       pausedFilter = null
+      document.documentElement.classList.remove('accessgen-paused')
       for (const [c, display] of pausedCanvases) c.style.display = display
       pausedCanvases = []
     }

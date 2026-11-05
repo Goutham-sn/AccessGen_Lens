@@ -70,7 +70,8 @@ export function reportFriction({ kind, profileId, headline, detail = null, targe
     }
   }
   window.dispatchEvent(new CustomEvent('accessgen-friction', {
-    detail: { kind, profileId, headline, detail, rect, evidence, url: location.href }
+    // targetEl: kept in this page only (never uploaded), for "Show me where".
+    detail: { kind, profileId, headline, detail, rect, evidence, url: location.href, targetEl: target }
   }))
   return true
 }

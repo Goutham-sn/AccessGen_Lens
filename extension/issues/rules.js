@@ -169,13 +169,47 @@ export const AXE_OPTIONS = {
   }
 }
 
+// What axe measured on a node, when it measured something people can see:
+// the colours and contrast of text (color-contrast), or a target's size.
+export function measuredOf(node) {
+  const checks = [...(node.any || []), ...(node.all || []), ...(node.none || [])]
+  for (const c of checks) {
+    const d = c?.data
+    if (d && d.contrastRatio !== undefined) {
+      return {
+        kind: 'contrast',
+        fg: d.fgColor || null,
+        bg: d.bgColor || null,
+        ratio: Number(d.contrastRatio) || null,
+        needs: Number(String(d.expectedContrastRatio || '').replace(/:1$/, '')) || null,
+        fontSize: d.fontSize || null,
+        fontWeight: d.fontWeight || null
+      }
+    }
+    if (d && d.width !== undefined && d.height !== undefined && /target/.test(c.id || '')) {
+      return { kind: 'size', width: Math.round(d.width), height: Math.round(d.height), needs: d.minSize || 24 }
+    }
+  }
+  return node.measured || null
+}
+
+// The page's own markup, without anything the simulation added to it
+// (the fading of low vision marks elements with data-ag-* and --ag-*).
+export function cleanHtml(html) {
+  return String(html || '')
+    .replace(/\s+data-ag-[\w-]+(="[^"]*")?/g, '')
+    .replace(/--ag-[\w-]+:\s*[^;"]*;?\s*/g, '')
+    .replace(/\s+style="\s*"/g, '')
+}
+
 // One axe result node, kept small: where it is and what it is.
 export function nodeSummary(node, rectOf) {
   const target = Array.isArray(node.target) ? node.target.flat().join(' ') : String(node.target || '')
   return {
     selector: target.slice(0, 300),
-    html: String(node.html || '').slice(0, 300),
+    html: cleanHtml(node.html).slice(0, 300),
     summary: String(node.failureSummary || '').replace(/\s+/g, ' ').trim().slice(0, 400),
-    rect: rectOf ? rectOf(target) : null
+    rect: rectOf ? rectOf(target) : null,
+    measured: measuredOf(node)
   }
 }

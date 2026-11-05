@@ -44,15 +44,15 @@ export function showIntro({ persona, profiles, hints, mission, baseline, autoMs 
     const names = (profiles || []).map((p) => p.name || p.id)
     const who = baseline
       ? 'Yourself'
-      : persona?.name ? `${persona.name}${persona.age ? `, ${persona.age}` : ''}` : 'Someone else'
+      : persona?.name ? `${persona.name}${persona.age ? `, ${persona.age}` : ''}` : names.join(' and ') || 'Someone else'
     const line = baseline
       ? 'No simulation. The page exactly as you normally see it.'
-      : persona?.line || names.join(' · ')
+      : persona?.name ? (persona?.line || names.join(' · ')) : 'Use the page the way you normally would.'
 
     root.innerHTML = `<style>${CSS}</style>
       <div class="wrap" role="dialog" aria-modal="true" aria-labelledby="ag-intro-title">
         <div class="card">
-          <div class="eyebrow">${baseline ? 'First, as yourself' : 'You are now'}</div>
+          <div class="eyebrow">${baseline ? 'First, as yourself' : persona?.name ? 'You are now' : 'You are now living with'}</div>
           <h1 id="ag-intro-title"></h1>
           <p class="line"></p>
           <p class="story"></p>

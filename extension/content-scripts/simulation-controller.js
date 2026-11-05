@@ -6,6 +6,7 @@
 import { setSession, send } from './communicator.js'
 import { mountControlPanel, KEYBOARD_HINTS } from '../overlay/ControlPanel.js'
 import { showIntro } from '../overlay/Intro.js'
+import { showWhere } from '../overlay/ShowWhere.js'
 import { startAuditor } from './auditor.js'
 import { scanForKeyboard } from '../profiles/motor/keyboardScan.js'
 
@@ -108,7 +109,7 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
 
   // Struggles the profiles notice on their own (see friction.js): shown on
   // the panel and logged as automatic moments by the recorder.
-  const onFriction = (e) => panel?.noteFriction(e.detail.headline)
+  const onFriction = (e) => panel?.noteFriction(e.detail.headline, e.detail)
   window.addEventListener('accessgen-friction', onFriction)
 
   let stopAuditor = null
@@ -136,6 +137,8 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
         detail: { label: e.detail.label, note: e.detail.note || null, activeProfiles: profileConfig }
       }))
     })
+
+    panel.addEventListener('show-where', (e) => showWhere(e.detail))
 
     panel.addEventListener('mission-outcome', (e) => {
       chrome.runtime.sendMessage({ type: 'ACCESSGEN_MISSION_OUTCOME', payload: { outcome: e.detail.outcome } }).catch(() => {

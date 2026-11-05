@@ -13,6 +13,8 @@ export const KEYBOARD_HINTS = {
   adhd: 'Your attention drifts. Try to finish one task anyway.',
   deaf: 'All sound is gone. Notice what you miss.',
   cataracts: 'Everything is hazy and washed out. Look for pale text you can no longer read.',
+  'low-vision': 'Faint text, pale borders and small print fade away. Strong, large text stays readable.',
+  achromatopsia: 'No colour at all, and bright pages glare. Notice what was only marked by colour.',
   protanopia: 'Reds look dark and dull. Notice what was only marked in red.',
   tritanopia: 'Blues and yellows are hard to tell apart.',
   deuteranopia: 'Reds and greens look alike. Notice what was only marked by colour.'
@@ -62,6 +64,7 @@ export class ControlPanel extends EventTarget {
             <span class="friction-count">0</span>
             <span class="friction-text">struggles noticed automatically</span>
             <div class="friction-last"></div>
+            <button type="button" class="where-btn">Show me where</button>
           </div>
           <button class="empathy-btn" type="button" aria-expanded="false">I felt this</button>
           <div class="empathy-menu" role="group" aria-label="What happened?"></div>
@@ -97,6 +100,10 @@ export class ControlPanel extends EventTarget {
     this.shadow.querySelector('.stop-btn').addEventListener('click', () => {
       this.setStopping(true)
       this.dispatchEvent(new CustomEvent('stop-simulation'))
+    })
+
+    this.shadow.querySelector('.where-btn').addEventListener('click', () => {
+      if (this.lastFriction) this.dispatchEvent(new CustomEvent('show-where', { detail: this.lastFriction }))
     })
 
     this.frictionCount = 0
@@ -180,7 +187,9 @@ export class ControlPanel extends EventTarget {
 
   // An automatically noticed struggle (tremor misclick, unlabelled control,
   // lost focus...). Shown so the tester connects the feeling to the cause.
-  noteFriction(text) {
+  noteFriction(text, friction = null) {
+    this.lastFriction = friction
+    this.shadow.querySelector('.where-btn').hidden = !friction
     this.frictionCount += 1
     const box = this.shadow.querySelector('.friction')
     box.hidden = false

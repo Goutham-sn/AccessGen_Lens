@@ -59,11 +59,24 @@
   // hidden while it is taken. Counted, so two pictures in quick succession
   // never show it again while the second is still waiting for its turn.
   let hiding = 0
-  async function captureScreenshot() {
+  // One picture serves every moment reported within a second of it: the
+  // page audit reports many at once, and each picture briefly lifts the
+  // panel (and a blind user's dark screen) off the page.
+  let lastShot = null
+  function captureScreenshot() {
+    if (lastShot && Date.now() - lastShot.at < 1200) return lastShot.promise
+    const promise = takeScreenshot()
+    lastShot = { at: Date.now(), promise }
+    return promise
+  }
+  async function takeScreenshot() {
     const panel = document.getElementById('accessgen-control-panel')
+    // A blind user's dark screen hides the page; the team needs to see it.
+    const veils = Array.from(document.querySelectorAll('[data-accessgen-hide-on-capture]'))
     hiding += 1
     try {
       panel?.style.setProperty('visibility', 'hidden', 'important')
+      veils.forEach((v) => v.style.setProperty('visibility', 'hidden', 'important'))
       await nextFrame()
       const reply = await chrome.runtime.sendMessage({ type: 'ACCESSGEN_SCREENSHOT' })
       return reply?.ok ? reply.dataUrl : null
@@ -71,7 +84,10 @@
       return null
     } finally {
       hiding -= 1
-      if (hiding === 0) panel?.style.setProperty('visibility', 'visible', 'important')
+      if (hiding === 0) {
+        panel?.style.setProperty('visibility', 'visible', 'important')
+        veils.forEach((v) => v.style.removeProperty('visibility'))
+      }
     }
   }
 

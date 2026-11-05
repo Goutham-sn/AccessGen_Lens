@@ -13,10 +13,10 @@ const DEUTERANOPIA = '0.367 0.861 -0.228 0 0 0.280 0.673 0.047 0 0 -0.012 0.043 
 
 export const LENS_PEOPLE = [
   { id: 'you', name: 'You', line: 'As you see it', hint: 'Do it once as yourself first.' },
-  { id: 'ravi', name: 'Ravi', age: 65, line: "Parkinson's tremor", hint: 'Your hand shakes. The click lands where the shake puts it.', tremor: 11 },
-  { id: 'meera', name: 'Meera', age: 72, line: 'Macular degeneration', hint: 'The middle of your vision is gone. Look around the edges.', blotch: 80, filter: 'blur(1.2px) contrast(0.85)' },
+  { id: 'ravi', name: 'Ravi', age: 65, line: "Parkinson's tremor", hint: 'Your hand shakes, most when you hold it still over a button. The click lands where the shake puts it.', tremor: 9 },
+  { id: 'meera', name: 'Meera', age: 72, line: 'Macular degeneration', hint: 'Where you look, everything smudges into grey. Look slightly to one side.', blotch: 70, filter: 'blur(0.8px) contrast(0.9)' },
   { id: 'david', name: 'David', age: 38, line: 'Red-green colour blindness', hint: 'Red and green look the same to you.', filter: 'url(#lens-deut)' },
-  { id: 'thomas', name: 'Thomas', age: 51, line: 'Tunnel vision after a stroke', hint: 'You only see a small circle around the pointer.', tunnel: 95 },
+  { id: 'thomas', name: 'Thomas', age: 51, line: 'Tunnel vision after a stroke', hint: 'Only the area around the pointer is clear. Everything further out fades.', tunnel: 110 },
   { id: 'ananya', name: 'Ananya', age: 19, line: 'Dyslexia and ADHD', hint: 'Letters shift while you read, and things keep pulling at you.', jumble: true, distract: true },
   { id: 'james', name: 'James', age: 32, line: 'Blind, uses a screen reader', hint: 'You cannot see the page. Move the pointer and listen to what it says.', filter: 'blur(9px)', sr: true }
 ]
@@ -43,6 +43,7 @@ export function LiveLens() {
   const frame = useRef(null)
   const overlay = useRef(null)
   const cursor = useRef(null)
+  const smudge = useRef(null)
   const pos = useRef({ x: 260, y: 160, sx: 260, sy: 160, inside: false })
   const redirecting = useRef(false)
   const [tick, setTick] = useState(0)
@@ -117,27 +118,65 @@ export function LiveLens() {
     return () => clearInterval(t)
   }, [person.distract])
 
-  // The shaking pointer, and the vision overlays, drawn every frame.
+  // The shaking pointer and the vision overlays, drawn every frame, with
+  // the same models as the extension: a ~5 Hz rest tremor along a slowly
+  // turning axis, worse when the hand is still; a periphery that blurs,
+  // greys and dims instead of going black; a grey smudge where you look.
   useEffect(() => {
     let raf
-    let t = 0
-    const loop = () => {
-      t += 1
+    let last = performance.now()
+    let phase = 0
+    let lastXY = { x: pos.current.x, y: pos.current.y }
+    let speed = 0
+    const wob = (t, k) => Math.sin(t * 1.7 + k) * 0.5 + Math.sin(t * 0.61 + k * 3) * 0.5
+    const loop = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000)
+      last = now
+      const t = now / 1000
       const p = pos.current
+      const moved = Math.hypot(p.x - lastXY.x, p.y - lastXY.y) / Math.max(dt, 0.001)
+      speed = speed * 0.85 + moved * 0.15
+      lastXY = { x: p.x, y: p.y }
       const amp = person.tremor || 0
-      p.sx = p.x + (Math.sin(t * 0.5) * amp + Math.sin(t * 0.83) * amp * 0.5)
-      p.sy = p.y + (Math.cos(t * 0.47) * amp + Math.cos(t * 0.91) * amp * 0.5)
+      const rest = 1 / (1 + speed / 250)
+      const strength = amp * (0.45 + 0.55 * rest) * (0.75 + 0.25 * wob(t * 0.7, 1))
+      phase += 2 * Math.PI * (4.8 + 0.5 * wob(t * 0.3, 2)) * dt
+      const axis = Math.PI * 0.35 + wob(t * 0.12, 3) * 0.8
+      const along = Math.sin(phase) * strength
+      const across = Math.sin(phase * 0.5 + 1.3) * strength * 0.22
+      p.sx = p.x + Math.cos(axis) * along - Math.sin(axis) * across
+      p.sy = p.y + Math.sin(axis) * along + Math.cos(axis) * across
       if (cursor.current) {
         cursor.current.style.transform = `translate(${p.sx - 2}px, ${p.sy - 2}px)`
         cursor.current.style.opacity = amp && p.inside ? '1' : '0'
       }
-      if (overlay.current) {
+      if (smudge.current) {
+        const r = person.blotch || 0
+        smudge.current.style.display = r && p.inside ? 'block' : 'none'
+        smudge.current.style.width = `${r * 2.4}px`
+        smudge.current.style.height = `${r * 2}px`
+        smudge.current.style.transform = `translate(${p.x - r * 1.2}px, ${p.y - r}px)`
+      }
+      const o = overlay.current
+      if (o) {
+        const W = o.offsetWidth
+        const H = o.offsetHeight
         if (person.tunnel) {
-          overlay.current.style.background = `radial-gradient(circle at ${p.x}px ${p.y}px, transparent ${person.tunnel * 0.55}px, rgba(5,5,10,.82) ${person.tunnel}px, #05050a ${person.tunnel * 1.6}px)`
+          const r = person.tunnel
+          o.style.backdropFilter = 'blur(5px) grayscale(1)'
+          o.style.webkitBackdropFilter = o.style.backdropFilter
+          o.style.clipPath = `path(evenodd, "M0 0H${W}V${H}H0Z M${p.x - r * 0.9} ${p.y}a${r * 0.9} ${r * 0.8} 0 1 0 ${r * 1.8} 0a${r * 0.9} ${r * 0.8} 0 1 0 ${-r * 1.8} 0Z")`
+          o.style.background = `radial-gradient(ellipse ${r * 1.1}px ${r}px at ${p.x}px ${p.y}px, rgba(22,22,24,0) ${r * 0.8}px, rgba(22,22,24,.5) ${r * 1.6}px, rgba(22,22,24,.8) ${r * 2.8}px)`
         } else if (person.blotch) {
-          overlay.current.style.background = `radial-gradient(ellipse ${person.blotch * 1.25}px ${person.blotch}px at ${p.x}px ${p.y}px, rgba(20,14,14,.96) 0%, rgba(20,14,14,.85) 45%, rgba(20,14,14,0) 100%)`
-        } else {
-          overlay.current.style.background = 'none'
+          o.style.backdropFilter = 'none'
+          o.style.webkitBackdropFilter = 'none'
+          o.style.clipPath = 'none'
+          o.style.background = 'none'
+                } else {
+          o.style.backdropFilter = 'none'
+          o.style.webkitBackdropFilter = 'none'
+          o.style.clipPath = 'none'
+          o.style.background = 'none'
         }
       }
       raf = requestAnimationFrame(loop)
@@ -249,6 +288,19 @@ export function LiveLens() {
               </>
             )}
             <div ref={overlay} aria-hidden="true" className="pointer-events-none absolute inset-0" />
+            <div
+              ref={smudge}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-0 top-0"
+              style={{
+                display: 'none',
+                background: 'radial-gradient(closest-side, rgba(128,126,122,.55), rgba(128,126,122,.25) 70%, transparent)',
+                backdropFilter: 'blur(9px) contrast(0.45) saturate(0.3)',
+                WebkitBackdropFilter: 'blur(9px) contrast(0.45) saturate(0.3)',
+                maskImage: 'radial-gradient(closest-side, #000 55%, transparent 100%)',
+                WebkitMaskImage: 'radial-gradient(closest-side, #000 55%, transparent 100%)'
+              }}
+            />
             <div ref={cursor} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 opacity-0">
               <svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 1 L2 15 L6 11.5 L9 18 L11.5 17 L8.5 10.5 L14 10 Z" fill="black" stroke="white" strokeWidth="1.2" /></svg>
             </div>

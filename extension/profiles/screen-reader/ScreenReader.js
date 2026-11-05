@@ -29,8 +29,20 @@ const INPUT_TYPES = {
 // You are not looking at the screen. You are listening to it.
 export class ScreenReader extends BaseProfile {
   init() {
-    // Blur the page: the eyes are elsewhere.
-    setPageFilter(this, 'blur(10px)')
+    // What a screen reader user sees. Blind (severity 3, most screen reader
+    // users): nothing at all, only what is spoken. Severity 2 and 1: some
+    // sight left, a very blurred page.
+    if (this.severity >= 3) {
+      this.dark = document.createElement('div')
+      this.dark.setAttribute('aria-hidden', 'true')
+      this.dark.dataset.accessgen = 'true'
+      // Hidden for a moment's picture, so the team sees the page.
+      this.dark.dataset.accessgenHideOnCapture = 'true'
+      this.dark.style.cssText = 'position: fixed; inset: 0; background: #050505; pointer-events: none; z-index: 2147483640;'
+      this.addElement(this.dark)
+    } else {
+      setPageFilter(this, this.severity === 2 ? 'blur(9px) contrast(0.7)' : 'blur(4px) contrast(0.8)')
+    }
 
     this.mountBanner()
 
@@ -229,7 +241,7 @@ export class ScreenReader extends BaseProfile {
     try {
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 1.2
+      utterance.rate = 1.6 // experienced screen reader users listen fast
       utterance.pitch = 1.0
       window.speechSynthesis.speak(utterance)
     } catch {
@@ -262,7 +274,7 @@ export class ScreenReader extends BaseProfile {
         .tag { color: #8b949e; font-size: 12px; white-space: nowrap; }
         .text { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
       </style>
-      <div class="bar"><span class="tag">Screen reader says</span><span class="text"></span></div>`
+      <div class="bar"><span class="tag">Speech viewer</span><span class="text"></span></div>`
     this.bannerText = shadow.querySelector('.text')
     this.bannerText.textContent = 'Screen reader active. Press any key to turn on speech.'
     this.elements.push(this.banner)

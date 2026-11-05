@@ -29,6 +29,26 @@ function WatchButton({ moment, onWatch }) {
   )
 }
 
+// What axe measured, shown so anyone can see the problem: the element's
+// own colours side by side, and the ratio against what it needs.
+function Measured({ m }) {
+  if (!m) return null
+  if (m.kind === 'contrast' && m.fg && m.bg) {
+    return (
+      <span className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+        <span className="inline-flex h-7 items-center rounded-[3px] border border-rule px-2 font-semibold" style={{ color: m.fg, background: m.bg }}>Aa sample</span>
+        <span className="font-mono text-xs text-ink-700">
+          text {m.fg} on {m.bg} · <b className="text-ember-700">{m.ratio}:1</b>{m.needs ? `, needs ${m.needs}:1` : ''}{m.fontSize ? ` · ${m.fontSize}` : ''}
+        </span>
+      </span>
+    )
+  }
+  if (m.kind === 'size') {
+    return <span className="mt-1.5 block font-mono text-xs text-ink-700">{m.width} × {m.height} px, needs at least {m.needs} × {m.needs} px</span>
+  }
+  return null
+}
+
 function AuditIssue({ moment, n, onWatch }) {
   const a = auditOf(moment)
   const [open, setOpen] = useState(false)
@@ -68,6 +88,7 @@ function AuditIssue({ moment, n, onWatch }) {
                 <li key={i} className="p-3">
                   <p className="font-mono text-xs text-ink-500">{i + 1}. {node.selector}</p>
                   {node.html && <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-[3px] bg-paper px-2 py-1.5 font-mono text-xs text-ink-800">{node.html}</pre>}
+                  <Measured m={node.measured} />
                   {node.summary && <p className="mt-1.5 text-sm text-ink-700">{node.summary.replace(/^Fix (any|all) of the following:\s*/i, '')}</p>}
                 </li>
               ))}
@@ -76,7 +97,17 @@ function AuditIssue({ moment, n, onWatch }) {
           )}
         </div>
         {moment.screenshot_url && (
-          <PinnedShot src={moment.screenshot_url} rect={moment.rect} alt={`Where it is on the page: ${moment.label}`} className="self-start rounded-lg border border-rule" />
+          <div className="self-start">
+            <PinnedShot
+              src={moment.screenshot_url}
+              rects={nodes.map((nd, i) => (nd.rect?.vw ? { ...nd.rect, n: i + 1 } : null)).filter(Boolean)}
+              rect={moment.rect}
+              alt={`Where it is on the page: ${moment.label}`}
+              className="rounded-lg border border-rule"
+            />
+            {nodes.filter((nd) => nd.rect?.vw).length > 1 && <p className="mt-1 font-mono text-[11px] text-ink-500">Numbers match the list of elements.</p>}
+            {nodes[0]?.measured && !open && <Measured m={nodes[0].measured} />}
+          </div>
         )}
       </div>
     </li>

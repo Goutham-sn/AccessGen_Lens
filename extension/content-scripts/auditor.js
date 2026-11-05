@@ -11,6 +11,7 @@
 import axe from 'axe-core'
 import { describeRule, nodeSummary, AXE_OPTIONS } from '../issues/rules.js'
 import { reportFriction } from './friction.js'
+import { contrastRegistry } from '../profiles/visual/contrastLoss.js'
 
 const FIRST_AUDIT_MS = 1500
 const CHANGE_SETTLE_MS = 2500
@@ -32,6 +33,42 @@ function rectOfSelector(selector) {
   }
 }
 
+// A selector that finds this one element again.
+function selectorOf(el) {
+  if (el.id && document.querySelectorAll(`#${CSS.escape(el.id)}`).length === 1) return `#${CSS.escape(el.id)}`
+  const parts = []
+  for (let n = el; n && n.nodeType === 1 && n !== document.documentElement; n = n.parentElement) {
+    const parent = n.parentElement
+    const same = parent ? Array.from(parent.children).filter((c) => c.tagName === n.tagName) : []
+    parts.unshift(same.length > 1 ? `${n.tagName.toLowerCase()}:nth-of-type(${same.indexOf(n) + 1})` : n.tagName.toLowerCase())
+    if (n.id) { parts[0] = `#${CSS.escape(n.id)}`; break }
+  }
+  return parts.join(' > ')
+}
+
+// The page's real contrast, measured before low vision faded it, in the
+// shape of an axe result, so it is reported exactly like any other rule.
+function contrastFromRegistry() {
+  const nodes = []
+  for (const [el, m] of contrastRegistry.failing) {
+    if (!el.isConnected) continue
+    nodes.push({
+      target: [selectorOf(el)],
+      html: el.outerHTML.slice(0, 300),
+      failureSummary: `Fix any of the following: Element has insufficient color contrast of ${m.ratio} (foreground color: ${m.fg}, background color: ${m.bg}, font size: ${m.fontSize}). Expected contrast ratio of ${m.needs}:1`,
+      any: [{ id: 'color-contrast', data: { fgColor: m.fg, bgColor: m.bg, contrastRatio: m.ratio, expectedContrastRatio: `${m.needs}:1`, fontSize: m.fontSize, fontWeight: m.fontWeight } }]
+    })
+  }
+  if (!nodes.length) return []
+  return [{
+    id: 'color-contrast', impact: 'serious', tags: ['cat.color', 'wcag2aa', 'wcag143'],
+    help: 'Elements must meet minimum color contrast ratio thresholds',
+    description: 'Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds',
+    helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/color-contrast',
+    nodes
+  }]
+}
+
 function firstElement(selector) {
   try { return document.querySelector(selector) } catch { return null }
 }
@@ -48,11 +85,17 @@ export function startAuditor({ profileIds = [] } = {}) {
     running = true
     audits += 1
     try {
+      // With colours faded by the simulation, axe would measure the faded
+      // ones: contrast comes from the measurement taken before fading.
+      const faded = contrastRegistry.active > 0
+      const options = faded
+        ? { ...AXE_OPTIONS, rules: { ...AXE_OPTIONS.rules, 'color-contrast': { enabled: false }, 'color-contrast-enhanced': { enabled: false }, 'link-in-text-block': { enabled: false } } }
+        : AXE_OPTIONS
       const result = await axe.run(
         { exclude: [['[data-accessgen]'], ['#accessgen-control-panel']] },
-        AXE_OPTIONS
+        options
       )
-      report(result.violations, false)
+      report(faded ? [...result.violations, ...contrastFromRegistry()] : result.violations, false)
       report(result.incomplete, true)
     } catch (err) {
       console.warn('[accessgen] page audit failed:', err?.message)

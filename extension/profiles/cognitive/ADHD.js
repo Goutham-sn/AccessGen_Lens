@@ -1,81 +1,113 @@
 import { BaseProfile } from '../BaseProfile.js'
+import { setPageFilter, clearPageFilter } from '../pageFilter.js'
 
-// Involuntary distraction: peripheral pulses, amplified page animation,
-// and periodic "attention drift" where the main content fades away.
+// ADHD is not coloured shapes on a screen. It is attention that will not
+// stay put:
+//   - thoughts that break in, unasked, in the middle of a task;
+//   - losing your place: after a while on the same thing, what you were
+//     reading slips out of focus until you take hold of it again;
+//   - movement on the page (carousels, autoplaying video, animation)
+//     pulling the eye far harder than it does for others.
+// Severity sets how often it happens and how long it takes to come back.
+
+const THOUGHTS = [
+  'Did I answer that message from this morning?',
+  'What was I looking for again?',
+  'I should check the time.',
+  'That song from earlier is still stuck in my head.',
+  'Wait, what does the other tab say?',
+  'I need to remember to buy milk.',
+  'How long have I been on this page?',
+  'Is it hot in here, or is it me?',
+  'I could just do this later.',
+  'What was that noise?'
+]
+const SETTINGS = {
+  1: { thoughtEvery: [40000, 70000], driftAfter: 45000, blur: 1.2 },
+  2: { thoughtEvery: [22000, 40000], driftAfter: 28000, blur: 2 },
+  3: { thoughtEvery: [12000, 24000], driftAfter: 16000, blur: 3 }
+}
+
 export class ADHD extends BaseProfile {
   init() {
-    // Phase 1: amplify any animation already on the page.
+    // Motion on the page pulls harder: animation runs faster and brighter.
     this.injectStyle(`
-      *[class*="animate"], *[class*="carousel"], *[class*="slider"], marquee {
-        animation-duration: 0.6s !important;
+      [class*="carousel"], [class*="slider"], [class*="marquee"], [class*="ticker"], [class*="animate"], marquee, video[autoplay] {
+        animation-duration: 0.7s !important;
+        filter: saturate(1.35) contrast(1.05);
       }
-      @keyframes accessgen-adhd-pulse {
-        0%, 100% { opacity: 0.25; transform: scale(1); }
-        50% { opacity: ${0.4 + this.severity * 0.15}; transform: scale(1.15); }
+      .accessgen-thought {
+        position: fixed; max-width: 280px; padding: 10px 14px; border-radius: 6px;
+        background: #fffdf6; color: #222; border: 1px solid #e3e0d8; box-shadow: 0 4px 18px rgba(0,0,0,.18);
+        font: 500 14px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; z-index: 2147483638;
+        pointer-events: none; opacity: 0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease;
       }
-      .accessgen-distraction {
-        position: fixed; width: 60px; height: 60px; border-radius: 50%;
-        pointer-events: none; z-index: 2147483637;
-        animation: accessgen-adhd-pulse ${4 - this.severity * 0.7}s ease-in-out infinite;
-      }
-      #accessgen-adhd-dim {
-        position: fixed; inset: 0; pointer-events: none;
-        background: rgba(245,245,245,0.4); backdrop-filter: blur(0.6px);
-        z-index: 2147483636; opacity: 0; transition: opacity 0.8s;
-      }
+      .accessgen-thought.on { opacity: 1; transform: none; }
     `, 'accessgen-adhd-css')
 
-    // Phase 2: peripheral distraction elements at viewport edges.
-    const colors = ['#f59e0b', '#3b82f6', '#ec4899', '#22c55e', '#a855f7']
-    const positions = [
-      { top: '8%', left: '2%' }, { top: '15%', right: '3%' },
-      { bottom: '20%', left: '3%' }, { bottom: '10%', right: '2%' },
-      { top: '50%', left: '1%' }
-    ]
-    const count = 2 + this.severity
-    this.distractions = []
-    for (let i = 0; i < count; i++) {
-      const d = document.createElement('div')
-      d.className = 'accessgen-distraction'
-      d.setAttribute('aria-hidden', 'true')
-      d.dataset.accessgen = 'true'
-      d.style.background = `radial-gradient(circle, ${colors[i]} 0%, transparent 70%)`
-      d.style.animationDelay = `${i * 0.9}s`
-      Object.assign(d.style, positions[i])
-      this.addElement(d)
-      this.distractions.push(d)
+    this.x = window.innerWidth / 2
+    this.y = window.innerHeight / 2
+    this.lastHold = performance.now()
+    const hold = (e) => {
+      if (e?.clientX != null) { this.x = e.clientX; this.y = e.clientY }
+      this.lastHold = performance.now()
+      if (this.drifting) {
+        // Getting back on track takes a moment, not an instant.
+        clearTimeout(this.backTimer)
+        this.backTimer = setTimeout(() => { this.drifting = false; clearPageFilter(this.driftOwner) }, 500 + this.severity * 250)
+      }
     }
+    this.addListener(window, 'mousemove', hold, { capture: true, passive: true })
+    this.addListener(window, 'keydown', hold, { capture: true })
+    this.addListener(window, 'wheel', hold, { capture: true, passive: true })
+    // Its own owner of the shared page filter, so drifting never undoes a
+    // filter another condition set.
+    this.driftOwner = {}
 
-    // Phase 3: attention drift every 15–30 seconds.
-    this.dim = document.createElement('div')
-    this.dim.id = 'accessgen-adhd-dim'
-    this.dim.setAttribute('aria-hidden', 'true')
-    this.addElement(this.dim)
-    this.scheduleDrift()
-
-    // Phase 4: autoplaying media dominates.
-    document.querySelectorAll('video[autoplay], [class*="banner"] img').forEach((el) => {
-      el.style.setProperty('filter', 'saturate(1.6) brightness(1.1)', 'important')
-    })
+    this.scheduleThought()
+    // Losing your place: after a stretch of steady attention, it slips.
+    this.addInterval(() => {
+      const s = SETTINGS[this.severity] || SETTINGS[2]
+      if (performance.now() - this.lastHold > 2500 && performance.now() - (this.lastDrift || 0) > s.driftAfter) {
+        this.lastDrift = performance.now()
+        this.drifting = true
+        setPageFilter(this.driftOwner, `blur(${s.blur}px)`)
+      }
+    }, 1000)
   }
 
-  scheduleDrift() {
-    const delay = 15000 + Math.random() * 15000
-    this.driftTimer = setTimeout(() => {
-      // Drift: main content dims, one peripheral element flares.
-      this.dim.style.opacity = '1'
-      const flare = this.distractions[Math.floor(Math.random() * this.distractions.length)]
-      if (flare) flare.style.animationDuration = '0.5s'
-      setTimeout(() => {
-        this.dim.style.opacity = '0'
-        if (flare) flare.style.animationDuration = ''
-      }, 3000)
-      this.scheduleDrift()
-    }, delay)
+  scheduleThought() {
+    const [lo, hi] = (SETTINGS[this.severity] || SETTINGS[2]).thoughtEvery
+    this.thoughtTimer = setTimeout(() => {
+      this.showThought()
+      this.scheduleThought()
+    }, lo + Math.random() * (hi - lo))
+  }
+
+  showThought() {
+    const t = document.createElement('div')
+    t.className = 'accessgen-thought'
+    t.dataset.accessgen = 'true'
+    t.setAttribute('aria-hidden', 'true')
+    t.textContent = THOUGHTS[Math.floor(Math.random() * THOUGHTS.length)]
+    // Close to where you are working, not politely in a corner.
+    const x = Math.min(window.innerWidth - 300, Math.max(12, this.x + 30 - Math.random() * 120))
+    const y = Math.min(window.innerHeight - 80, Math.max(12, this.y - 70 + Math.random() * 40))
+    t.style.left = `${x}px`
+    t.style.top = `${y}px`
+    this.addElement(t)
+    requestAnimationFrame(() => t.classList.add('on'))
+    setTimeout(() => { t.classList.remove('on'); setTimeout(() => t.remove(), 400) }, 3200 + this.severity * 500)
+  }
+
+  update(severity) {
+    super.update(severity)
   }
 
   destroy() {
-    clearTimeout(this.driftTimer)
+    clearTimeout(this.thoughtTimer)
+    clearTimeout(this.backTimer)
+    clearPageFilter(this.driftOwner)
     super.destroy()
   }
 }

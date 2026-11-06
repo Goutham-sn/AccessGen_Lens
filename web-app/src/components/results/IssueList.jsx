@@ -87,7 +87,7 @@ function AuditIssue({ moment, n, onWatch }) {
               {nodes.map((node, i) => (
                 <li key={i} className="p-3">
                   <p className="font-mono text-xs text-ink-500">{i + 1}. {node.selector}</p>
-                  {node.html && <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-[3px] bg-paper px-2 py-1.5 font-mono text-xs text-ink-800">{node.html}</pre>}
+                  {node.html && <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-[3px] bg-mist px-2 py-1.5 font-mono text-xs text-ink-800">{node.html}</pre>}
                   <Measured m={node.measured} />
                   {node.summary && <p className="mt-1.5 text-sm text-ink-700">{node.summary.replace(/^Fix (any|all) of the following:\s*/i, '')}</p>}
                 </li>

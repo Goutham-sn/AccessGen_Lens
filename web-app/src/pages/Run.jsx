@@ -57,7 +57,7 @@ function LiveRun({ session, live, phase }) {
           <h3 id={`log-${session.id}`} className="eyebrow">What is happening</h3>
           <ol className="mt-2 max-h-[360px] overflow-y-auto rounded-lg border border-rule bg-white font-mono text-xs leading-relaxed" aria-live="off">
             {live.log.slice().reverse().map((l, i) => (
-              <li key={live.log.length - i} className={`flex gap-3 border-b border-rule px-3 py-1.5 last:border-0 ${l.kind === 'summary' ? 'bg-paper font-semibold text-ink-900' : 'text-ink-700'}`}>
+              <li key={live.log.length - i} className={`flex gap-3 border-b border-rule px-3 py-1.5 last:border-0 ${l.kind === 'summary' ? 'bg-mist font-semibold text-ink-900' : 'text-ink-700'}`}>
                 <span className="shrink-0 text-ink-400">{clock(l.at, start)}</span>
                 <span className="min-w-0 break-words">{l.text}</span>
               </li>
@@ -144,12 +144,56 @@ export default function Run() {
 
   const current = run?.sessions.find((s) => s.id === active)
   const done = run?.sessions.filter((s) => s.complete).length || 0
+  const going = run && done < run.sessions.length
+  const [stopping, setStopping] = useState(false)
+  const [stopError, setStopError] = useState(null)
+
+  async function stopRun() {
+    if (!window.confirm('Stop this run now? What has been recorded so far is not kept.')) return
+    setStopping(true)
+    setStopError(null)
+    try {
+      await api.post(`/runs/${runId}/cancel`)
+      setRun(await api.get(`/runs/${runId}`))
+    } catch (err) {
+      setStopError(err.message)
+    } finally {
+      setStopping(false)
+    }
+  }
 
   return (
-    <PageWrapper wide eyebrow="Automated run" title={run ? run.url : 'Loading'}>
+    <PageWrapper
+      wide
+      eyebrow="Automated run"
+      title={run ? run.url : 'Loading'}
+      actions={going ? (
+        <button type="button" onClick={stopRun} disabled={stopping}
+          className="inline-flex min-h-[40px] items-center rounded-[4px] border border-ember-600 bg-white px-4 text-sm font-medium text-ember-700 hover:bg-ember-50 disabled:opacity-60">
+          {stopping ? 'Stopping…' : 'Stop this run'}
+        </button>
+      ) : null}
+    >
       {error && <p role="alert" className="text-ember-700">{error}</p>}
       {run && (
         <>
+          {stopError && <p role="alert" className="mb-4 text-ember-700">Could not stop the run: {stopError}</p>}
+          {going && run.runner && !run.runner.alive && (
+            <div role="alert" className="mb-6 border-l-4 border-ember-600 bg-ember-50 p-4">
+              <p className="font-semibold text-ink-900">Nothing is running this yet: the runner is not responding.</p>
+              <p className="mt-1 text-ink-700">
+                The runner is the part that opens your page in its own browser. Start it, or see why it stopped, from the
+                folder with docker-compose.yml:
+              </p>
+              <pre className="mt-2 overflow-x-auto rounded-[3px] bg-white px-3 py-2 font-mono text-sm text-ink-900">docker compose up -d --build runner{'\n'}docker compose logs --tail 50 runner</pre>
+              <p className="mt-2 text-sm text-ink-700">The run starts by itself as soon as the runner is up. Or stop it with the button above.</p>
+            </div>
+          )}
+          {going && run.runner?.alive && run.queue?.waiting && (
+            <p className="mb-4 font-mono text-sm text-ink-600">
+              Waiting in line{run.queue.ahead ? `: ${run.queue.ahead} run${run.queue.ahead === 1 ? '' : 's'} ahead` : ''}{run.queue.running ? `, ${run.queue.running} running now` : ''}.
+            </p>
+          )}
           <p className="-mt-4 mb-6 text-ink-700">
             {done === run.sessions.length
               ? `All ${run.sessions.length === 1 ? 'done' : `${run.sessions.length} done`}. Everything is below.`

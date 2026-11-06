@@ -8,7 +8,6 @@
   }
   body {
     @apply bg-paper text-ink-900 font-sans;
-    font-feature-settings: 'ss02';
   }
   h1, h2, h3 {
     letter-spacing: -0.01em;

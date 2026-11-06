@@ -26,6 +26,7 @@ function headlineOf(session, moments, mission, counts) {
   if (mission?.as?.outcome === 'done') return `${who} got there, in ${formatMs(mission.as.durationMs)}.`
   if (counts.issues) return `${counts.issues} ${counts.issues === 1 ? 'issue' : 'issues'} on ${counts.elements} ${counts.elements === 1 ? 'element' : 'elements'}.`
   if (moments.some((m) => !isAutoMoment(m))) return `${who} struggled with this page.`
+  if (session.coverage?.stoppedReason && !session.video_url) return session.coverage.cancelled ? 'This run was stopped.' : `${who} could not get through this page.`
   return `${who} spent ${formatDuration(session.duration_seconds)} on this page.`
 }
 

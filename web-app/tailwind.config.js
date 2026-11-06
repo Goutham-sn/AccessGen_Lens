@@ -15,8 +15,10 @@ export default {
           500: '#e2502f', 600: '#c94124', 700: '#a8351d', 800: '#842a17'
         },
         ink: { 950: '#0e0e0e', 900: '#161616', 800: '#262626', 700: '#3b3b3b', 600: '#555555', 500: '#6b6b6b', 400: '#8f8f8f' },
-        rule: '#e3e0d8',
-        paper: '#fbfaf7'
+        rule: '#e6e6e6',
+        // The page itself is white; mist is for the few quiet panels.
+        paper: '#ffffff',
+        mist: '#f5f5f5'
       },
       borderRadius: { lg: '5px', xl: '6px', '2xl': '8px', '3xl': '10px' },
       boxShadow: {
@@ -32,9 +34,11 @@ export default {
         'pulse-ring': 'pulse-ring 2.2s cubic-bezier(.2,.6,.3,1) infinite'
       },
       fontFamily: {
-        sans: ['"IBM Plex Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        display: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+        // Atkinson Hyperlegible, made by the Braille Institute for readers
+        // with low vision: letters that cannot be mistaken for each other.
+        sans: ['"Atkinson Hyperlegible Next"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['"Atkinson Hyperlegible Next"', 'system-ui', 'sans-serif'],
+        mono: ['"Atkinson Hyperlegible Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
       }
     }
   },

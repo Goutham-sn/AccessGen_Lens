@@ -95,25 +95,25 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
   })
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-    body { font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; color: #161616; margin: 0; background: #fbfaf7; }
-    code, .mono { font-family: 'IBM Plex Mono', Menlo, monospace; }
+    body { font-family: 'Atkinson Hyperlegible Next', 'Helvetica Neue', Arial, sans-serif; color: #161616; margin: 0; background: #ffffff; }
+    code, .mono { font-family: 'Atkinson Hyperlegible Mono', Menlo, monospace; }
     .page { padding: 60px 70px; }
     .cover { border-bottom: 2px solid #161616; }
     .cover h1 { font-size: 42px; line-height: 1.2; margin: 0 0 16px; }
     .cover .meta { color: #555; font-size: 14px; }
-    .cover img { max-width: 100%; border: 1px solid #e3e0d8; margin-top: 24px; }
-    .chip { display: inline-block; border: 1px solid #e3e0d8; background: #fff; color: #3b3b3b;
+    .cover img { max-width: 100%; border: 1px solid #e6e6e6; margin-top: 24px; }
+    .chip { display: inline-block; border: 1px solid #e6e6e6; background: #fff; color: #3b3b3b;
             border-radius: 3px; padding: 2px 8px; margin: 4px 6px 4px 0; font-size: 12px; font-family: Menlo, monospace; }
     h2 { font-size: 26px; margin: 40px 0 12px; }
     p { font-size: 15px; line-height: 1.7; }
     .numbers { display: flex; gap: 24px; margin: 24px 0; }
-    .num { flex: 1; background: #fff; border: 1px solid #e3e0d8; padding: 14px; }
+    .num { flex: 1; background: #fff; border: 1px solid #e6e6e6; padding: 14px; }
     .num .big { font-size: 34px; font-weight: bold; display: block; }
-    .moment { display: flex; gap: 20px; border-top: 1px solid #e3e0d8; padding: 16px 0; margin: 0; page-break-inside: avoid; }
+    .moment { display: flex; gap: 20px; border-top: 1px solid #e6e6e6; padding: 16px 0; margin: 0; page-break-inside: avoid; }
     .els { margin: 8px 0 0; padding-left: 18px; font-size: 11px; color: #3b3b3b; }
     .els li { margin: 2px 0; word-break: break-all; }
     .impact { display: inline-block; border: 1px solid #c94124; color: #a8351d; border-radius: 3px; padding: 0 6px; font-size: 11px; text-transform: uppercase; font-family: Menlo, monospace; }
-    .moment img { width: 240px; height: auto; border: 1px solid #e3e0d8; object-fit: cover; }
+    .moment img { width: 240px; height: auto; border: 1px solid #e6e6e6; object-fit: cover; }
     .moment h3 { margin: 4px 0 8px; font-size: 18px; }
     .moment-time { color: #667085; font-size: 12px; margin: 0; }
     .note { font-style: italic; color: #475467; }
@@ -122,7 +122,7 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
                   border-radius: 6px; padding: 1px 8px; font-size: 13px; font-weight: bold; }
     .auto { display: inline-block; background: #fef3c7; color: #78350f; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: bold; }
     .detail { color: #475467; }
-    .mission { margin-top: 24px; border-top: 1px solid #e3e0d8; padding-top: 14px; }
+    .mission { margin-top: 24px; border-top: 1px solid #e6e6e6; padding-top: 14px; }
     .mission small { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #6b6b6b; font-family: Menlo, monospace; }
     .mission .goal { font-size: 18px; margin: 6px 0 12px; }
     .sides { display: flex; gap: 16px; }

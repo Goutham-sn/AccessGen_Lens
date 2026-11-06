@@ -27,17 +27,22 @@ function who(session) {
 
 function Row({ session, live, onFinish }) {
   const [label, tone] = STATUS[session.status] || [session.status, 'text-ink-600']
+  // An automated session still going has its live run page; one that is
+  // finished has its results.
+  const href = session.source === 'runner' && !session.processing_complete && session.run_id
+    ? `/run/${session.run_id}`
+    : `/results/${session.id}`
   const stuck = session.status === 'recording' && live !== undefined && live !== session.id
   const m = session.mission
   return (
     <li className="group grid grid-cols-[88px_minmax(0,1fr)] gap-4 border-b border-rule py-4 sm:grid-cols-[120px_minmax(0,1fr)_150px_110px]">
-      <Link to={`/results/${session.id}`} tabIndex={-1} aria-hidden="true" className="block overflow-hidden rounded-[4px] border border-rule bg-white">
+      <Link to={href} tabIndex={-1} aria-hidden="true" className="block overflow-hidden rounded-[4px] border border-rule bg-white">
         {session.page_thumbnail
           ? <img src={mediaUrl(session.page_thumbnail)} alt="" className="aspect-[16/10] w-full object-cover object-top" loading="lazy" />
-          : <div className="aspect-[16/10] w-full bg-paper" />}
+          : <div className="aspect-[16/10] w-full bg-mist" />}
       </Link>
       <div className="min-w-0">
-        <Link to={`/results/${session.id}`} className="block truncate font-medium text-ink-900 underline-offset-4 group-hover:underline">
+        <Link to={href} className="block truncate font-medium text-ink-900 underline-offset-4 group-hover:underline">
           {session.page_title || session.url.replace(/^https?:\/\//, '')}
         </Link>
         <p className="mt-0.5 truncate text-sm text-ink-600">{who(session)} · {session.source === 'runner' ? 'Automated' : 'Manual'}</p>

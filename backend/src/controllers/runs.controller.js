@@ -17,7 +17,11 @@ import { DAILY_RUN_LIMIT } from '../config/runLimits.js'
 // simulated in this run.
 
 const MAX_PERSONAS_PER_RUN = 4
-const ACTIVE_RUN_TTL_S = 10 * 60 // safety net if the runner never releases it
+const ACTIVE_RUN_TTL_S = 30 * 60 // safety net if the runner never releases it (runs can take a while now)
+export const STOPPED_BY_YOU = 'You stopped this run.'
+// The runner refreshes this every few seconds while it is up (worker.js).
+const HEARTBEAT_KEY = 'runner:heartbeat'
+const HEARTBEAT_STALE_MS = 30 * 1000
 
 function canUsePersona(persona, userId) {
   return persona && (persona.is_built_in || persona.is_public || persona.user_id === userId)
@@ -137,6 +141,49 @@ export async function deleteRun(req, res, next) {
   } catch (err) { next(err) }
 }
 
+async function queuePosition(runId) {
+  try {
+    const waiting = await runQueue.getJobs(['waiting', 'delayed'])
+    const mine = waiting.findIndex((j) => j?.data?.runId === runId)
+    const active = await runQueue.getActiveCount()
+    return { waiting: mine >= 0, ahead: mine >= 0 ? waiting.length - 1 - mine : 0, running: active }
+  } catch {
+    return null
+  }
+}
+
+// Stop a run, whatever state it is in: a run still waiting leaves the
+// queue; a running one is told to stop (the runner checks every second and
+// closes its browser). Every unfinished person ends at once as "You stopped
+// this run", and the one-run-at-a-time slot is freed.
+export async function cancelRun(req, res, next) {
+  try {
+    const runId = req.params.id
+    const { rows } = await query('SELECT id, processing_complete FROM sessions WHERE run_id = $1 AND user_id = $2', [runId, req.user.id])
+    if (rows.length === 0) return res.status(404).json({ error: 'Run not found' })
+    await redis.set(`runs:cancel:${runId}`, '1', 'EX', 60 * 60)
+    try {
+      for (const job of await runQueue.getJobs(['waiting', 'delayed', 'paused'])) {
+        if (job?.data?.runId === runId) await job.remove().catch(() => {})
+      }
+    } catch { /* the queue is unreachable: the cancel key still stops the runner */ }
+    const open = rows.filter((r) => !r.processing_complete).map((r) => r.id)
+    if (open.length) {
+      await query(
+        `UPDATE sessions SET status = 'no_video', processing_complete = TRUE, end_time = COALESCE(end_time, NOW()),
+                coverage = COALESCE(coverage, '{}'::jsonb) || jsonb_build_object('stoppedReason', $2::text, 'cancelled', true)
+          WHERE id = ANY($1::uuid[])`,
+        [open, STOPPED_BY_YOU]
+      )
+    }
+    const activeKey = `runs:active:${req.user.id}`
+    if ((await redis.get(activeKey)) === runId) await redis.del(activeKey)
+    const io = req.app.get('io')
+    for (const id of open) io?.to(`session:${id}`).emit('run-done', { sessionId: id, stoppedReason: STOPPED_BY_YOU })
+    res.json({ ok: true, stopped: open.length })
+  } catch (err) { next(err) }
+}
+
 export async function getRun(req, res, next) {
   try {
     const { rows } = await query(
@@ -146,8 +193,14 @@ export async function getRun(req, res, next) {
       [req.params.id, req.user.id]
     )
     if (rows.length === 0) return res.status(404).json({ error: 'Run not found' })
+    const beat = Number(await redis.get(HEARTBEAT_KEY).catch(() => null))
+    const position = rows.some((r) => !r.processing_complete) ? await queuePosition(req.params.id) : null
     res.json({
       runId: req.params.id,
+      // Whether a runner is up to drive the browser, and where this run is
+      // in the line, so a run that is not moving says why.
+      runner: { alive: Boolean(beat) && Date.now() - beat < HEARTBEAT_STALE_MS, lastSeenAt: beat || null },
+      queue: position,
       url: rows[0].url,
       // The same for every person in the run; null for a regular run.
       task: taskOf(rows[0].task),

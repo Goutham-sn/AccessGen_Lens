@@ -27,6 +27,15 @@ const STOPPED_CHALLENGE = 'This page asked to confirm that a person is visiting,
 const STOPPED_DIALOG = 'The page opened a browser message box as soon as it loaded, so we stopped there and left it untouched.'
 const STOPPED_DIALOG_TASK = 'The page opened a browser message box after we pressed Enter, so we stopped there and left it untouched.'
 const STOPPED_TIME = 'We reached the time limit for this run and kept what we had seen so far.'
+const STOPPED_BY_YOU = 'You stopped this run.'
+
+// Closes this context as soon as the person stops the run.
+function closeOnStop(signal, context, coverage) {
+  if (!signal) return
+  const close = () => { coverage.stoppedReason = STOPPED_BY_YOU; context.close().catch(() => {}) }
+  if (signal.aborted) close()
+  else signal.addEventListener('abort', close, { once: true })
+}
 
 // Streams a picture of the page to the Run page about once a second, so
 // people watch their own site being used instead of a status line.
@@ -78,7 +87,7 @@ function describeStop(stop) {
 // extraRoute(context) lets tests serve fixtures from a fake host, and
 // `detectors` lets tests supply their own instead of the live registry.
 export async function runPersona(job, s, deps) {
-  const { browser, sem, blockedHosts, store, progress, profilesSource, extraRoute } = deps
+  const { browser, sem, blockedHosts, store, progress, profilesSource, extraRoute, signal } = deps
   const label = `${s.persona.name} ${s.sessionId.slice(0, 8)}`
   const timings = createTimings(label)
   // Peak browser memory for run_timings. The browser is shared, so with more
@@ -139,6 +148,7 @@ export async function runPersona(job, s, deps) {
     let measureWatchdog
     try {
       mContext = await newSafeContext(browser, { blockedHosts })
+      closeOnStop(signal, mContext, coverage)
       if (extraRoute) await extraRoute(mContext)
       const page = await mContext.newPage()
       timings.mark('measureLaunch')
@@ -237,7 +247,9 @@ export async function runPersona(job, s, deps) {
     }
 
     // --------------------------------------------------- recorded pass
-    if (coverage.stoppedReason) {
+    if (signal?.aborted) {
+      coverage.stoppedReason = STOPPED_BY_YOU
+    } else if (coverage.stoppedReason) {
       // The measure pass could not open the page. Nothing to record.
     } else if (Date.now() >= deadline) {
       coverage.stoppedReason = STOPPED_TIME
@@ -258,6 +270,7 @@ export async function runPersona(job, s, deps) {
       let watchdog
       try {
         context = await newSafeContext(browser, { blockedHosts, recordVideoDir: videoDir })
+        closeOnStop(signal, context, coverage)
         if (extraRoute) await extraRoute(context)
         // The video starts with the page, so this is video time zero.
         videoStart = Date.now()
@@ -589,10 +602,12 @@ export async function runPersona(job, s, deps) {
     }
   } catch (err) {
     console.error(`[runner] ${label} failed:`, err)
-    coverage.stoppedReason = coverage.stoppedReason || err.plain || 'Something went wrong while visiting this page, so we stopped.'
+    coverage.stoppedReason = signal?.aborted ? STOPPED_BY_YOU : (coverage.stoppedReason || err.plain || 'Something went wrong while visiting this page, so we stopped.')
     debug.error = String(err?.stack || err).slice(0, 2000)
   }
 
+  // Whatever the page did once its browser was closed, a stopped run says so.
+  if (signal?.aborted) coverage.stoppedReason = STOPPED_BY_YOU
   const timingResult = timings.done()
   timingResult.browserPeakMb = await memory.stop()
   timingResult.hostAtStart = hostAtStart

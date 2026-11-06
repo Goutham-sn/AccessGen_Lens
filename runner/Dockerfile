@@ -12,6 +12,8 @@ RUN npm install --omit=dev
 
 COPY extension/package.json /app/extension/package.json
 COPY extension/profiles /app/extension/profiles
+# What each accessibility rule means for people (the page audit, pageAudit.js).
+COPY extension/issues /app/extension/issues
 # The one capabilities file shared with the backend (see checks/index.js).
 COPY backend/src/config/runnerCapabilities.js /app/backend/src/config/runnerCapabilities.js
 COPY runner/ ./

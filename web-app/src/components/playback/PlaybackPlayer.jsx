@@ -28,8 +28,9 @@ export function PlaybackPlayer({ videoRef, videoUrl, processing, session, frames
 
   if (!videoUrl) {
     return (
-      <div className="flex h-96 items-center justify-center rounded-xl bg-ink-900 text-gray-300 text-sm px-6 text-center">
-        No recording. This session ended without a video.
+      <div className="flex h-96 flex-col items-center justify-center gap-2 rounded-xl bg-ink-900 px-6 text-center text-sm text-gray-300">
+        <p>No recording. This session ended without a video.</p>
+        {session?.coverage?.stoppedReason && <p className="max-w-lg text-white">{session.coverage.stoppedReason}</p>}
       </div>
     )
   }

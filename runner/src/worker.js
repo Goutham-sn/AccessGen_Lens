@@ -47,6 +47,12 @@ async function main() {
   const sem = createSemaphore(config.maxContexts)
   const queue = new Bull('lens-runs', { redis: config.redisUrl })
 
+  // A heartbeat, so the Run page can say plainly when no runner is up
+  // (instead of a run that waits forever).
+  const beat = () => progress.redis.set('runner:heartbeat', String(Date.now()), 'EX', 30).catch(() => {})
+  beat()
+  setInterval(beat, 5000).unref()
+
   queue.process(config.jobConcurrency, async (job) => {
     const { runId, userId, sessions, mode } = job.data
     console.log(`[runner] run ${runId}: ${sessions.length} persona(s) for ${job.data.url}${mode === 'task' ? ` (task, ${job.data.task?.intents?.length ?? 0} intent(s))` : ''}`)
@@ -54,11 +60,27 @@ async function main() {
       // A run is a regular run, or a task run (job.data.task). Anything else is
       // refused: it would otherwise be walked as a regular run by mistake.
       if (mode !== undefined && mode !== 'task') throw new Error(`unknown run mode: ${mode}`)
+      // Stopped by the person before it started: nothing to do (the backend
+      // has already ended its sessions).
+      const cancelKey = `runs:cancel:${runId}`
+      if (await progress.redis.get(cancelKey)) {
+        console.log(`[runner] run ${runId} was stopped before it started`)
+        return []
+      }
+      // Stopped while running: checked every second, and every persona's
+      // browser closes at once.
+      const stop = new AbortController()
+      const watch = setInterval(async () => {
+        if (!stop.signal.aborted && await progress.redis.get(cancelKey).catch(() => null)) {
+          console.log(`[runner] run ${runId} stopped by the person`)
+          stop.abort()
+        }
+      }, 1000)
       const b = await getBrowser()
       // Personas in parallel; the semaphore caps live contexts.
       const results = await Promise.allSettled(sessions.map((s) => runPersona(job.data, s, {
-        browser: b, sem, blockedHosts: proxy.blockedHosts, store, progress, profilesSource
-      })))
+        browser: b, sem, blockedHosts: proxy.blockedHosts, store, progress, profilesSource, signal: stop.signal
+      }))).finally(() => clearInterval(watch))
       console.log(`[runner] run ${runId} done, peak contexts ${sem.peak}/${config.maxContexts}`)
       return results.map((r) => (r.status === 'fulfilled' ? r.value.sessionId : null))
     } finally {

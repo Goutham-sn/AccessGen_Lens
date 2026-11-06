@@ -1,14 +1,13 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { createRequire } from 'node:module'
-import { describeRule, nodeSummary, AXE_OPTIONS, sortIssues } from '../../../extension/issues/rules.js'
+import { describeRule, nodeSummary, AXE_OPTIONS, sortIssues, isWcagAorAA } from '../../../extension/issues/rules.js'
 
 // Check 'page-audit': the whole page through axe-core, the open-source
-// accessibility rules engine (every rule it has, WCAG A to AAA and best
-// practice). Each rule that fails is one finding, with every element that
-// fails it; the recorded pass shows the first one on camera. What axe cannot
-// decide on its own ("incomplete") is never dropped: it is listed as
-// "check by hand" in what we could not look at.
+// accessibility rules engine, with WCAG 2.0, 2.1 and 2.2 rules at levels A
+// and AA only. Each rule that fails is one finding, with every element that
+// fails it; the recorded pass shows the first one on camera. Only what
+// actually fails is reported: nothing the engine could not decide.
 
 const require = createRequire(import.meta.url)
 let axeSource = null
@@ -60,7 +59,7 @@ function issueOf(r) {
 }
 
 export function findingsFromAudit(result, { profileIds = [], personaName = 'They' } = {}) {
-  const issues = sortIssues(result.violations.filter((r) => r.nodes.length).map(issueOf), profileIds)
+  const issues = sortIssues(result.violations.filter((r) => r.nodes.length && isWcagAorAA(r)).map(issueOf), profileIds)
   return issues.map((issue) => {
     const mine = issue.who.find((w) => profileIds.includes(w))
     const first = issue.nodes[0]
@@ -91,7 +90,6 @@ export default {
   id: 'page-audit',
   async measure({ page, profileIds, persona, note }) {
     const result = await auditPage(page)
-    for (const line of needsReviewLines(result)) note(line)
     return findingsFromAudit(result, { profileIds, personaName: persona?.persona?.name || 'This person' })
   },
   // Recorded pass: the element is still there (the engine checks that) and

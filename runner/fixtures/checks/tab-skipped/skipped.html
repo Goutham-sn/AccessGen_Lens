@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Things Tab skips</title>
+<style>
+  body { font: 16px sans-serif; margin: 24px; }
+  .card { border: 1px solid #999; padding: 12px; margin: 8px 0; width: 300px; }
+  .hand { cursor: pointer; }
+  .toggle input { display: none; }
+  .toggle span { display: inline-block; width: 40px; height: 20px; background: #ccc; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Things Tab skips</h1>
+  <p><a href="/first">A normal link</a> <button>A normal button</button></p>
+
+  <!-- 1. a real button taken out of the Tab order -->
+  <button id="removed-button" tabindex="-1">Save draft</button>
+  <!-- 2. a real link taken out of the Tab order -->
+  <a id="removed-link" href="/pricing" tabindex="-1">See pricing</a>
+  <!-- 3. a field taken out of the Tab order -->
+  <label>Email <input id="removed-field" type="email" tabindex="-1"></label>
+  <!-- 4. a div with an onclick attribute -->
+  <div id="onclick-div" class="card" onclick="void 0">Open the order</div>
+  <!-- 5. a span with a listener added by script -->
+  <span id="listener-span">Add to basket</span>
+  <!-- 6. role=button that cannot take focus -->
+  <div id="role-button" role="button">Delete</div>
+  <!-- 7. a link with no address used as a button -->
+  <a id="no-href" class="hand">Read more</a>
+  <!-- 8. a hand pointer on a plain div -->
+  <div id="pointer-div" class="card hand">Choose a plan</div>
+  <!-- 9. a styled checkbox whose input is hidden from the keyboard -->
+  <label id="hidden-check" class="toggle"><input type="checkbox"><span></span> Dark mode</label>
+  <!-- 10. a React-style click handler (props on the element) -->
+  <div id="react-div" class="card">Next slide</div>
+
+  <!-- Not skipped: each of these can be reached with the keyboard -->
+  <div class="card hand" onclick="void 0"><a href="/inside">A link inside a clickable card</a></div>
+  <a href="/inside"><span class="hand" onclick="void 0">Inside a link</span></a>
+  <div role="button" tabindex="0">Focusable custom button</div>
+  <div role="tablist"><button role="tab" tabindex="0">One</button><button role="tab" tabindex="-1">Two</button></div>
+  <a href="/docs" tabindex="-1">Docs</a> <a href="/docs">Docs again</a>
+  <button tabindex="-1" disabled>Disabled</button>
+  <div class="hand" style="display:none" onclick="void 0">Hidden</div>
+  <label class="toggle2"><input type="checkbox"> Visible checkbox</label>
+  <p class="hand">  </p>
+  <!-- 11. pulled to the front of the Tab order -->
+  <input id="forced" tabindex="3" placeholder="Search">
+</main>
+<script>
+  document.getElementById('listener-span').addEventListener('click', () => {})
+  const r = document.getElementById('react-div')
+  r['__reactProps$abc123'] = { onClick: () => {}, children: 'Next slide' }
+</script>
+</body>
+</html>

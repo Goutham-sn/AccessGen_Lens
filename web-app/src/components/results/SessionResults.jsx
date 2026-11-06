@@ -7,16 +7,15 @@ import { PlaybackPlayer } from '../playback/PlaybackPlayer.jsx'
 import { Timeline } from '../playback/Timeline.jsx'
 import { PlaybackControls } from '../playback/PlaybackControls.jsx'
 import { IssueList } from './IssueList.jsx'
-import { JourneyMap } from '../report/JourneyMap.jsx'
-import { LookedAt } from '../report/LookedAt.jsx'
 import { TaskList } from '../report/TaskList.jsx'
 import { ShareDialog } from '../shared/ShareDialog.jsx'
 import { LoadingSpinner } from '../shared/LoadingSpinner.jsx'
 import { Button } from '../shared/Button.jsx'
 import { getProfile, SEVERITY_LABELS } from '../../data/profiles.js'
-import { formatDuration, isAutoMoment } from '../../utils/moments.js'
+import { formatDuration } from '../../utils/moments.js'
 import { formatMs } from '../../utils/missionChain.js'
-import { issueCounts } from '../../utils/issues.js'
+import { listMoments } from '../../utils/issues.js'
+import { reportTask } from '../../utils/taskReport.js'
 import { useSessionStore } from '../../store/sessionStore.js'
 
 function headlineOf(session, moments, mission, counts) {
@@ -24,8 +23,7 @@ function headlineOf(session, moments, mission, counts) {
   if (mission?.as?.outcome === 'gave-up') return `${who} gave up.`
   if (mission?.ratio && mission.ratio >= 1.3) return `It took ${who} ${mission.ratio}× as long.`
   if (mission?.as?.outcome === 'done') return `${who} got there, in ${formatMs(mission.as.durationMs)}.`
-  if (counts.issues) return `${counts.issues} ${counts.issues === 1 ? 'issue' : 'issues'} on ${counts.elements} ${counts.elements === 1 ? 'element' : 'elements'}.`
-  if (moments.some((m) => !isAutoMoment(m))) return `${who} struggled with this page.`
+  if (counts) return `${counts} ${counts === 1 ? 'moment' : 'moments'} where the page got in ${who === 'The visitor' ? 'the way' : `${who}'s way`}.`
   if (session.coverage?.stoppedReason && !session.video_url) return session.coverage.cancelled ? 'This run was stopped.' : `${who} could not get through this page.`
   return `${who} spent ${formatDuration(session.duration_seconds)} on this page.`
 }
@@ -52,9 +50,8 @@ function Mission({ mission, who }) {
   )
 }
 
-// Everything about one session on one page: what happened, the video with
-// every moment on its timeline, every issue with every element, what could
-// not be decided, and every action. No separate playback or report pages.
+// One session on one page: the video with every moment on its timeline,
+// then every moment, in the order it happened. Nothing else.
 export function SessionResults({ sessionId, embedded = false }) {
   const navigate = useNavigate()
   const pb = usePlayback(sessionId)
@@ -83,13 +80,13 @@ export function SessionResults({ sessionId, embedded = false }) {
   if (error) return <p role="alert" className="text-ember-700">{error}</p>
   if (!report || !pb.data) return <LoadingSpinner label="Loading the session" />
 
-  const { session, events, empathyMoments: moments, humanSummary, mission } = report
-  const counts = issueCounts(moments)
+  const { session, mission } = report
+  const moments = listMoments(report.empathyMoments)
+  const counts = moments.length
+  const side = Boolean(mission || reportTask(session))
   const persona = session.persona_snapshot
   const who = persona?.name || 'them'
   const processing = !session.video_url && pb.waitingForVideo
-  const reviewLines = (session.coverage?.notes || []).filter((l) => l.startsWith('Check by hand'))
-  const lookedAt = report.lookedAt ? { ...report.lookedAt, gaps: (report.lookedAt.gaps || []).filter((l) => !l.startsWith('Check by hand')) } : null
 
   const watch = (m) => {
     const sec = pb.sessionMsToVideoSeconds(m.timestamp_ms)
@@ -149,7 +146,7 @@ export function SessionResults({ sessionId, embedded = false }) {
       </header>
 
       {/* Numbers, mission, video */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className={`mt-6 grid gap-6 ${side ? 'lg:grid-cols-[minmax(0,1fr)_300px]' : ''}`}>
         <div id={`player-${sessionId}`} className="min-w-0 scroll-mt-20">
           <PlaybackPlayer
             videoRef={pb.videoRef}
@@ -161,61 +158,32 @@ export function SessionResults({ sessionId, embedded = false }) {
             onLoadedMetadata={pb.onLoadedMetadata}
             onEnded={() => pb.setPlaying(false)}
           />
+          {(pb.videoUrl || processing) && (<>
           <Timeline currentTime={pb.currentTime} duration={pb.duration} empathyMoments={moments} sessionMsToVideoSeconds={pb.sessionMsToVideoSeconds} onSeek={pb.seekTo} />
           <PlaybackControls
             playing={pb.playing} toggle={pb.toggle} speed={pb.speed} setSpeed={pb.setSpeed}
             empathyMoments={moments} currentTime={pb.currentTime} sessionMsToVideoSeconds={pb.sessionMsToVideoSeconds}
             onSeek={pb.seekTo} onShare={() => setShareOpen(true)}
           />
+          </>)}
         </div>
-        <aside className="space-y-4">
-          <dl className="grid grid-cols-2 border-l border-t border-rule">
-            {[
-              [counts.issues, counts.issues === 1 ? 'issue' : 'issues'],
-              [counts.elements, counts.elements === 1 ? 'element affected' : 'elements affected'],
-              [counts.felt, counts.felt === 1 ? 'moment felt' : 'moments felt'],
-              [counts.review, 'to check by hand']
-            ].map(([v, l]) => (
-              <div key={l} className="flex flex-col border-b border-r border-rule bg-white p-3">
-                <dt className="order-2 text-xs text-ink-600">{l}</dt>
-                <dd className={`num order-1 font-mono text-2xl font-semibold ${v && l.startsWith('issue') ? 'text-ember-700' : 'text-ink-900'}`}>{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <Mission mission={mission} who={who} />
-          <TaskList session={session} />
-        </aside>
+        {side && (
+          <aside className="space-y-4">
+            <Mission mission={mission} who={who} />
+            <TaskList session={session} />
+          </aside>
+        )}
       </div>
 
-      {/* Every issue */}
-      <section aria-labelledby={`issues-${sessionId}`} className="mt-12">
-        <p className="eyebrow">01</p>
-        <h2 id={`issues-${sessionId}`} className="mt-1 text-2xl font-semibold text-ink-900">Every issue found</h2>
-        <div className="mt-6">
-          <IssueList moments={moments} reviewLines={reviewLines} onWatch={watch} emptyText={report.noMomentsText} />
+      {/* Every moment */}
+      <section aria-labelledby={`moments-${sessionId}`} className="mt-12">
+        <h2 id={`moments-${sessionId}`} className="text-2xl font-semibold text-ink-900">
+          Moments <span className="num font-mono text-lg text-ink-500">{counts}</span>
+        </h2>
+        <div className="mt-4">
+          <IssueList moments={moments} onWatch={watch} emptyText={session.coverage?.stoppedReason ? 'No moments were recorded.' : report.noMomentsText} />
         </div>
       </section>
-
-      <div className="mt-14">
-        <p className="eyebrow">02</p>
-        <JourneyMap session={session} events={events} empathyMoments={moments} />
-      </div>
-
-      {lookedAt && (
-        <section className="mt-14">
-          <p className="eyebrow">03</p>
-          <div className="mt-1"><LookedAt lookedAt={lookedAt} idPrefix={`looked-${sessionId}`} /></div>
-        </section>
-      )}
-
-      {humanSummary?.length > 0 && (
-        <section aria-labelledby={`plain-${sessionId}`} className="mt-14 max-w-3xl">
-          <p className="eyebrow">{lookedAt ? '04' : '03'}</p>
-          <h2 id={`plain-${sessionId}`} className="mt-1 text-2xl font-semibold text-ink-900">In plain words</h2>
-          <div className="mt-3 space-y-3 text-ink-700">{humanSummary.map((p, i) => <p key={i}>{p}</p>)}</div>
-          <p className="mt-6 text-sm text-ink-500">{report.intro} {report.snapshotNote}</p>
-        </section>
-      )}
 
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} sessionId={sessionId} />
     </article>

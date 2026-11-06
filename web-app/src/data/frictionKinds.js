@@ -4,6 +4,7 @@
 export const FRICTION_KINDS = {
   'tremor-missed': { group: 'tremor', title: 'Clicks that missed', why: 'Targets too small or too close together for a hand that shakes.' },
   'tremor-wrong-target': { group: 'tremor', title: 'Clicks that missed', why: 'Targets too small or too close together for a hand that shakes.' },
+  'keyboard-tab-skipped': { group: 'mouse-only', title: 'Skipped by Tab', why: 'They can be clicked, but Tab goes straight past them.' },
   'keyboard-mouse-only': { group: 'mouse-only', title: 'Only usable with a mouse', why: 'They react to clicks, but the keyboard can never reach them.' },
   'keyboard-focus-lost': { group: 'focus-lost', title: 'Lost place on the page', why: 'After a press of Tab, nothing visible had focus.' },
   'keyboard-focus-hidden': { group: 'focus-hidden', title: 'Tab stops you cannot see', why: 'Hidden, off-screen or covered places still take a stop in the Tab order.' },

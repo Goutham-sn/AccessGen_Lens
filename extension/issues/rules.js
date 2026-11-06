@@ -136,7 +136,7 @@ export function describeRule(result) {
     who: who.length ? who : [SR],
     impact: result.impact || 'moderate',
     helpUrl: result.helpUrl || null,
-    tags: (result.tags || []).filter((t) => /^wcag\d+a+$|^wcag\d{3,4}$|^best-practice$/.test(t))
+    tags: (result.tags || []).filter((t) => WCAG_TAGS.includes(t))
   }
 }
 
@@ -154,19 +154,18 @@ export function sortIssues(issues, relevantTo = []) {
   })
 }
 
-// The options every audit runs with: all rules (WCAG A, AA and AAA, best
-// practice and experimental), so nothing axe can find is left out.
+// The options every audit runs with: WCAG 2.0, 2.1 and 2.2, levels A and
+// AA only. No AAA, no best practice, no experimental rules.
+export const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 export const AXE_OPTIONS = {
-  resultTypes: ['violations', 'incomplete'],
-  rules: {
-    'color-contrast-enhanced': { enabled: true },
-    'target-size': { enabled: true },
-    'p-as-heading': { enabled: true },
-    'identical-links-same-purpose': { enabled: true },
-    'label-content-name-mismatch': { enabled: true },
-    'meta-viewport-large': { enabled: true },
-    'meta-refresh-no-exceptions': { enabled: true }
-  }
+  resultTypes: ['violations'],
+  runOnly: { type: 'tag', values: WCAG_TAGS }
+}
+
+// True when an axe result belongs to WCAG A or AA (a second guard, for
+// results that come from somewhere other than an AXE_OPTIONS run).
+export function isWcagAorAA(result) {
+  return (result.tags || []).some((t) => WCAG_TAGS.includes(t))
 }
 
 // What axe measured on a node, when it measured something people can see:

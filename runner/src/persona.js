@@ -214,7 +214,7 @@ export async function runPersona(job, s, deps) {
             detectors, deadline, persona: s, profileIds, walks,
             onWalked: () => {
               timings.mark('measureWalk')
-              progress.log?.(s.sessionId, 'Checking the whole page against every rule of the accessibility rules engine')
+              progress.log?.(s.sessionId, 'Checking the whole page against every WCAG A and AA rule, and for anything Tab skips')
             },
             onStop: (stop, n) => progress.log?.(s.sessionId, `Tab ${n}: ${describeStop(stop)}`, { kind: 'step', step: n, pass: 'measure' })
           })
@@ -225,9 +225,11 @@ export async function runPersona(job, s, deps) {
           {
             const audit = run.candidates.filter((c) => c.detector === 'page-audit')
             const elements = audit.reduce((n, c) => n + (c.evidence?.count || 1), 0)
-            const other = run.candidates.length - audit.length
-            progress.log?.(s.sessionId, `Found ${audit.length} accessibility rule${audit.length === 1 ? '' : 's'} broken on ${elements} element${elements === 1 ? '' : 's'}` +
-              (walks ? `, and ${other} keyboard problem${other === 1 ? '' : 's'} along the way` : ''), { kind: 'summary' })
+            const skipped = run.candidates.filter((c) => c.detector === 'tab-skipped').length
+            const other = run.candidates.length - audit.length - skipped
+            progress.log?.(s.sessionId, `Found ${audit.length} accessibility rule${audit.length === 1 ? '' : 's'} broken on ${elements} element${elements === 1 ? '' : 's'}, ` +
+              `${skipped} thing${skipped === 1 ? '' : 's'} Tab skips` +
+              (walks ? `, and ${other} other keyboard problem${other === 1 ? '' : 's'} along the way` : ''), { kind: 'summary' })
             progress.log?.(s.sessionId, 'Second pass: doing it again on camera, with the person\'s view, and showing each problem as it is confirmed')
           }
           debug.detectorProblems.push(...run.problems)

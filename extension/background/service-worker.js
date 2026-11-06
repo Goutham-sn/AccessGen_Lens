@@ -3,6 +3,7 @@
 // (via bridge.js), injects content scripts into the target tab, re-injects
 // on navigation, and relays realtime data back to the web app tab.
 
+
 const state = {
   isActive: false,
   sessionId: null,
@@ -92,11 +93,47 @@ stateReady.then(() => {
 
 // ---------------------------------------------------------------- injection
 
+// In the page's own world, as early as possible: notes which elements get
+// click handlers, so the scan can find things only a mouse can use (the
+// extension's own world cannot see the page's listeners).
+function injectClickRecorder(tabId) {
+  return chrome.scripting.executeScript({
+    target: { tabId },
+    world: 'MAIN',
+    injectImmediately: true,
+    files: ['content-scripts/click-recorder.js']
+  }).catch(() => {})
+}
+
+// For the session's own site, at document_start, so it runs before any of
+// the page's scripts (an injection after the page commits can be too late
+// for a listener added by an inline script). Removed when the session ends.
+const CLICK_RECORDER_ID = 'accessgen-click-recorder'
+async function registerClickRecorder(url) {
+  await unregisterClickRecorder()
+  let origin
+  try { origin = new URL(url).origin } catch { return }
+  if (!/^https?:/.test(origin)) return
+  await chrome.scripting.registerContentScripts([{
+    id: CLICK_RECORDER_ID,
+    js: ['content-scripts/click-recorder.js'],
+    matches: [`${origin}/*`],
+    runAt: 'document_start',
+    world: 'MAIN',
+    allFrames: false,
+    persistAcrossSessions: false
+  }]).catch((err) => console.warn('[accessgen] click recorder not registered:', err?.message))
+}
+async function unregisterClickRecorder() {
+  await chrome.scripting.unregisterContentScripts({ ids: [CLICK_RECORDER_ID] }).catch(() => {})
+}
+
 async function injectSimulation(tabId) {
   if (state.injectInFlight) return
   state.injectInFlight = true
 
   try {
+    await injectClickRecorder(tabId)
     await chrome.scripting.executeScript({
       target: { tabId },
       files: ['content-scripts/simulation-controller.js']
@@ -480,6 +517,7 @@ async function startSimulation({ profiles, sessionId, url, token, apiUrl, upload
   state.baseline = baseline === true
   state.missionStartedAt = null
   state.introShown = false
+  await registerClickRecorder(url)
 
   // Reuse a tab already showing the target URL, otherwise open a new one.
   const existing = (await chrome.tabs.query({})).find((t) => t.url === url)
@@ -612,6 +650,7 @@ async function stopSimulation() {
   // tabs.onRemoved listener below (which also fires for this very removal)
   // sees its guard fail and doesn't send a second, redundant "ended" event.
   clearBadge(tabId)
+  unregisterClickRecorder()
   state.isActive = false
   state.isRecording = false
   state.recordingStartedAt = null
@@ -790,6 +829,8 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
   await stateReady
   if (!state.isActive) return
   if (details.tabId !== state.targetTabId || details.frameId !== 0) return
+  // Before the page's scripts add their listeners, on every page load.
+  injectClickRecorder(details.tabId)
   // startSimulation is already injecting for this exact page load; this
   // commit event is for that same initial navigation, not a later one.
   // Handling it too would double-inject: two frame-capture timers, two
@@ -819,6 +860,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   await stateReady
   if (tabId !== state.targetTabId) return
+  unregisterClickRecorder()
 
   const sessionId = state.sessionId
   const token = state.token

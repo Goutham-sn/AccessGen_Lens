@@ -17,6 +17,7 @@ export const RUNNER_CAPABILITIES = {
       'focus-lost': true,
       'focus-hidden': true,
       trap: true,
+      'tab-skipped': true,
       'page-audit': true
     }
   },
@@ -26,20 +27,22 @@ export const RUNNER_CAPABILITIES = {
       // unnamed controls and fields, pictures with no description, page
       // structure. The tab walk gives what is heard at each stop.
       'tab-walk': true,
+      'tab-skipped': true,
       'page-audit': true
     }
   },
   'low-vision': {
     checks: {
       'filter-video': true,
+      'tab-skipped': true,
       'page-audit': true
     }
   },
   deuteranopia: {
-    checks: { 'filter-video': true, 'page-audit': true }
+    checks: { 'filter-video': true, 'tab-skipped': true, 'page-audit': true }
   },
   achromatopsia: {
-    checks: { 'filter-video': true, 'page-audit': true }
+    checks: { 'filter-video': true, 'tab-skipped': true, 'page-audit': true }
   }
 }
 

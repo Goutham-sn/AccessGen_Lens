@@ -142,7 +142,8 @@ export class Tremor extends BaseProfile {
     if (!intended || intended.closest('[data-accessgen]')) return
     if (actual === intended) return
     const r = intended.getBoundingClientRect()
-    const small = r.width < 44 || r.height < 44
+    // WCAG 2.2 AA (2.5.8): at least 24 by 24 pixels.
+    const small = r.width < 24 || r.height < 24
     reportFriction({
       kind: slipped ? 'tremor-slipped' : actual ? 'tremor-wrong-target' : 'tremor-missed',
       profileId: 'tremor',

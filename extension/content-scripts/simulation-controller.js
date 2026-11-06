@@ -9,6 +9,7 @@ import { showIntro } from '../overlay/Intro.js'
 import { showWhere } from '../overlay/ShowWhere.js'
 import { startAuditor } from './auditor.js'
 import { scanForKeyboard } from '../profiles/motor/keyboardScan.js'
+import { watchKeyboard } from '../profiles/motor/keyboardWatch.js'
 
 import { Deuteranopia } from '../profiles/visual/Deuteranopia.js'
 import { Achromatopsia } from '../profiles/visual/Achromatopsia.js'
@@ -177,9 +178,38 @@ import { ScreenReader } from '../profiles/screen-reader/ScreenReader.js'
         // and no skip link hurt keyboard, switch and screen reader users
         // whatever conditions this session simulates, so they are always
         // looked for (the rules engine cannot see click handlers).
+        // Again whenever the page has changed (a menu opened, more loaded),
+        // so what appears later is caught too. Each element is reported once.
+        let changed = false
+        const watch = new MutationObserver(() => { changed = true })
+        watch.observe(document.body || document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'tabindex', 'aria-expanded'] })
         const scans = [setTimeout(() => scanForKeyboard('keyboard-only'), 1300), setTimeout(() => scanForKeyboard('keyboard-only'), 6500)]
+        const again = setInterval(() => {
+          if (!changed) return
+          changed = false
+          scanForKeyboard('keyboard-only', { only: ['mouse-only'] })
+        }, 5000)
+        // Each press of Tab is checked in every session (Keyboard Only does
+        // this itself): a tester who tabs while simulating anything else
+        // still meets a missing focus ring, a covered focus or a loop.
+        const keyListeners = []
+        if (!(payload.profiles || []).some((p) => p.id === 'keyboard-only')) {
+          watchKeyboard({
+            profileId: 'keyboard-only',
+            addListener: (target, type, fn, options) => {
+              target.addEventListener(type, fn, options)
+              keyListeners.push([target, type, fn, options])
+            }
+          })
+        }
         const stop = stopAuditor
-        stopAuditor = () => { scans.forEach(clearTimeout); stop() }
+        stopAuditor = () => {
+          scans.forEach(clearTimeout)
+          clearInterval(again)
+          watch.disconnect()
+          for (const [target, type, fn, options] of keyListeners) target.removeEventListener(type, fn, options)
+          stop()
+        }
       }
       // Not while the step-in screen covers the page: the pictures would
       // show the screen, not the page.

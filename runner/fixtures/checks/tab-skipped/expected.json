@@ -1,0 +1,17 @@
+{
+  "skipped.html": {
+    "skipped": [
+      "removed-button:removed:tabindex",
+      "removed-link:removed:tabindex",
+      "removed-field:removed:tabindex",
+      "onclick-div:no-focus:handler",
+      "listener-span:no-focus:handler",
+      "role-button:no-focus:role",
+      "no-href:no-focus:no-href",
+      "pointer-div:no-focus:pointer",
+      "hidden-check:no-focus:label",
+      "react-div:no-focus:handler"
+    ],
+    "forcedOrder": ["forced"]
+  }
+}

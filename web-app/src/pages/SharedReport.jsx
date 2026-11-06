@@ -1,20 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ReportCover } from '../components/report/ReportCover.jsx'
-import { SimulationBanner } from '../components/start/SimulationBanner.jsx'
-import { EmpathyMoments } from '../components/report/EmpathyMoments.jsx'
-import { NoticedSummary } from '../components/report/NoticedSummary.jsx'
-import { LookedAt } from '../components/report/LookedAt.jsx'
 import { TaskList } from '../components/report/TaskList.jsx'
-import { SnapshotNote } from '../components/report/SnapshotNote.jsx'
+import { IssueList } from '../components/results/IssueList.jsx'
+import { listMoments } from '../utils/issues.js'
 import { Button } from '../components/shared/Button.jsx'
 import { LoadingSpinner } from '../components/shared/LoadingSpinner.jsx'
 import { mediaUrl, API_URL } from '../services/api.js'
 import { getVideoFilter } from '../data/simulationFilters.jsx'
 import { FramePlayer, playableFrames } from '../components/playback/FramePlayer.jsx'
 
-// Public, no-auth view of a shared empathy report.
+// Public, no-auth view of a shared session: the video and its moments.
 export default function SharedReport() {
+  const videoRef = useRef(null)
   const { token } = useParams()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -82,21 +80,17 @@ export default function SharedReport() {
         {!loading && !needsPassword && error && <p role="alert" className="text-red-700">{error}</p>}
 
         {!loading && data && (
-          <div className="space-y-12">
-            <ReportCover session={data.session} empathyMoments={data.empathyMoments} mission={data.mission} />
-            <SimulationBanner text={data.intro} />
-            <SnapshotNote ranAt={data.session.start_time} note={data.snapshotNote} />
+          <div className="space-y-10">
+            <ReportCover session={data.session} empathyMoments={listMoments(data.empathyMoments)} mission={data.mission} />
             <TaskList session={data.session} idPrefix="shared-task" />
-            <LookedAt lookedAt={data.lookedAt} idPrefix="shared-looked-at" />
-            <NoticedSummary empathyMoments={data.empathyMoments} onJump />
-            <EmpathyMoments empathyMoments={data.empathyMoments} emptyText={data.noMomentsText} />
             {(data.session.video_url || playableFrames(data.frames).length >= 2) && (
-              <section aria-labelledby="shared-watch-heading" className="card p-6">
-                <h2 id="shared-watch-heading" className="text-xl font-semibold text-ink-900 mb-4">Watch the session</h2>
+              <section aria-labelledby="shared-watch-heading">
+                <h2 id="shared-watch-heading" className="sr-only">The recording</h2>
                 {!data.session.video_url ? (
                   <FramePlayer frames={data.frames} controls label="Full session recording" />
                 ) : (
                 <video
+                  ref={videoRef}
                   src={mediaUrl(data.session.video_url)}
                   controls playsInline preload="metadata"
                   className="w-full rounded-xl bg-black"
@@ -106,6 +100,23 @@ export default function SharedReport() {
                 )}
               </section>
             )}
+            <section aria-labelledby="shared-moments-heading">
+              <h2 id="shared-moments-heading" className="text-2xl font-semibold text-ink-900">
+                Moments <span className="num font-mono text-lg text-ink-500">{listMoments(data.empathyMoments).length}</span>
+              </h2>
+              <div className="mt-4">
+                <IssueList
+                  moments={data.empathyMoments}
+                  emptyText={data.noMomentsText}
+                  onWatch={data.session.video_url ? (m) => {
+                    const v = videoRef.current
+                    if (!v) return
+                    v.currentTime = Math.max(0, (m.timestamp_ms - (data.session.recording_offset_ms || 0)) / 1000 - 1)
+                    v.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  } : null}
+                />
+              </div>
+            </section>
           </div>
         )}
       </main>

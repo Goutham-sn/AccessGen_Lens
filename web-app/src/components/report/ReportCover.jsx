@@ -13,7 +13,6 @@ export function ReportCover({ session, empathyMoments, mission = null, eventCoun
   const Who = persona?.name || 'The visitor'
   const duration = formatDuration(session.duration_seconds)
   const felt = empathyMoments.filter((m) => !isAutoMoment(m))
-  const noticed = empathyMoments.length - felt.length
   const place = session.page_title || 'this page'
   const gaveUp = mission?.as?.outcome === 'gave-up' || felt.some((m) => m.label === 'Would have given up')
 
@@ -26,12 +25,6 @@ export function ReportCover({ session, empathyMoments, mission = null, eventCoun
   else headline = `${Who} spent ${duration} on ${place}.`
 
   const hero = empathyMoments.find((m) => isAutoMoment(m) && m.screenshot_url && m.rect?.vw) || empathyMoments.find((m) => m.screenshot_url)
-  const stats = [
-    [duration, 'with the page'],
-    [String(felt.length), felt.length === 1 ? 'moment felt' : 'moments felt'],
-    [String(noticed), noticed === 1 ? 'struggle noticed' : 'struggles noticed'],
-    [String(eventCount || session.event_count || 0), 'interactions']
-  ]
 
   return (
     <section aria-label="Report cover" className="border-b border-rule pb-8">
@@ -64,14 +57,6 @@ export function ReportCover({ session, empathyMoments, mission = null, eventCoun
 
         <MissionResult mission={mission} who={persona?.name || 'them'} />
 
-        <dl className="mt-8 grid grid-cols-2 border-l border-t border-rule sm:grid-cols-4">
-          {stats.map(([value, label]) => (
-            <div key={label} className="flex flex-col border-b border-r border-rule bg-white p-3">
-              <dt className="order-2 text-xs text-ink-600">{label}</dt>
-              <dd className="num order-1 font-mono text-2xl font-semibold text-ink-900">{value}</dd>
-            </div>
-          ))}
-        </dl>
 
         {hero?.screenshot_url && (
           <figure className="mt-8">

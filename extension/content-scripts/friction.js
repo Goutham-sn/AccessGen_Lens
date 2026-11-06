@@ -11,7 +11,7 @@
 const PER_KIND_LIMIT = 12       // per page load, so one broken pattern cannot flood the report
 // Kinds that repeat for every element of one broken pattern (a site that
 // removes every focus outline): a few examples say it, more is noise.
-const KIND_LIMITS = { 'keyboard-no-focus-ring': 3, 'keyboard-focus-hidden': 3, 'keyboard-focus-covered': 3, 'sr-unnamed-focus': 4, 'tremor-missed': 6, 'tremor-wrong-target': 6 }
+const KIND_LIMITS = { 'keyboard-tab-skipped': 80, 'keyboard-no-focus-ring': 30, 'keyboard-focus-hidden': 30, 'keyboard-focus-covered': 30, 'sr-unnamed-focus': 4, 'tremor-missed': 6, 'tremor-wrong-target': 6 }
 const SAME_TARGET_COOLDOWN_MS = 20000
 
 function getState() {

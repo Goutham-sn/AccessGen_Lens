@@ -7,6 +7,7 @@
 // each is reported once per page with the first example highlighted.
 
 import { reportFriction, describeElement } from '../../content-scripts/friction.js'
+import { findTabSkipped, skippedCopy } from '../../issues/tabSkipped.js'
 
 const FOCUSABLE = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, iframe, [tabindex], [contenteditable=""], [contenteditable="true"]'
 const NATIVE_INTERACTIVE = /^(A|BUTTON|INPUT|SELECT|TEXTAREA|SUMMARY|LABEL|OPTION|IFRAME|VIDEO|AUDIO)$/
@@ -43,33 +44,6 @@ function withPageCursors(fn) {
   } finally {
     ourStyles.forEach((s, i) => { s.disabled = was[i] })
   }
-}
-
-// Things that react to the mouse (a pointer cursor, a click handler in the
-// markup, a button role) but that Tab can never reach.
-export function findMouseOnly(root = document) {
-  return withPageCursors(() => {
-    const found = []
-    const list = root.querySelectorAll(CANDIDATES)
-    for (let i = 0; i < list.length && i < MAX_CANDIDATES; i++) {
-      const el = list[i]
-      if (NATIVE_INTERACTIVE.test(el.tagName) || ours(el) || isFocusable(el)) continue
-      const role = el.getAttribute('role')
-      const handler = el.hasAttribute('onclick') || role === 'button' || role === 'link' || role === 'tab' ||
-        role === 'menuitem' || role === 'checkbox'
-      const cs = getComputedStyle(el)
-      const pointer = cs.cursor === 'pointer'
-      if (!handler && !pointer) continue
-      // Only the outermost of a clickable area: cursor is inherited.
-      if (!handler && el.parentElement && getComputedStyle(el.parentElement).cursor === 'pointer') continue
-      // Reachable through a link or button inside it or around it.
-      if (el.closest('a[href], button, label, summary, [tabindex]:not([tabindex="-1"])')) continue
-      if (el.querySelector(FOCUSABLE)) continue
-      if (!visible(el)) continue
-      found.push(el)
-    }
-    return found
-  })
 }
 
 // Style rules that show something on :hover with no :focus or
@@ -147,19 +121,26 @@ export function mouseOnlyTarget(target) {
 
 // only: which findings to look for (Switch Access has no Tab key, so the
 // Tab order and skip link findings are for Keyboard Only).
-export function scanForKeyboard(profileId, { only = ['mouse-only', 'hover-menu', 'no-skip'] } = {}) {
-  // A forced Tab order is the rules engine's "tabindex" rule (auditor.js), so it is not repeated here.
-  const mouseOnly = only.includes('mouse-only') ? findMouseOnly() : []
-  if (mouseOnly.length) {
-    reportFriction({
-      kind: 'keyboard-mouse-only',
-      profileId,
-      target: mouseOnly[0],
-      headline: mouseOnly.length === 1
-        ? `${describeElement(mouseOnly[0])} can only be used with a mouse`
-        : `${mouseOnly.length} things on this page can only be used with a mouse, like ${describeElement(mouseOnly[0])}`,
-      detail: 'They look clickable, but Tab never stops on them. Without a mouse they cannot be reached at all.'
-    })
+// Elements already reported this page load: each once, whatever rescans.
+const reportedSkips = new WeakSet()
+
+export function scanForKeyboard(profileId, { only = ['mouse-only', 'hover-menu', 'no-skip', 'tab-order'] } = {}) {
+  // Everything Tab skips, each as its own moment (the same detector as
+  // the runner's tab-skipped check).
+  if (only.includes('mouse-only')) {
+    for (const item of findTabSkipped({ max: 80, withElements: true })) {
+      if (reportedSkips.has(item.element)) continue
+      reportedSkips.add(item.element)
+      const copy = skippedCopy(item, 'Someone using only a keyboard')
+      reportFriction({
+        kind: 'keyboard-tab-skipped',
+        profileId,
+        target: item.element,
+        headline: copy.headline,
+        detail: copy.fact,
+        evidence: { skipped: true, reason: item.reason, how: item.how, kind: item.kind, name: item.name, html: item.html, forTeam: copy.forTeam }
+      })
+    }
   }
 
   const menus = only.includes('hover-menu') ? findHoverOnlyMenus() : []

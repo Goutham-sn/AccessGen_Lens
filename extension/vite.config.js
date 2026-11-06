@@ -15,6 +15,7 @@ export default defineConfig({
         bridge: resolve(__dirname, 'content-scripts/bridge.js'),
         'simulation-controller': resolve(__dirname, 'content-scripts/simulation-controller.js'),
         recorder: resolve(__dirname, 'content-scripts/recorder.js'),
+        'click-recorder': resolve(__dirname, 'content-scripts/click-recorder.js'),
         popup: resolve(__dirname, 'popup/popup.js'),
         offscreen: resolve(__dirname, 'offscreen/offscreen.js')
       },
@@ -41,6 +42,7 @@ export default defineConfig({
             bridge: 'content-scripts/bridge.js',
             'simulation-controller': 'content-scripts/simulation-controller.js',
             recorder: 'content-scripts/recorder.js',
+            'click-recorder': 'content-scripts/click-recorder.js',
             popup: 'popup/popup.js',
             offscreen: 'offscreen/offscreen.js'
           }

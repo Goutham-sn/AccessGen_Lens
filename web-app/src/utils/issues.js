@@ -28,6 +28,28 @@ export function splitMoments(moments = []) {
   return { audit, review, seen, felt }
 }
 
+const LEVEL_A_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
+
+// A moment the results page shows: not something left to check by hand,
+// and for a rules finding, only WCAG A and AA (sessions recorded before the
+// audit was limited to those may hold AAA and best-practice findings).
+export function isShownMoment(m) {
+  const a = auditOf(m)
+  if (!a) return !/^Check by hand/.test(m?.headline || m?.label || '')
+  if (a.review) return false
+  const tags = a.tags || []
+  return !tags.length || tags.some((t) => LEVEL_A_AA.includes(t))
+}
+
+// The moments to list, in the order they happened.
+export function listMoments(moments = []) {
+  return moments
+    .filter(isShownMoment)
+    .map((m, i) => ({ m, i }))
+    .sort((x, y) => (x.m.timestamp_ms ?? Infinity) - (y.m.timestamp_ms ?? Infinity) || x.i - y.i)
+    .map(({ m }) => m)
+}
+
 export function issueCounts(moments = []) {
   const { audit, review, seen, felt } = splitMoments(moments)
   return {

@@ -1,6 +1,7 @@
 import os from 'node:os'
 import { chromium } from 'playwright'
 import { config } from './config.js'
+import { installClickRecorder } from '../../extension/issues/clickRecorder.js'
 
 // The browser gets only what it needs to start. No database, MinIO or JWT
 // secrets: those stay in the worker process.
@@ -94,6 +95,10 @@ export async function newSafeContext(browser, { blockedHosts, recordVideoDir } =
     }
     return route.continue()
   })
+
+  // Notes which elements get click handlers, before the page's own scripts
+  // run, so the tab-skipped check can find things only a mouse can use.
+  await context.addInitScript(installClickRecorder)
 
   return context
 }

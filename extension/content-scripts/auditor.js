@@ -1,15 +1,15 @@
-// The page audit in Manual sessions: axe-core, every rule it has, on every
-// page the tester visits, and again when the page changes a lot (a dialog
+// The page audit in Manual sessions: axe-core, WCAG 2.0, 2.1 and 2.2 rules
+// at levels A and AA only, on every page the tester visits, and again when the page changes a lot (a dialog
 // opens, a menu expands, content loads). Each rule that fails becomes one
 // automatic moment listing every element that fails it; a rule that fails
-// again later on new elements gets a moment for those. What axe cannot
-// decide alone is recorded as "check by hand", never dropped.
+// again later on new elements gets a moment for those. Only real failures
+// are reported, nothing the engine could not decide.
 //
 // Runs in the extension's isolated world: axe reads the DOM and computed
 // styles, which are the page's own. AccessGen's own elements are excluded.
 
 import axe from 'axe-core'
-import { describeRule, nodeSummary, AXE_OPTIONS } from '../issues/rules.js'
+import { describeRule, nodeSummary, AXE_OPTIONS, isWcagAorAA } from '../issues/rules.js'
 import { reportFriction } from './friction.js'
 import { contrastRegistry } from '../profiles/visual/contrastLoss.js'
 
@@ -89,14 +89,13 @@ export function startAuditor({ profileIds = [] } = {}) {
       // ones: contrast comes from the measurement taken before fading.
       const faded = contrastRegistry.active > 0
       const options = faded
-        ? { ...AXE_OPTIONS, rules: { ...AXE_OPTIONS.rules, 'color-contrast': { enabled: false }, 'color-contrast-enhanced': { enabled: false }, 'link-in-text-block': { enabled: false } } }
+        ? { ...AXE_OPTIONS, rules: { 'color-contrast': { enabled: false }, 'link-in-text-block': { enabled: false } } }
         : AXE_OPTIONS
       const result = await axe.run(
         { exclude: [['[data-accessgen]'], ['#accessgen-control-panel']] },
         options
       )
       report(faded ? [...result.violations, ...contrastFromRegistry()] : result.violations, false)
-      report(result.incomplete, true)
     } catch (err) {
       console.warn('[accessgen] page audit failed:', err?.message)
     } finally {
@@ -107,6 +106,7 @@ export function startAuditor({ profileIds = [] } = {}) {
 
   function report(results, review) {
     for (const r of results) {
+      if (!isWcagAorAA(r)) continue
       const key = `${review ? 'review' : 'audit'}:${r.id}`
       const known = seen.get(key) || new Set()
       const fresh = r.nodes.filter((n) => !known.has(String(n.target)))

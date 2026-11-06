@@ -50,7 +50,6 @@ test('the report HTML carries a button name as escaped text, never as an element
   const html = buildReportHtml({ session, moments })
   assert.ok(!html.includes('<img src=x'), 'no raw tag from the page')
   assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'), 'escaped instead')
-  assert.ok(html.includes('What we could not look at'), 'the coverage line is in the PDF')
 })
 
 test('the PDF labels moments from unverified checks, and only those', () => {
@@ -60,14 +59,29 @@ test('the PDF labels moments from unverified checks, and only those', () => {
   }
   const labelled = buildReportHtml({ session: unverifiedSession, moments: [{ ...moments[0], unverified: true }] })
   const count = (html) => html.split('Unverified, for testing').length - 1
-  assert.equal(count(labelled), 2, 'on the moment card and in what we looked at')
+  assert.equal(count(labelled), 1, 'on the moment card')
   assert.equal(count(buildReportHtml({ session, moments })), 0, 'nothing is labelled when nothing is unverified')
 })
 
-test('the PDF says when the run happened and that the same page can differ between days', () => {
-  const html = buildReportHtml({ session: { ...session, start_time: '2026-10-06T14:32:00Z' }, moments })
-  assert.ok(html.includes('Run on 6 October 2026 at 14:32 UTC.'), 'the run date and time')
-  assert.ok(html.includes('The same page can give different results on different days.'))
+test('the PDF lists only moments: WCAG A and AA, nothing to check by hand, in time order', () => {
+  const audit = (rule, tags, extra = {}) => ({ id: rule, timestamp_ms: 1000, source: 'extension-auto', headline: rule, evidence: { audit: true, rule, tags, nodes: [], ...extra } })
+  const html = buildReportHtml({
+    session,
+    moments: [
+      { ...moments[0], id: 'late', timestamp_ms: 9000, label: 'LATE' },
+      audit('AA-RULE', ['wcag2aa']),
+      audit('AAA-RULE', ['wcag2aaa']),
+      audit('BP-RULE', ['best-practice']),
+      audit('REVIEW-RULE', ['wcag2a'], { review: true })
+    ]
+  })
+  assert.ok(html.includes('AA-RULE'))
+  assert.ok(!html.includes('AAA-RULE'), 'no AAA')
+  assert.ok(!html.includes('BP-RULE'), 'no best practice')
+  assert.ok(!html.includes('REVIEW-RULE'), 'nothing left to check by hand')
+  assert.ok(!html.includes('What we looked at'), 'no list of checks')
+  assert.ok(html.indexOf('AA-RULE') < html.indexOf('LATE'), 'in the order they happened')
+  assert.ok(html.includes('Moments (2)'))
 })
 
 test('the PDF shows the button name as plain text', async () => {

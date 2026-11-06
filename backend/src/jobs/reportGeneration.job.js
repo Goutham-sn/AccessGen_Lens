@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer'
-import { lookedAt, noMomentsText } from '../utils/lookedAt.js'
-import { SIMULATION_INTRO, SNAPSHOT_NOTE, ranOnLine, UNVERIFIED_LABEL } from '../config/copy.js'
+import { noMomentsText } from '../utils/lookedAt.js'
+import { UNVERIFIED_LABEL } from '../config/copy.js'
 import { Session } from '../models/Session.js'
 import { EmpathyMoment } from '../models/EmpathyMoment.js'
 import { getObjectBuffer, putBuffer } from '../utils/storage.js'
@@ -37,17 +37,6 @@ export async function processReportGeneration(sessionId) {
   console.log(`[report] PDF generated for session ${sessionId}`)
 }
 
-// The report's HTML. Pictures are data: URLs, so the page needs nothing
-// from the network. images: { [momentId]: dataUrl }.
-// What a run looked at and could not look at, above the moments.
-function lookedAtHtml(looked) {
-  if (!looked) return ''
-  const list = (items) => `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`
-  const u = looked.unverified
-  return `<h2>What we looked at</h2>${looked.noItems ? `<p>${esc(looked.noItems)}</p>` : list(looked.items)}` +
-    (u ? `<p><span class="unverified">${esc(u.label)}</span> ${u.moments} ${u.moments === 1 ? 'moment' : 'moments'} from these checks.</p>${list(u.items)}` : '') +
-    (looked.gaps.length ? `<h2>What we could not look at</h2>${list(looked.gaps)}` : '')
-}
 
 function fmtMs(ms) {
   if (ms == null) return '-'
@@ -67,12 +56,32 @@ function missionHtml(mission, who) {
     (verdict ? `<p class="verdict">${esc(verdict)}</p>` : '') + '</div>'
 }
 
-export function buildReportHtml({ session, moments, cover = null, images = {}, mission = null }) {
-  const looked = lookedAt(session, moments.length)
+const LEVEL_A_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
+
+// The moments the report lists: never something left to check by hand, and
+// for a rules finding only WCAG A and AA (older sessions may hold others).
+export function shownMoments(moments = []) {
+  return moments
+    .filter((m) => {
+      const audit = m.evidence?.audit ? m.evidence : m.evidence?.measured?.audit ? m.evidence.measured : null
+      if (!audit) return !/^Check by hand/.test(m.headline || m.label || '')
+      if (audit.review) return false
+      const tags = audit.tags || []
+      return !tags.length || tags.some((t) => LEVEL_A_AA.includes(t))
+    })
+    .map((m, i) => ({ m, i }))
+    .sort((x, y) => (x.m.timestamp_ms ?? Infinity) - (y.m.timestamp_ms ?? Infinity) || x.i - y.i)
+    .map(({ m }) => m)
+}
+
+// The report's HTML: the cover, then every moment in order. Pictures are
+// data: URLs, so the page needs nothing from the network.
+// images: { [momentId]: dataUrl }.
+export function buildReportHtml({ session, moments: allMoments, cover = null, images = {}, mission = null }) {
+  const moments = shownMoments(allMoments)
   const persona = session.persona_snapshot
   const who = persona?.name || 'A visitor'
   const duration = durationText(session.duration_seconds)
-  const noticed = moments.filter(isAutoMoment).length
   const profiles = (session.active_profiles || []).map((p) => p.name || p.id)
 
   const momentCards = moments.map((m) => {
@@ -86,9 +95,8 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
           <p class="moment-time">${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} into the session</p>
           ${m.unverified ? `<p><span class="unverified">${esc(UNVERIFIED_LABEL)}</span></p>` : ''}
           ${isAutoMoment(m) ? '<p><span class="auto">Noticed by the simulation</span></p>' : ''}
-          ${audit ? `<p><span class="impact">${esc(audit.impact)}</span> <span class="mono" style="font-size:11px;color:#6b6b6b">${esc(audit.rule)}${audit.review ? ' · check by hand' : ''}</span></p>` : ''}
           <h3>${isAutoMoment(m) || m.source === 'runner' ? esc(m.headline || m.label) : `"${esc(m.label)}"`}</h3>
-          ${m.fact || m.note ? `<p class="${isAutoMoment(m) || m.source === 'runner' ? 'detail' : 'note'}">${esc(m.fact || m.note)}</p>` : ''}
+          ${audit?.why || m.fact || m.note ? `<p class="${isAutoMoment(m) || m.source === 'runner' ? 'detail' : 'note'}">${esc(audit?.why || m.fact || m.note)}</p>` : ''}
           ${audit?.nodes?.length ? `<ol class="els">${audit.nodes.slice(0, 12).map((n) => `<li><code>${esc(n.selector)}</code></li>`).join('')}${audit.count > 12 ? `<li>and ${audit.count - 12} more</li>` : ''}</ol>` : ''}
         </div>
       </div>`
@@ -142,22 +150,8 @@ export function buildReportHtml({ session, moments, cover = null, images = {}, m
       ${cover && String(cover).startsWith('data:image/') ? `<img src="${cover}" alt="" />` : ''}
     </div>
     <div class="page">
-      <p class="intro">${esc(SIMULATION_INTRO)}</p>
-      <p class="snapshot">${esc(ranOnLine(session.start_time))} ${esc(SNAPSHOT_NOTE)}</p>
-      <h2>The experience in numbers</h2>
-      <div class="numbers">
-        <div class="num"><span class="big">${esc(duration)}</span>time spent</div>
-        <div class="num"><span class="big">${moments.length - noticed}</span>moments felt</div>
-        <div class="num"><span class="big">${noticed}</span>struggles noticed</div>
-        <div class="num"><span class="big">${session.event_count || 0}</span>interactions needed</div>
-      </div>
-      ${persona?.story ? `<p>${esc(persona.story)}</p>` : ''}
-      ${lookedAtHtml(looked)}
-      <h2>Every issue found</h2>
-      ${momentCards.join('') || `<p>${esc(noMomentsText(session, 0) || '')}</p>`}
-      <h2>What this means</h2>
-      <p>None of this is about compliance. It is about whether ${esc(who)} can do what they came to do.
-      Each moment above is a place where a real person would slow down, get lost, or give up entirely.</p>
+      <h2>Moments (${moments.length})</h2>
+      ${momentCards.join('') || `<p>${esc(session.coverage?.stoppedReason || noMomentsText(session, 0) || '')}</p>`}
     </div>
   </body></html>`
   return html
